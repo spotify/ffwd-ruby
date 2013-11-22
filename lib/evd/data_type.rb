@@ -1,7 +1,13 @@
 module EVD
   class DataType
+    attr_accessor :app
+
     def process(msg)
       raise Exception.new("process: Not Implemented")
+    end
+
+    def emit(data)
+      app.emit(data)
     end
 
     class << self

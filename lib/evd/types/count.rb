@@ -12,8 +12,7 @@ module EVD
       a - b
     end
 
-    def initialize(app)
-      @app = app
+    def initialize(opts={})
       @cache = {}
       @operations = {
         "sub" => method(:op_sub),
@@ -33,14 +32,12 @@ module EVD
 
       value = msg["value"] || 0
 
-      old = @cache[key]
-
-      unless old.nil?
-        value = oper.call(old, value)
-        @app.emit(:key => key, :value => value)
+      unless (prev_value = @cache[key]).nil?
+        value = oper.call(prev_value, value)
       end
 
       @cache[key] = value
+      emit(:key => key, :value => value)
     end
   end
 end

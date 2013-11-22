@@ -6,13 +6,15 @@ require 'evd/data_type'
 
 module EVD
   class App
+    include EVD::Logging
+
     def initialize
       require 'evd/types/derive'
       require 'evd/types/count'
     end
 
     def run(plugins)
-      @registry = setup_registry
+      @datatypes = setup_datatypes
 
       input_buffer = EM::Queue.new
 
@@ -23,45 +25,50 @@ module EVD
           plugin.setup input_buffer
         end
 
-        process_one input_buffer
+        process_input_buffer input_buffer
       end
     end
 
+    # Is called whenever a DataType has finished processing a value.
     def emit(event)
-      puts event
+      log.info "emit: #{event}"
     end
 
     private
 
-    def setup_registry
-      registry = {}
+    def setup_datatypes
+      datatypes = {}
 
       DataType.registry.each do |name, klass|
-        registry[name] = klass.new(self)
+        data_type = klass.new
+        data_type.app = self
+        datatypes[name] = data_type
       end
 
-      registry
+      datatypes
     end
 
-    def process_one(input_buffer)
+    def process_input_buffer(input_buffer)
       input_buffer.pop do |msg|
         process_message msg
-        process_one input_buffer
+        process_input_buffer input_buffer
       end
     end
 
     def process_message(msg)
+      log.info "Received message: #{msg}"
+
       return unless msg.is_a? Hash
 
       type = msg["$type"]
       return if type.nil?
 
-      instance = @registry[type]
-      return if instance.nil?
+      data_type = @datatypes[type]
+      return if data_type.nil?
 
       msg["time"] = Time.now unless msg["time"]
 
-      instance.process msg
+      data_type.process msg
     end
   end
 end

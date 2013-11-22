@@ -4,8 +4,7 @@ module EVD
   class Derive < DataType
     register_type "derive"
 
-    def initialize(app)
-      @app = app
+    def initialize
       @cache = {}
     end
 
@@ -26,7 +25,7 @@ module EVD
 
         if difference > 0
           rate = (current_value - prev_value) / difference
-          @app.emit(:key => key, :value => rate)
+          emit(:key => key, :value => rate)
         end
       end
 
