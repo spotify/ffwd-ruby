@@ -3,14 +3,15 @@ require 'eventmachine'
 
 require 'evd/logging'
 require 'evd/data_type'
+require 'evd/plugin_loader'
 
 module EVD
   class App
     include EVD::Logging
 
     def initialize
-      require 'evd/types/derive'
-      require 'evd/types/count'
+      PluginLoader.load 'types'
+      PluginLoader.load 'plugin'
     end
 
     def run(plugins)
@@ -40,6 +41,8 @@ module EVD
       datatypes = {}
 
       DataType.registry.each do |name, klass|
+        log.info "DataType: #{name}"
+
         data_type = klass.new
         data_type.app = self
         datatypes[name] = data_type
