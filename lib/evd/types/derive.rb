@@ -1,0 +1,36 @@
+require 'evd/data_type'
+
+module EVD
+  class Derive < DataType
+    register_type "derive"
+
+    def initialize(app)
+      @app = app
+      @cache = {}
+    end
+
+    def process(msg)
+      key = msg["key"]
+      return unless key
+
+      current_time = msg["time"]
+      current_value = msg["value"] || 0
+
+      prev = @cache[key]
+
+      if prev
+        prev_time = prev["time"]
+        prev_value = prev["value"]
+
+        difference = (current_time - prev_time)
+
+        if difference > 0
+          rate = (current_value - prev_value) / difference
+          @app.emit(:key => key, :value => rate)
+        end
+      end
+
+      @cache[key] = msg
+    end
+  end
+end

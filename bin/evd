@@ -1,0 +1,17 @@
+#!/usr/bin/env ruby
+
+#!/usr/bin/env ruby
+
+if __FILE__ == $0
+    lib = File.expand_path File.join('..', '..', 'lib'), $0
+    $:.insert(0, lib) if File.file? File.join(lib, 'evd.rb')
+end
+
+begin
+    require 'evd'
+rescue LoadError
+    require 'rubygems'
+    require 'evd'
+end
+
+exit EVD::main(ARGV || [])
