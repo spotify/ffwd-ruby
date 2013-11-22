@@ -7,7 +7,7 @@ module EVD
   class InputTcpJson < InputPlugin
     include EVD::Logging
 
-    register_input "input_tcp_json"
+    register_input "tcp_json"
 
     class InputConnection < EventMachine::Connection
       include EventMachine::Protocols::LineText2

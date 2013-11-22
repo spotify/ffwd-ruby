@@ -3,39 +3,64 @@ require 'eventmachine'
 
 require 'evd/logging'
 require 'evd/data_type'
-require 'evd/plugin_loader'
 
 module EVD
   class App
     include EVD::Logging
 
-    def initialize
-      PluginLoader.load 'types'
-      PluginLoader.load 'plugin'
+    def initialize(opts={})
+      @input_buffer = EventMachine::Queue.new
+      @output_buffer = EventMachine::Queue.new
+      @output_buffers = []
+      @s_count = 0
+      @s_then = nil
+      @statistics_period = opts[:statistics_period] || 10
     end
 
     def run(plugins)
       @datatypes = setup_datatypes
-
-      input_buffer = EM::Queue.new
+      @s_then = Time.new
 
       input_plugins = plugins[:input]
+      output_plugins = plugins[:output]
 
       EventMachine.run do
         input_plugins.each do |plugin|
-          plugin.setup input_buffer
+          plugin.setup @input_buffer
         end
 
-        process_input_buffer input_buffer
+        output_plugins.each do |plugin|
+          output_buffer = EventMachine::Queue.new
+          plugin.setup output_buffer
+          @output_buffers << output_buffer
+        end
+
+        process_input_buffer
+        process_output_buffer
+
+        EventMachine::PeriodicTimer.new(@statistics_period) do
+          generate_statistics
+        end
       end
     end
 
     # Is called whenever a DataType has finished processing a value.
     def emit(event)
-      log.info "emit: #{event}"
+      @output_buffer << event
     end
 
     private
+
+    def generate_statistics()
+      now = Time.new
+      diff = (now - @s_then)
+      rate = @s_count / diff
+
+      emit(:key => 'evd/rate', :value => rate)
+
+      @s_then = now
+      @s_count = 0
+    end
 
     def setup_datatypes
       datatypes = {}
@@ -51,16 +76,22 @@ module EVD
       datatypes
     end
 
-    def process_input_buffer(input_buffer)
-      input_buffer.pop do |msg|
-        process_message msg
-        process_input_buffer input_buffer
+    def process_input_buffer
+      @input_buffer.pop do |msg|
+        process_input msg
+        process_input_buffer
       end
     end
 
-    def process_message(msg)
-      log.info "Received message: #{msg}"
+    def process_output_buffer
+      @output_buffer.pop do |event|
+        @s_count += 1
+        process_output event
+        process_output_buffer
+      end
+    end
 
+    def process_input(msg)
       return unless msg.is_a? Hash
 
       type = msg["$type"]
@@ -72,6 +103,12 @@ module EVD
       msg["time"] = Time.now unless msg["time"]
 
       data_type.process msg
+    end
+
+    def process_output(event)
+      @output_buffers.each do |buffer|
+        buffer << event
+      end
     end
   end
 end
