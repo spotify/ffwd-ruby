@@ -47,8 +47,10 @@ module EVD
     def initialize(opts={})
       @flush_period = opts[:flush_period] || 10
       @cache_limit = opts[:cache_limit] || 1000
-      @times_limit = opts[:times_limit] || 1000
+      @times_limit = opts[:times_limit] || 10000
       @precision = opts[:precision] || 3
+      @percentiles = opts[:percentiles] || DEFAULT_PERCENTILES
+
       @_cache = {}
     end
 
@@ -69,25 +71,29 @@ module EVD
       end
     end
 
-    def calculate(times, percentiles=DEFAULT_PERCENTILES)
+    def calculate(times)
       total = times.size
 
-      perc_map = Hash[percentiles.map{
-        |k, v| [(total * v).ceil - 1, {:name => k, :value => nil}]}
-      ]
+      perc_map = {}
+
+      @percentiles.each do |k, v|
+        index = (total * v).ceil - 1
+        percs = perc_map[index] ||= []
+        percs << {:name => k, :value => nil}
+      end
 
       max = nil
       min = nil
       sum = 0.0
       mean = nil
 
-      times.sort.each_with_index do |t, i|
+      times.sort.each_with_index do |t, index|
         max = t if max.nil? or t > max
         min = t if min.nil? or t < min
         sum += t
 
-        unless perc_map[i].nil?
-          perc_map[i][:value] = t
+        unless (percs = perc_map[index]).nil?
+          percs.each{|d| d[:value] = t}
         end
       end
 
@@ -99,8 +105,8 @@ module EVD
         sum = sum.round(@precision)
         mean = mean.round(@precision)
 
-        perc_map.each do |i, d|
-          d[:value] = d[:value].round(@precision)
+        perc_map.each do |index, percs|
+          percs.each{|d| d[:value] = d[:value].round(@precision)}
         end
       end
 
@@ -109,8 +115,10 @@ module EVD
       yield "sum", sum
       yield "mean", mean
 
-      perc_map.each do |name, d|
-        yield d[:name], d[:value]
+      perc_map.each do |index, percs|
+        percs.each do |d|
+          yield d[:name], d[:value]
+        end
       end
     end
 

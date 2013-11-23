@@ -19,38 +19,6 @@ module EVD
 
     register_plugin "riemann"
 
-    class RiemannTCPConnection < EventMachine::Connection
-      include EVD::Logging
-
-      def initialize(output, host, port)
-        @host = host
-        @port = port
-        @bad_acks = 0
-        @output = output
-      end
-
-      def connection_completed
-        log.info "Connected to #{@host}:#{@port}"
-        @output.connected = self
-      end
-
-      def unbind
-        log.info "Disconnected from #{@host}:#{@port}"
-        @output.connected = nil
-        @output.reconnect
-      end
-
-      def receive_data(data)
-        message = ::Riemann::Message.decode data
-
-        # Not a lot to do to handle the situation.
-        if not message.ok
-          @bad_acks += 1
-          log.warning "#{@ip}:#{@port}: Received bad acknowledge"
-        end
-      end
-    end
-
     module RiemannOutputBase
       def make_event(event)
         ::Riemann::Event.new(
@@ -88,44 +56,106 @@ module EVD
       include EVD::Logging
       include RiemannOutputBase
 
-      def initialize(host, port, tags, attributes)
+      INITIAL_TIMEOUT = 2
+
+      attr_reader :peer
+
+      class Connection < EventMachine::Connection
+        include EVD::Logging
+
+        def initialize(out)
+          @bad_acks = 0
+          @out = out
+        end
+
+        def connection_completed
+          log.info "Connected to #{@out.peer}"
+          @out.connected = self
+        end
+
+        def unbind
+          log.info "Disconnected from #{@out.peer}"
+          @out.connected = nil
+          @out.reconnect
+        end
+
+        def receive_data(data)
+          message = ::Riemann::Message.decode data
+
+          # Not a lot to do to handle the situation.
+          if not message.ok
+            @bad_acks += 1
+            log.warning "Bad acknowledge from #{@out.peer}"
+          end
+        end
+      end
+
+      def initialize(host, port, tags, attributes, flush_period)
         @host = host
         @port = port
         @tags = tags
         @attributes = attributes
+        @flush_period = flush_period
+
+        @peer = "#{@host}:#{@port}"
         @connected = nil
         @dropped_messages = 0
 
-        @reconnect_timeout = 2
+        @events = []
+        @timeout = INITIAL_TIMEOUT
       end
 
       def handle(event)
-        e = make_event(event)
-        m = make_message :events => [e]
-        @connected.send_data m.encode_with_length
+        @events << event
       end
 
+      #
+      # Flush buffered events (if any).
+      #
+      def flush_events
+        return if @events.empty?
+
+        events = @events.map{|e| make_event(e)}
+        message = make_message :events => event
+
+        @events = []
+
+        begin
+          data = message.encode_with_length
+          @connected.send_data data
+        rescue
+          log.error "Failed to send events: #{$!}"
+        end
+      end
+
+      #
+      # Setup riemann tcp connection.
+      #
       def setup(buffer)
         connect
         collect_events buffer
+
+        EventMachine::PeriodicTimer.new(@flush_period) do
+          flush_events
+        end
       end
 
       def connected=(value)
         @connected = value
         # reset timeout if this is a new connection.
-        @reconnect_timeout = 2 unless value.nil?
+        @timeout = INITIAL_TIMEOUT unless value.nil?
       end
 
       def connect
         return unless @connected.nil?
-        EventMachine.connect(@host, @port, RiemannTCPConnection,
-                             self, @host, @port)
+        EventMachine.connect(@host, @port, Connection, self)
       end
 
       def reconnect
-        log.info "Reconnecting in #{@reconnect_timeout}s"
-        EventMachine::Timer.new(@reconnect_timeout) do
-          @reconnect_timeout *= 2
+        log.info "Reconnecting to #{peer} in #{@timeout}s"
+
+        EventMachine::Timer.new(@timeout) do
+          @timeout *= 2
           connect
         end
       end
@@ -194,7 +224,8 @@ module EVD
       attributes = opts[:attributes] || {}
 
       if protocol == TCPProtocol
-        return RiemannTCPOutput.new host, port, tags, attributes
+        flush_period = opts[:flush_period]
+        return RiemannTCPOutput.new host, port, tags, attributes, flush_period
       end
 
       return RiemannUDPOutput.new host, port, tags, attributes
