@@ -114,11 +114,18 @@ module EVD
       factor = parse_unit(msg[:unit] || "ms")
 
       if (times = @_cache[key]).nil?
-        return if @_cache.size > @cache_limit
+        if @_cache.size > @cache_limit
+          log.warning "Dropping '#{key}': #{@_cache.size} > #{@cache_limit}"
+          return
+        end
+
         @_cache[key] = times = []
       end
 
-      return if times.size > @times_limit
+      if times.size > @times_limit
+        log.warning "Dropping update '#{key}': #{times.size} > #{@times_limit}"
+        return
+      end
 
       value = (value * factor)
       times << value if value >= 0

@@ -24,14 +24,12 @@ module EVD
       @debug_host = opts[:debug_host] || "localhost"
       @debug_port = opts[:debug_port] || 9999
 
-      @s_input_count = 0
-      @s_output_count = 0
-      @s_then = nil
+      @input_count = 0
+      @output_count = 0
     end
 
     def run(plugins)
       @datatypes = setup_datatypes
-      @s_then = Time.new
 
       input_plugins = plugins[:input]
       output_plugins = plugins[:output]
@@ -54,10 +52,7 @@ module EVD
 
         process_input_buffer
         process_output_buffer
-
-        EventMachine::PeriodicTimer.new(@statistics_period) do
-          generate_statistics
-        end
+        process_statistics
 
         if @debug
           @debug_protocol.listen(@debug_host, @debug_port, DebugConnection, @debug_clients)
@@ -90,19 +85,6 @@ module EVD
       @output_buffer << event
     end
 
-    def generate_statistics()
-      now = Time.new
-      diff = (now - @s_then)
-      input_rate = @s_input_count / diff
-      output_rate = @s_output_count / diff
-
-      emit(:key => 'evd.input_rate', :value => input_rate)
-      emit(:key => 'evd.output_rate', :value => output_rate)
-
-      @s_then = now
-      @s_output_count = 0
-    end
-
     def setup_datatypes
       datatypes = {}
 
@@ -119,7 +101,7 @@ module EVD
 
     def process_input_buffer
       @input_buffer.pop do |msg|
-        @s_input_count += 1
+        @input_count += 1
         process_input msg
         process_input_buffer
       end
@@ -127,7 +109,7 @@ module EVD
 
     def process_output_buffer
       @output_buffer.pop do |event|
-        @s_output_count += 1
+        @output_count += 1
         process_output event
         process_output_buffer
       end
@@ -153,6 +135,23 @@ module EVD
         end
 
         buffer << event
+      end
+    end
+
+    def process_statistics
+      return if (rate = @datatypes['rate']).nil?
+
+      now = Time.now
+
+      rate.process(:time => now, :key => 'evd_input', :value => 0)
+      rate.process(:time => now, :key => 'evd_output', :value => 0)
+
+      EventMachine::PeriodicTimer.new(@statistics_period) do
+        now = Time.now
+        rate.process(:time => now, :key => 'evd_input',
+                      :value => @input_count)
+        rate.process(:time => now, :key => 'evd_output',
+                      :value => @output_count)
       end
     end
   end

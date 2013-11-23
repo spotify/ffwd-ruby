@@ -1,3 +1,4 @@
+require 'evd/logging'
 require 'evd/data_type'
 
 module EVD
@@ -7,6 +8,7 @@ module EVD
   # A gauge is simply an absolute value which will immediately be updated.
   #
   class Gauge
+    include EVD::Logging
     include EVD::DataType
 
     register_type "gauge"

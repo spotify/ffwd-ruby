@@ -42,11 +42,6 @@ module EVD
     plugins[:input] << Plugin.registry['statsd'].input_setup(
       :host => "localhost", :protocol => "udp")
 
-    plugins[:output] << Plugin.registry['log'].output_setup
-
-    plugins[:output] << Plugin.registry['log'].output_setup(
-      :prefix => "fuck this")
-
     opts = {
       :debug => true,
     }

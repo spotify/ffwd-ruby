@@ -13,6 +13,7 @@ module EVD
 
     COUNT = "count"
     GAUGE = "gauge"
+    TIMING = "timing"
 
     class StatsdConnection < EventMachine::Connection
       include EVD::Logging
@@ -23,11 +24,15 @@ module EVD
       end
 
       def gauge(name, value)
-        return {:type => GAUGE, :key => name, :value => value}
+        {:type => GAUGE, :key => name, :value => value}
       end
 
       def count(name, value)
-        return {:type => COUNT, :key => name, :value => value}
+        {:type => COUNT, :key => name, :value => value}
+      end
+
+      def timing(name, value, unit)
+        {:type => TIMING, :unit => unit, :key => name, :value => value}
       end
 
       def parse(line)
@@ -41,19 +46,18 @@ module EVD
         value = value.to_f unless value.nil?
         sample_rate = sample_rate.to_f unless sample_rate.nil?
 
+        value /= sample_rate unless sample_rate.nil?
+
         if type == "g"
           return gauge(name, value)
         end
 
         if type == "c"
-          value /= sample_rate unless sample_rate.nil?
           return count(name, value)
         end
 
         if type == "ms"
-          value /= sample_rate unless sample_rate.nil?
-          return {:type => "timing", :unit => "ms",
-                  :key => name, :value => value}
+          return timing(name, value, "ms")
         end
 
         log.warning "Not supported type: #{type}"

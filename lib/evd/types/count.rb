@@ -1,3 +1,4 @@
+require 'evd/logging'
 require 'evd/data_type'
 
 module EVD
@@ -5,6 +6,7 @@ module EVD
   # Implements counting statistics (similar to statsd).
   #
   class Count
+    include EVD::Logging
     include EVD::DataType
 
     register_type "count"
@@ -20,6 +22,11 @@ module EVD
 
       unless (prev_value = @_cache[key]).nil?
         value = prev_value + value
+      else
+        if @_cache.size > @cache_limit
+          log.warning "Dropping '#{key}': #{@_cache.size} > #{@cache_limit}"
+          return
+        end
       end
 
       @_cache[key] = value
