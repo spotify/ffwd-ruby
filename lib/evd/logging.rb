@@ -36,6 +36,10 @@ module EVD
       EVD.log.error("#{@klass_name}: #{message}", *args)
     end
 
+    def warning(message, *args)
+      EVD.log.warning("#{@klass_name}: #{message}", *args)
+    end
+
     def debug(message, *args)
       EVD.log.debug("#{@klass_name}: #{message}", *args)
     end

@@ -1,8 +1,7 @@
 require 'evd/logging'
 require 'evd/plugin_loader'
 
-require 'evd/input_plugin'
-require 'evd/output_plugin'
+require 'evd/plugin'
 require 'evd/data_type'
 
 module EVD
@@ -37,10 +36,21 @@ module EVD
 
     plugins = {:input => [], :output => []}
 
-    plugins[:input] << InputPlugin.registry['tcp_json'].new(:host => "localhost", :port => 3000)
-    plugins[:output] << OutputPlugin.registry['log'].new
-    plugins[:output] << OutputPlugin.registry['log'].new(:prefix => "fuck this")
+    plugins[:input] << Plugin.registry['json_line'].input_setup(
+      :host => "localhost", :port => 3000, :protocol => "udp")
 
-    EVD::App.new.run(plugins)
+    plugins[:input] << Plugin.registry['statsd'].input_setup(
+      :host => "localhost", :protocol => "udp")
+
+    plugins[:output] << Plugin.registry['log'].output_setup
+
+    plugins[:output] << Plugin.registry['log'].output_setup(
+      :prefix => "fuck this")
+
+    opts = {
+      :debug => true,
+    }
+
+    EVD::App.new(opts).run(plugins)
   end
 end

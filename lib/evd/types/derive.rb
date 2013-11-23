@@ -1,7 +1,12 @@
 require 'evd/data_type'
 
 module EVD
-  class Derive < DataType
+  #
+  # Implements derive statistics (similar to collectd).
+  #
+  class Derive
+    include EVD::DataType
+
     register_type "derive"
 
     def initialize
@@ -9,17 +14,15 @@ module EVD
     end
 
     def process(msg)
-      key = msg["key"]
-      return unless key
-
-      current_time = msg["time"]
-      current_value = msg["value"] || 0
+      key = msg[:key]
+      current_time = msg[:time]
+      current_value = msg[:value] || 0
 
       prev = @cache[key]
 
       if prev
-        prev_time = prev["time"]
-        prev_value = prev["value"]
+        prev_time = prev[:time]
+        prev_value = prev[:value]
 
         difference = (current_time - prev_time)
 

@@ -1,5 +1,5 @@
 module EVD
-  class DataType
+  module DataType
     attr_accessor :app
 
     def process(msg)
@@ -10,14 +10,22 @@ module EVD
       app.emit(data)
     end
 
-    class << self
-      def registry
-        @@registry ||= {}
-      end
+    def self.registry
+      @@registry ||= {}
+    end
 
+    module ClassMethods
       def register_type(name)
-        registry[name] = self
+        DataType.registry[name] = self
       end
     end
+
+    def self.included(mod)
+      mod.extend ClassMethods
+    end
+  end
+
+  def self.data_type(name)
+    DataType.registry[name]
   end
 end

@@ -1,42 +1,28 @@
 require 'evd/data_type'
 
 module EVD
-  class Count < DataType
+  #
+  # Implements counting statistics (similar to statsd).
+  #
+  class Count
+    include EVD::DataType
+
     register_type "count"
 
-    def op_add(a, b)
-      a + b
-    end
-
-    def op_sub(a, b)
-      a - b
-    end
-
     def initialize(opts={})
-      @cache = {}
-      @operations = {
-        "sub" => method(:op_sub),
-        "add" => method(:op_add),
-      }
+      @cache_limit = opts[:cache_limit] || 10000
+      @_cache = {}
     end
 
     def process(msg)
-      key = msg["key"]
-      return unless key
+      key = msg[:key]
+      value = msg[:value]
 
-      op = msg["$op"]
-      return unless op
-
-      oper = @operations[op]
-      return unless oper
-
-      value = msg["value"] || 0
-
-      unless (prev_value = @cache[key]).nil?
-        value = oper.call(prev_value, value)
+      unless (prev_value = @_cache[key]).nil?
+        value = prev_value + value
       end
 
-      @cache[key] = value
+      @_cache[key] = value
       emit(:key => key, :value => value)
     end
   end

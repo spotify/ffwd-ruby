@@ -1,29 +1,35 @@
-require 'evd/output_plugin'
+require 'evd/plugin'
 require 'evd/logging'
 
 module EVD
-  class OutputLog < OutputPlugin
+  module Log
+    include EVD::Plugin
     include EVD::Logging
 
-    register_output "log"
+    register_plugin "log"
 
-    def initialize(opts={})
-      @prefix = opts[:prefix] || "(no prefix)"
-    end
+    class OutputLog
+      include EVD::Logging
 
-    def setup(buffer)
-      process_events buffer
-    end
+      def initialize(prefix)
+        @prefix = prefix
+      end
 
-    def process_events(buffer)
-      buffer.pop do |event|
-        process event
-        process_events buffer
+      def setup(buffer)
+        buffer.pop do |event|
+          process event
+          setup buffer
+        end
+      end
+
+      def process(event)
+        log.info "#{@prefix}: Output: #{event}"
       end
     end
 
-    def process(event)
-      log.info "#{@prefix}: Output: #{event}"
+    def self.output_setup(opts={})
+      prefix = opts[:prefix] || "(no prefix)"
+      OutputLog.new prefix
     end
   end
 end
