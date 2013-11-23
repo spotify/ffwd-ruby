@@ -37,7 +37,7 @@ module EVD
     end
 
     def warning(message, *args)
-      EVD.log.warning("#{@klass_name}: #{message}", *args)
+      EVD.log.warn("#{@klass_name}: #{message}", *args)
     end
 
     def debug(message, *args)

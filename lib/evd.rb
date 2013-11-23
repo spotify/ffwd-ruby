@@ -42,6 +42,9 @@ module EVD
     plugins[:input] << Plugin.registry['statsd'].input_setup(
       :host => "localhost", :protocol => "udp")
 
+    plugins[:output] << Plugin.registry['riemann'].output_setup(
+      :host => "localhost", :protocol => 'udp', :tags => ['evd'])
+
     opts = {
       :debug => true,
     }
