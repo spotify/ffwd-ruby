@@ -1,0 +1,6 @@
+:debug: true
+
+:output:
+  - :type: "riemann"
+    :protocol: "tcp"
+    :host: "localhost"

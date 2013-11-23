@@ -5,7 +5,7 @@ require 'evd/data_type'
 
 require 'eventmachine'
 
-module EVD
+module EVD::Plugin
   module JsonLine
     include EVD::Plugin
     include EVD::Logging

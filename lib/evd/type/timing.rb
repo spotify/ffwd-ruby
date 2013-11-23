@@ -1,7 +1,7 @@
 require 'evd/data_type'
 require 'evd/logging'
 
-module EVD
+module EVD::Type
   #
   # Implements timing statistics (similar to statsd).
   #

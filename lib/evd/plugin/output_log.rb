@@ -1,7 +1,7 @@
 require 'evd/plugin'
 require 'evd/logging'
 
-module EVD
+module EVD::Plugin
   module Log
     include EVD::Plugin
     include EVD::Logging

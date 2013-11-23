@@ -1,7 +1,7 @@
 require 'evd/logging'
 require 'evd/data_type'
 
-module EVD
+module EVD::Type
   #
   # Implements gauge statistics (similar to statsd).
   #

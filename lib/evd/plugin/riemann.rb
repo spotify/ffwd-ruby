@@ -12,18 +12,29 @@ require 'riemann/state'
 require 'riemann/event'
 require 'riemann/message'
 
-module EVD
+module EVD::Plugin
   module Riemann
     include EVD::Plugin
     include EVD::Logging
 
     register_plugin "riemann"
 
-    module RiemannOutputBase
+    class OutputBase
+      attr_accessor :connected
+      attr_reader :dropped_messages
+
+      def initialize(tags, attributes)
+        @tags = tags
+        @attributes = attributes
+        @connected = nil
+        @dropped_messages = 0
+      end
+
       def make_event(event)
         ::Riemann::Event.new(
           :service => event[:key],
           :metric => event[:value],
+          :description => event[:message],
           :tags => @tags,
           :attributes => @attributes
         )
@@ -35,26 +46,31 @@ module EVD
         )
       end
 
+      protected
+
+      def handle_event(event); raise "Not implemented: handle_event"; end
+
       def collect_events(buffer)
         buffer.pop do |event|
-          handle_input event
+          handle_single_event event
           collect_events buffer
         end
       end
 
-      def handle_input(event)
+      private
+
+      def handle_single_event(event)
         if @connected.nil?
           @dropped_messages += 1
           return
         end
 
-        handle event
+        handle_event event
       end
     end
 
-    class RiemannTCPOutput
+    class RiemannTCPOutput < OutputBase
       include EVD::Logging
-      include RiemannOutputBase
 
       INITIAL_TIMEOUT = 2
 
@@ -91,21 +107,19 @@ module EVD
       end
 
       def initialize(host, port, tags, attributes, flush_period)
+        super tags, attributes
+
         @host = host
         @port = port
-        @tags = tags
-        @attributes = attributes
         @flush_period = flush_period
 
         @peer = "#{@host}:#{@port}"
-        @connected = nil
-        @dropped_messages = 0
 
         @events = []
         @timeout = INITIAL_TIMEOUT
       end
 
-      def handle(event)
+      def handle_event(event)
         @events << event
       end
 
@@ -122,7 +136,7 @@ module EVD
 
         begin
           data = message.encode_with_length
-          @connected.send_data data
+          connected.send_data data
         rescue
           log.error "Failed to send events: #{$!}"
         end
@@ -141,13 +155,13 @@ module EVD
       end
 
       def connected=(value)
-        @connected = value
+        super value
         # reset timeout if this is a new connection.
         @timeout = INITIAL_TIMEOUT unless value.nil?
       end
 
       def connect
-        return unless @connected.nil?
+        return unless connected.nil?
         EventMachine.connect(@host, @port, Connection, self)
       end
 
@@ -161,23 +175,20 @@ module EVD
       end
     end
 
-    class RiemannUDPOutput
+    class RiemannUDPOutput < OutputBase
       include EVD::Logging
-      include RiemannOutputBase
 
       def initialize(host, port, tags, attributes)
+        super tags, attributes
+
         @host = host
         @port = port
-        @tags = tags
-        @attributes = attributes
-        @connected = nil
-        @dropped_messages = 0
 
         @bind_host = "0.0.0.0"
         @host_ip = nil
       end
 
-      def handle(event)
+      def handle_event(event)
         e = make_event(event)
         m = make_message :events => [e]
         @connected.send_datagram m.encode, @host_ip, @port
@@ -223,7 +234,7 @@ module EVD
       tags = opts[:tags] || []
       attributes = opts[:attributes] || {}
 
-      if protocol == TCPProtocol
+      if protocol == EVD::TCPProtocol
         flush_period = opts[:flush_period]
         return RiemannTCPOutput.new host, port, tags, attributes, flush_period
       end

@@ -4,7 +4,7 @@ require 'evd/logging'
 
 require 'eventmachine'
 
-module EVD
+module EVD::Plugin
   module Statsd
     include EVD::Plugin
     include EVD::Logging

@@ -17,12 +17,13 @@ module EVD
 
       @statistics_period = opts[:statistics_period] || 10
       @output_buffer_limit = opts[:output_buffer_limit] || 1000
-      @debug = opts[:debug] || false
 
-      @debug_clients = {}
-      @debug_protocol = TCPProtocol
-      @debug_host = opts[:debug_host] || "localhost"
-      @debug_port = opts[:debug_port] || 9999
+      @dbg = opts[:debug] || false
+      @dbg_clients = {}
+      @dbg_protocol = TCPProtocol
+      @dbg_host = opts[:debug_host] || "localhost"
+      @dbg_port = opts[:debug_port] || 9999
+      @dbg_bind = "#{@dbg_host}:#{@dbg_port}"
 
       @input_count = 0
       @output_count = 0
@@ -54,9 +55,9 @@ module EVD
         process_output_buffer
         process_statistics
 
-        if @debug
-          @debug_protocol.listen(@debug_host, @debug_port, DebugConnection, @debug_clients)
-          log.info "Listening #{@debug_protocol.name} on #{@debug_host}:#{@debug_port}"
+        if @dbg
+          @dbg_protocol.listen(@dbg_host, @dbg_port, DebugConnection, @dbg_clients)
+          log.info "DEBUG: Listening to #{@dbg_protocol.name} on #{@dbg_bind}"
         end
       end
     end
@@ -70,7 +71,7 @@ module EVD
     private
 
     def emit_debug(event)
-      @debug_clients.each do |peer, client|
+      @dbg_clients.each do |peer, client|
         data = JSON.dump(event)
         client.send_data "#{data}\n"
       end
