@@ -15,6 +15,7 @@ module EVD
       @s_count = 0
       @s_then = nil
       @statistics_period = opts[:statistics_period] || 10
+      @output_buffer_limit = opts[:output_buffer_limit] || 1000
     end
 
     def run(plugins)
@@ -46,6 +47,11 @@ module EVD
 
     # Is called whenever a DataType has finished processing a value.
     def emit(event)
+      if @output_buffer.size > @output_buffer_limit
+        log.warning "Output buffer limit reached, dropping event"
+        return
+      end
+
       @output_buffer << event
     end
 
@@ -107,6 +113,11 @@ module EVD
 
     def process_output(event)
       @output_buffers.each do |buffer|
+        if buffer.size > @output_buffer_limit
+          log.warning "Output buffer limit reached, dropping event for plugin"
+          next
+        end
+
         buffer << event
       end
     end

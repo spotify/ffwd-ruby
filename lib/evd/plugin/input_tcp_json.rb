@@ -10,6 +10,7 @@ module EVD
     register_input "tcp_json"
 
     class InputConnection < EventMachine::Connection
+      include EVD::Logging
       include EventMachine::Protocols::LineText2
 
       def initialize(input_buffer, buffer_limit)
@@ -18,7 +19,11 @@ module EVD
       end
 
       def receive_line(data)
-        return if @input_buffer.size > @buffer_limit
+        if @input_buffer.size > @buffer_limit
+          log.warning "Buffer limit reached, dropping event"
+          return
+        end
+
         @input_buffer << JSON.load(data)
       rescue
         puts "Something went wrong: #{$!}"
