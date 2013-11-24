@@ -7,6 +7,8 @@
 :attributes:
   foo: bar
 
+:statistics_period: 30
+
 :input:
   - :type: "json_line"
     :protocol: "tcp"

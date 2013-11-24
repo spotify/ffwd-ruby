@@ -23,4 +23,5 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "eventmachine"
   spec.add_dependency "riemann-client"
+  spec.add_development_dependency "rspec"
 end
