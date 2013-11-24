@@ -57,7 +57,7 @@ module EVD::Type
     #
     # Setup all EventMachine hooks.
     #
-    def setup
+    def start
       log.info "Setup with flush period #{@flush_period}"
 
       EventMachine::PeriodicTimer.new(@flush_period) do
