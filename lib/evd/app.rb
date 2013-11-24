@@ -1,3 +1,4 @@
+require 'set'
 require 'json'
 require 'eventmachine'
 
@@ -10,6 +11,61 @@ module EVD
   class App
     include EVD::Logging
 
+    INTERNAL_TAGS = ['evd']
+
+    OUTPUT = "evd_output"
+    OUTPUT_RATE = "#{OUTPUT}.rate"
+    INPUT = "evd_input"
+    INPUT_RATE = "#{INPUT}.rate"
+
+    class UpdateHash
+      def initialize(base, target, limit)
+        @base = base
+        @target = target
+        @limit = limit
+      end
+
+      def process(msg)
+        key = msg[:key]
+        value = msg[:value]
+
+        if @target[key].nil? and @target.size > @limit
+          log.warning "Dropping metadata update for '#{key}', limit reached"
+          return
+        end
+
+        if value.nil?
+          @target.delete key
+        else
+          @target[key] = @base.merge(value)
+        end
+      end
+    end
+
+    class UpdateSet
+      def initialize(base, target, limit)
+        @base = base
+        @target = target
+        @limit = limit
+      end
+
+      def process(msg)
+        key = msg[:key]
+        value = msg[:value]
+
+        if @target[key].nil? and @target.size > @limit
+          log.warning "Dropping metadata update for '#{key}', limit reached"
+          return
+        end
+
+        if value.nil?
+          @target.delete key
+        else
+          @target[key] = Set.new(@base + value).to_a
+        end
+      end
+    end
+
     def initialize(opts={})
       @input_buffer = EventMachine::Queue.new
       @output_buffer = EventMachine::Queue.new
@@ -17,6 +73,9 @@ module EVD
 
       @statistics_period = opts[:statistics_period] || 10
       @output_buffer_limit = opts[:output_buffer_limit] || 1000
+      @metadata_limit = opts[:metadata_limit] || 10000
+      @tags = opts[:tags] || []
+      @attr = opts[:attributes] || {}
 
       @dbg = opts[:debug] || false
       @dbg_clients = {}
@@ -27,10 +86,18 @@ module EVD
 
       @input_count = 0
       @output_count = 0
+      @metadata = {}
+
+      @datatypes = {}
+      @internals = {}
+
+      @metadata_tags = {}
+      @metadata_attr = {}
     end
 
     def run(plugins)
       @datatypes = setup_datatypes
+      @internals = setup_internals
 
       input_plugins = plugins[:input]
       output_plugins = plugins[:output]
@@ -64,7 +131,15 @@ module EVD
 
     # Is called whenever a DataType has finished processing a value.
     def emit(event)
-      emit_debug event if @debug
+      unless (key = event[:source_key]).nil?
+        event[:tags] = @metadata_tags[key] || @tags
+        event[:attributes] = @metadata_attr[key] || @attr
+      else
+        event[:tags] = @tags
+        event[:attributes] = @attr
+      end
+
+      emit_debug event if @dbg
       emit_output event
     end
 
@@ -84,6 +159,15 @@ module EVD
       end
 
       @output_buffer << event
+    end
+
+    def setup_internals
+      internals = {}
+      internals['tags'] = UpdateSet.new(
+        @tags, @metadata_tags, @metadata_limit)
+      internals['attr'] = UpdateHash.new(
+        @attr, @metadata_attr, @metadata_limit)
+      internals
     end
 
     def setup_datatypes
@@ -117,15 +201,10 @@ module EVD
     end
 
     def process_input(msg)
-      type = msg[:type]
-      return if type.nil?
-
-      data_type = @datatypes[type]
-      return if data_type.nil?
-
+      return if (type = msg[:type]).nil?
+      return if (processor = @datatypes[type] || @internals[type]).nil?
       msg[:time] = Time.now unless msg[:time]
-
-      data_type.process msg
+      processor.process msg
     end
 
     def process_output(event)
@@ -140,19 +219,25 @@ module EVD
     end
 
     def process_statistics
-      return if (rate = @datatypes['rate']).nil?
-
-      now = Time.now
-
-      rate.process(:time => now, :key => 'evd_input', :value => 0)
-      rate.process(:time => now, :key => 'evd_output', :value => 0)
+      prev = Time.now
 
       EventMachine::PeriodicTimer.new(@statistics_period) do
         now = Time.now
-        rate.process(:time => now, :key => 'evd_input',
-                      :value => @input_count)
-        rate.process(:time => now, :key => 'evd_output',
-                      :value => @output_count)
+
+        diff = now - prev
+
+        output_rate = @output_count / diff
+        input_rate = @input_count / diff
+
+        emit(:key => INPUT_RATE, :source_key => INPUT,
+             :value => input_rate, :tags => INTERNAL_TAGS)
+        emit(:key => OUTPUT_RATE, :source_key => INPUT,
+             :value => output_rate, :tags => INTERNAL_TAGS)
+
+        @output_count = 0
+        @input_count = 0
+
+        prev = now
       end
     end
   end

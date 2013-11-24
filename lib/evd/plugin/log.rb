@@ -8,7 +8,7 @@ module EVD::Plugin
 
     register_plugin "log"
 
-    class OutputLog
+    class Writer
       include EVD::Logging
 
       def initialize(prefix)
@@ -23,13 +23,13 @@ module EVD::Plugin
       end
 
       def process(event)
-        log.info "#{@prefix}: Output: #{event}"
+        log.info "(#{@prefix}) Output: #{event}"
       end
     end
 
     def self.output_setup(opts={})
-      prefix = opts[:prefix] || "(no prefix)"
-      OutputLog.new prefix
+      prefix = opts[:prefix] || "no prefix"
+      Writer.new prefix
     end
   end
 end

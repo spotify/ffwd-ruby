@@ -29,9 +29,11 @@ module EVD::Plugin
 
         data = JSON.load(data)
 
-        type = DataType.registry[data["$type"]]
+        type = data["$type"]
         key = data["key"]
+        value = data["value"]
 
+        return if type.nil?
         return if key.nil?
         return if value.nil?
 

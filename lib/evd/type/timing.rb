@@ -63,7 +63,7 @@ module EVD::Type
       EventMachine::PeriodicTimer.new(@flush_period) do
         @_cache.each do |key, times|
           calculate(times) do |p, value|
-            emit(:key => "#{key}.#{p}", :value => value)
+            emit(:key => "#{key}.#{p}", :source_key => key, :value => value)
           end
         end
 

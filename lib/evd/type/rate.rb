@@ -31,7 +31,7 @@ module EVD::Type
         if difference > 0
           rate = ((current_value - prev_value) / difference)
           rate = rate.round(@precision) unless @precision.nil?
-          emit(:key => "#{key}.rate", :value => rate)
+          emit(:key => "#{key}.rate", :source_key => key, :value => rate)
         end
       else
         if @_cache.size > @cache_limit

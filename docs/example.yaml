@@ -1,6 +1,21 @@
 :debug: true
 
+:tags:
+  - "foo"
+  - "bar"
+
+:attributes:
+  foo: bar
+
+:input:
+  - :type: "json_line"
+    :protocol: "tcp"
+  - :type: "statsd"
+    :protocol: "udp"
+
 :output:
   - :type: "riemann"
     :protocol: "tcp"
     :host: "localhost"
+  - :type: "log"
+    :prefix: "idiot"
