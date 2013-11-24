@@ -1,7 +1,7 @@
 require 'yaml'
 require 'optparse'
 
-require 'evd/app'
+require 'evd/core'
 require 'evd/logging'
 require 'evd/plugin_loader'
 
@@ -70,7 +70,9 @@ module EVD
 
       plugins, opts = result
 
-      EVD::App.new(opts).run(plugins)
+      core = EVD::Core.new(opts)
+
+      core.run(plugins)
     end
   end
 

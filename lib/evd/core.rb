@@ -5,10 +5,11 @@ require 'eventmachine'
 require 'evd/logging'
 require 'evd/data_type'
 require 'evd/protocol'
+require 'evd/update_hash'
 require 'evd/debug'
 
 module EVD
-  class App
+  class Core
     include EVD::Logging
 
     INTERNAL_TAGS = ['evd']
@@ -29,12 +30,8 @@ module EVD
       @tags = opts[:tags] || []
       @attr = opts[:attributes] || {}
 
-      @dbg = opts[:debug] || false
-      @dbg_clients = {}
-      @dbg_protocol = TCPProtocol
-      @dbg_host = opts[:debug_host] || "localhost"
-      @dbg_port = opts[:debug_port] || 9999
-      @dbg_bind = "#{@dbg_host}:#{@dbg_port}"
+      @debug = opts[:debug]
+      @debug_clients = {}
 
       @input_count = 0
       @output_count = 0
@@ -47,6 +44,11 @@ module EVD
       @metadata_attr = {}
     end
 
+    #
+    # Main entry point.
+    #
+    # Starts an EventMachine and runs the given set of plugins.
+    #
     def run(plugins)
       @datatypes = setup_datatypes
       @internals = setup_internals
@@ -74,14 +76,16 @@ module EVD
         process_output_buffer
         process_statistics
 
-        if @dbg
-          @dbg_protocol.listen(@dbg_host, @dbg_port, DebugConnection, @dbg_clients)
-          log.info "DEBUG: Listening to #{@dbg_protocol.name} on #{@dbg_bind}"
+        unless @debug.nil?
+          debug = EVD::Debug.setup @debug_clients, @debug
+          debug.start
         end
       end
     end
 
-    # Is called whenever a DataType has finished processing a value.
+    #
+    # Emit an event.
+    #
     def emit(event)
       unless (key = event[:source_key]).nil?
         event[:tags] = @metadata_tags[key] || @tags
@@ -91,14 +95,14 @@ module EVD
         event[:attributes] = @attr
       end
 
-      emit_debug event if @dbg
+      emit_debug event unless @debug.nil?
       emit_output event
     end
 
     private
 
     def emit_debug(event)
-      @dbg_clients.each do |peer, client|
+      @debug_clients.each do |peer, client|
         data = JSON.dump(event)
         client.send_data "#{data}\n"
       end
@@ -113,17 +117,23 @@ module EVD
       @output_buffer << event
     end
 
+    #
+    # setup hash of internal functions.
+    #
     def setup_internals
       internals = {}
-      internals['tags'] = UpdateTarget.new(
+      internals['tags'] = UpdateHash.new(
         @tags, @metadata_tags, @metadata_limit,
         lambda{|a, b| Set.new(a+ b).to_a})
-      internals['attr'] = UpdateTarget.new(
+      internals['attr'] = UpdateHash.new(
         @attr, @metadata_attr, @metadata_limit,
         lambda{|a, b| a.merge(b)})
       internals
     end
 
+    #
+    # setup hash of datatype functions.
+    #
     def setup_datatypes
       datatypes = {}
 
@@ -131,7 +141,7 @@ module EVD
         log.info "DataType: #{name}"
 
         data_type = klass.new
-        data_type.app = self
+        data_type.core = self
         datatypes[name] = data_type
       end
 

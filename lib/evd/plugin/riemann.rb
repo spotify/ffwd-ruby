@@ -222,19 +222,19 @@ module EVD::Plugin
     end
 
     DEFAULT_PORT = {
-      "tcp" => 5555,
-      "udp" => 5555,
+      :tcp => 5555,
+      :udp => 5555,
     }
 
     def self.output_setup(opts={})
       host = opts[:host] || "localhost"
       protocol = EVD.parse_protocol(opts[:protocol] || "tcp")
-      port = opts[:port] || DEFAULT_PORT[protocol.name]
+      port = opts[:port] || DEFAULT_PORT[protocol]
       tags = opts[:tags] || []
       attributes = opts[:attributes] || {}
 
-      if protocol == EVD::TCPProtocol
-        flush_period = opts[:flush_period]
+      if protocol == :tcp
+        flush_period = opts[:flush_period] || 10
         return TCP.new host, port, tags, attributes, flush_period
       end
 

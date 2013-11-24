@@ -43,29 +43,51 @@ module EVD::Plugin
       end
     end
 
-    class JsonLineInput
+    class TCP
       include EVD::Logging
 
-      def initialize(host, port, protocol, buffer_limit)
+      def initialize(host, port, buffer_limit)
         @host = host
         @port = port
-        @protocol = protocol
+        @peer = "#{@host}:#{@port}"
         @buffer_limit = buffer_limit
       end
 
       def setup(buffer)
-        @protocol.listen(@host, @port, JsonLineConnection,
-                         buffer, @buffer_limit)
-        log.info "Listening on #{@protocol.name} #{@host}:#{@port}"
+        EventMachine.start_server(
+          @host, @port, JsonLineConnection, buffer, @buffer_limit)
+        log.info "Listening on #{@peer}"
+      end
+    end
+
+    class UDP
+      include EVD::Logging
+
+      def initialize(host, port, buffer_limit)
+        @host = host
+        @port = port
+        @peer = "#{@host}:#{@port}"
+        @buffer_limit = buffer_limit
+      end
+
+      def setup(buffer)
+        @peer = "#{@host}:#{@port}"
+        EventMachine.open_datagram_socket(
+          @host, @port, JsonLineConnection, buffer, @buffer_limit)
+        log.info "Listening on #{@peer}"
       end
     end
 
     def self.input_setup(opts={})
       host = opts[:host] || "localhost"
       port = opts[:port] || 3000
-      protocol = EVD.parse_protocol(opts[:protocol] || "tcp")
       buffer_limit = opts["buffer_limit"] || 1000
-      JsonLineInput.new host, port, protocol, buffer_limit
+      proto = EVD.parse_protocol(opts[:protocol] || "tcp")
+
+      return TCP.new host, port, buffer_limit if proto == :tcp
+      return UDP.new host, port, buffer_limit if proto == :udp
+
+      throw Exception.new("Unsupported protocol '#{proto}'")
     end
   end
 end

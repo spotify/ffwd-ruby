@@ -1,13 +1,13 @@
 module EVD
   module DataType
-    attr_accessor :app
+    attr_accessor :core
 
     def process(msg)
       raise Exception.new("process: Not Implemented")
     end
 
     def emit(data)
-      app.emit(data)
+      core.emit(data)
     end
 
     def self.registry

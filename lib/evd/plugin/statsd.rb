@@ -80,29 +80,50 @@ module EVD::Plugin
       end
     end
 
-    class StatsdInput
+    class TCP
       include EVD::Logging
 
-      def initialize(host, port, protocol, buffer_limit)
+      def initialize(host, port, buffer_limit)
         @host = host
         @port = port
-        @protocol = protocol
+        @peer = "#{@host}:#{@port}"
         @buffer_limit = buffer_limit
       end
 
       def setup(buffer)
-        @protocol.listen(@host, @port, StatsdConnection,
-                         buffer, @buffer_limit)
-        log.info "Listening on #{@protocol.name} #{@host}:#{@port}"
+        EventMachine.start_server(
+          @host, @port, StatsdConnection, buffer, @buffer_limit)
+        log.info "Listening on #{@peer}"
+      end
+    end
+
+    class UDP
+      include EVD::Logging
+
+      def initialize(host, port, buffer_limit)
+        @host = host
+        @port = port
+        @peer = "#{@host}:#{@port}"
+        @buffer_limit = buffer_limit
+      end
+
+      def setup(buffer)
+        EventMachine.open_datagram_socket(
+          @host, @port, StatsdConnection, buffer, @buffer_limit)
+        log.info "Listening on #{@peer}"
       end
     end
 
     def self.input_setup(opts={})
       host = opts[:host] || "localhost"
       port = opts[:port] || 8125
-      protocol = EVD.parse_protocol(opts[:protocol] || "tcp")
       buffer_limit = opts["buffer_limit"] || 1000
-      StatsdInput.new host, port, protocol, buffer_limit
+      proto = EVD.parse_protocol(opts[:protocol] || "tcp")
+
+      return UDP.new host, port, buffer_limit if proto == :udp
+      return TCP.new host, port, buffer_limit if proto == :tcp
+
+      throw Exception.new("Unsupported protocol '#{proto}'")
     end
   end
 end

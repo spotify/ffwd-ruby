@@ -1,7 +1,7 @@
 require 'evd/logging'
 
 module EVD
-  class UpdateTarget
+  class UpdateHash
     include EVD::Logging
 
     def initialize(base, target, limit, oper)
