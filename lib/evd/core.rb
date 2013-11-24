@@ -6,25 +6,19 @@ require 'evd/logging'
 require 'evd/data_type'
 require 'evd/protocol'
 require 'evd/update_hash'
+
 require 'evd/debug'
+require 'evd/statistics'
 
 module EVD
   class Core
     include EVD::Logging
-
-    INTERNAL_TAGS = ['evd']
-
-    OUTPUT = "evd_output"
-    OUTPUT_RATE = "#{OUTPUT}.rate"
-    INPUT = "evd_input"
-    INPUT_RATE = "#{INPUT}.rate"
 
     def initialize(opts={})
       @input_buffer = EventMachine::Queue.new
       @output_buffer = EventMachine::Queue.new
       @output_buffers = []
 
-      @statistics_period = opts[:statistics_period] || 1
       @output_buffer_limit = opts[:output_buffer_limit] || 1000
       @metadata_limit = opts[:metadata_limit] || 10000
       @tags = opts[:tags] || []
@@ -33,10 +27,9 @@ module EVD
       @debug = opts[:debug]
       @debug_clients = {}
 
-      @statistics_precision = opts[:statistics_precision] || 3
-      @statistics_then = nil
-      @input_count = 0
-      @output_count = 0
+      @statistics = opts[:statistics]
+      @s = nil
+
       @metadata = {}
 
       @datatypes = {}
@@ -60,28 +53,32 @@ module EVD
 
       EventMachine.run do
         input_plugins.each do |plugin|
-          plugin.setup @input_buffer
+          plugin.start @input_buffer
         end
 
         output_plugins.each do |plugin|
           output_buffer = EventMachine::Queue.new
-          plugin.setup output_buffer
+          plugin.start output_buffer
           @output_buffers << output_buffer
         end
 
         @datatypes.each do |name, datatype|
-          next unless datatype.respond_to?(:setup)
-          datatype.setup
+          next unless datatype.respond_to?(:start)
+          datatype.start
         end
 
-        process_input_buffer
-        process_output_buffer
-        process_statistics
+        unless @statistics.nil?
+          @s = EVD::Statistics.setup(self, @statistics)
+          @s.start
+        end
 
         unless @debug.nil?
           debug = EVD::Debug.setup @debug_clients, @debug
           debug.start
         end
+
+        process_input_buffer
+        process_output_buffer
       end
     end
 
@@ -168,7 +165,7 @@ module EVD
     end
 
     def process_input(msg)
-      @input_count += 1
+      @s.input_inc unless @s.nil?
 
       return if (type = msg[:type]).nil?
       return if (processor = @datatypes[type] || @internals[type]).nil?
@@ -177,7 +174,7 @@ module EVD
     end
 
     def process_output(event)
-      @output_count += 1
+      @s.output_inc unless @s.nil?
 
       @output_buffers.each do |buffer|
         if buffer.size >= @output_buffer_limit
@@ -187,32 +184,6 @@ module EVD
 
         buffer << event
       end
-    end
-
-    def process_statistics
-      @statistics_then = Time.now
-
-      EventMachine::PeriodicTimer.new(@statistics_period) do
-        generate_statistics
-      end
-    end
-
-    def generate_statistics
-      now = Time.now
-      diff = now - @statistics_then
-
-      input_rate = (@input_count.to_f / diff).round @statistics_precision
-      output_rate = (@output_count.to_f / diff).round @statistics_precision
-
-      @input_count = 0
-      @output_count = 0
-
-      emit(:key => INPUT_RATE, :source_key => INPUT,
-           :value => input_rate, :tags => INTERNAL_TAGS)
-      emit(:key => OUTPUT_RATE, :source_key => INPUT,
-           :value => output_rate, :tags => INTERNAL_TAGS)
-
-      @statistics_then = now
     end
   end
 end

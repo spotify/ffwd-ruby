@@ -15,10 +15,10 @@ module EVD::Plugin
         @prefix = prefix
       end
 
-      def setup(buffer)
+      def start(buffer)
         buffer.pop do |event|
           process event
-          setup buffer
+          start buffer
         end
       end
 

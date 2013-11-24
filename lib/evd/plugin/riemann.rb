@@ -158,9 +158,9 @@ module EVD::Plugin
       end
 
       #
-      # Setup riemann tcp connection.
+      # start riemann tcp connection.
       #
-      def setup(buffer)
+      def start(buffer)
         EventMachine.connect(@host, @port, Connection, @host, @port) do |conn|
           @conn = conn
         end
@@ -193,7 +193,7 @@ module EVD::Plugin
         @conn.send_datagram m.encode, @host_ip, @port
       end
 
-      def setup(buffer)
+      def start(buffer)
         @host_ip = resolve_host_ip @host
 
         if @host_ip.nil?

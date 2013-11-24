@@ -90,7 +90,7 @@ module EVD::Plugin
         @buffer_limit = buffer_limit
       end
 
-      def setup(buffer)
+      def start(buffer)
         EventMachine.start_server(@host, @port, Connection,
                                   buffer, @buffer_limit)
         log.info "Listening on #{@peer}"
@@ -107,7 +107,7 @@ module EVD::Plugin
         @buffer_limit = buffer_limit
       end
 
-      def setup(buffer)
+      def start(buffer)
         EventMachine.open_datagram_socket(@host, @port, Connection,
                                           buffer, @buffer_limit)
         log.info "Listening on #{@peer}"
