@@ -2,10 +2,9 @@ require 'logger'
 
 module EVD
   def self.log
-    return @log unless @log.nil?
-    log = Logger.new(log_config[:stream])
-    log.level = log_config[:level]
-    @log = log
+    @log ||= Logger.new(log_config[:stream]).tap do |l|
+      l.level = log_config[:level]
+    end
   end
 
   def self.log_config

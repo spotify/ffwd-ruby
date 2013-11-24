@@ -34,8 +34,8 @@ module EVD::Type
           emit(:key => "#{key}.rate", :source_key => key, :value => rate)
         end
       else
-        if @_cache.size > @cache_limit
-          log.warning "Dropping '#{key}': #{@_cache.size} > #{@cache_limit}"
+        if @_cache.size >= @cache_limit
+          log.warning "Dropping cache update '#{key}', limit reached"
           return
         end
       end

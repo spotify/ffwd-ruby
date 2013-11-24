@@ -135,16 +135,16 @@ module EVD::Type
       factor = parse_unit(msg[:unit] || "ms")
 
       if (times = @_cache[key]).nil?
-        if @_cache.size > @cache_limit
-          log.warning "Dropping '#{key}': #{@_cache.size} > #{@cache_limit}"
+        if @_cache.size >= @cache_limit
+          log.warning "Dropping cache update '#{key}', limit reached"
           return
         end
 
         @_cache[key] = times = []
       end
 
-      if times.size > @times_limit
-        log.warning "Dropping update '#{key}': #{times.size} > #{@times_limit}"
+      if times.size >= @times_limit
+        log.warning "Dropping times update '#{key}', limit reached"
         return
       end
 

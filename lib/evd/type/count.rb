@@ -23,8 +23,8 @@ module EVD::Type
       unless (prev_value = @_cache[key]).nil?
         value = prev_value + value
       else
-        if @_cache.size > @cache_limit
-          log.warning "Dropping '#{key}': #{@_cache.size} > #{@cache_limit}"
+        if @_cache.size >= @cache_limit
+          log.warning "Dropping cache update '#{key}', limit reached"
           return
         end
       end

@@ -18,54 +18,6 @@ module EVD
     INPUT = "evd_input"
     INPUT_RATE = "#{INPUT}.rate"
 
-    class UpdateHash
-      def initialize(base, target, limit)
-        @base = base
-        @target = target
-        @limit = limit
-      end
-
-      def process(msg)
-        key = msg[:key]
-        value = msg[:value]
-
-        if @target[key].nil? and @target.size > @limit
-          log.warning "Dropping metadata update for '#{key}', limit reached"
-          return
-        end
-
-        if value.nil?
-          @target.delete key
-        else
-          @target[key] = @base.merge(value)
-        end
-      end
-    end
-
-    class UpdateSet
-      def initialize(base, target, limit)
-        @base = base
-        @target = target
-        @limit = limit
-      end
-
-      def process(msg)
-        key = msg[:key]
-        value = msg[:value]
-
-        if @target[key].nil? and @target.size > @limit
-          log.warning "Dropping metadata update for '#{key}', limit reached"
-          return
-        end
-
-        if value.nil?
-          @target.delete key
-        else
-          @target[key] = Set.new(@base + value).to_a
-        end
-      end
-    end
-
     def initialize(opts={})
       @input_buffer = EventMachine::Queue.new
       @output_buffer = EventMachine::Queue.new
@@ -153,8 +105,8 @@ module EVD
     end
 
     def emit_output(event)
-      if @output_buffer.size > @output_buffer_limit
-        log.warning "Output buffer limit reached, dropping event"
+      if @output_buffer.size >= @output_buffer_limit
+        log.warning "Dropping output event, limit reached"
         return
       end
 
@@ -163,10 +115,12 @@ module EVD
 
     def setup_internals
       internals = {}
-      internals['tags'] = UpdateSet.new(
-        @tags, @metadata_tags, @metadata_limit)
-      internals['attr'] = UpdateHash.new(
-        @attr, @metadata_attr, @metadata_limit)
+      internals['tags'] = UpdateTarget.new(
+        @tags, @metadata_tags, @metadata_limit,
+        lambda{|a, b| Set.new(a+ b).to_a})
+      internals['attr'] = UpdateTarget.new(
+        @attr, @metadata_attr, @metadata_limit,
+        lambda{|a, b| a.merge(b)})
       internals
     end
 
@@ -209,7 +163,7 @@ module EVD
 
     def process_output(event)
       @output_buffers.each do |buffer|
-        if buffer.size > @output_buffer_limit
+        if buffer.size >= @output_buffer_limit
           log.warning "Output buffer limit reached, dropping event for plugin"
           next
         end
