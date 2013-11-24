@@ -15,7 +15,7 @@ module EVD::Plugin
     GAUGE = "gauge"
     TIMING = "timing"
 
-    class StatsdConnection < EventMachine::Connection
+    class Connection < EventMachine::Connection
       include EVD::Logging
 
       def initialize(input_buffer, buffer_limit)
@@ -91,8 +91,8 @@ module EVD::Plugin
       end
 
       def setup(buffer)
-        EventMachine.start_server(
-          @host, @port, StatsdConnection, buffer, @buffer_limit)
+        EventMachine.start_server(@host, @port, Connection,
+                                  buffer, @buffer_limit)
         log.info "Listening on #{@peer}"
       end
     end
@@ -108,8 +108,8 @@ module EVD::Plugin
       end
 
       def setup(buffer)
-        EventMachine.open_datagram_socket(
-          @host, @port, StatsdConnection, buffer, @buffer_limit)
+        EventMachine.open_datagram_socket(@host, @port, Connection,
+                                          buffer, @buffer_limit)
         log.info "Listening on #{@peer}"
       end
     end

@@ -4,7 +4,7 @@ require 'evd/logging'
 
 module EVD
   module Debug
-    class DebugConnection < EventMachine::Connection
+    class Connection < EventMachine::Connection
       include EVD::Logging
 
       def initialize(clients)
@@ -45,8 +45,7 @@ module EVD
       end
 
       def start
-        EventMachine.start_server(
-          @host, @port, DebugConnection, @clients)
+        EventMachine.start_server(@host, @port, Connection, @clients)
         log.info "Listening on #{@peer}"
       end
     end

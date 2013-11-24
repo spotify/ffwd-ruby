@@ -12,7 +12,7 @@ module EVD::Plugin
 
     register_plugin "json_line"
 
-    class JsonLineConnection < EventMachine::Connection
+    class Connection < EventMachine::Connection
       include EVD::Logging
       include EventMachine::Protocols::LineText2
 
@@ -54,8 +54,8 @@ module EVD::Plugin
       end
 
       def setup(buffer)
-        EventMachine.start_server(
-          @host, @port, JsonLineConnection, buffer, @buffer_limit)
+        EventMachine.start_server(@host, @port, Connection,
+                                  buffer, @buffer_limit)
         log.info "Listening on #{@peer}"
       end
     end
