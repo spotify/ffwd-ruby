@@ -24,7 +24,7 @@ module EVD
       @output_buffer = EventMachine::Queue.new
       @output_buffers = []
 
-      @statistics_period = opts[:statistics_period] || 10
+      @statistics_period = opts[:statistics_period] || 1
       @output_buffer_limit = opts[:output_buffer_limit] || 1000
       @metadata_limit = opts[:metadata_limit] || 10000
       @tags = opts[:tags] || []
@@ -33,6 +33,8 @@ module EVD
       @debug = opts[:debug]
       @debug_clients = {}
 
+      @statistics_precision = opts[:statistics_precision] || 3
+      @statistics_then = nil
       @input_count = 0
       @output_count = 0
       @metadata = {}
@@ -95,7 +97,10 @@ module EVD
         event[:attributes] = @attr
       end
 
-      emit_debug event unless @debug.nil?
+      unless @debug.nil?
+        emit_debug event
+      end
+
       emit_output event
     end
 
@@ -150,7 +155,6 @@ module EVD
 
     def process_input_buffer
       @input_buffer.pop do |msg|
-        @input_count += 1
         process_input msg
         process_input_buffer
       end
@@ -158,13 +162,14 @@ module EVD
 
     def process_output_buffer
       @output_buffer.pop do |event|
-        @output_count += 1
         process_output event
         process_output_buffer
       end
     end
 
     def process_input(msg)
+      @input_count += 1
+
       return if (type = msg[:type]).nil?
       return if (processor = @datatypes[type] || @internals[type]).nil?
       msg[:time] = Time.now unless msg[:time]
@@ -172,6 +177,8 @@ module EVD
     end
 
     def process_output(event)
+      @output_count += 1
+
       @output_buffers.each do |buffer|
         if buffer.size >= @output_buffer_limit
           log.warning "Output buffer limit reached, dropping event for plugin"
@@ -183,26 +190,29 @@ module EVD
     end
 
     def process_statistics
-      prev = Time.now
+      @statistics_then = Time.now
 
       EventMachine::PeriodicTimer.new(@statistics_period) do
-        now = Time.now
-
-        diff = now - prev
-
-        output_rate = @output_count / diff
-        input_rate = @input_count / diff
-
-        emit(:key => INPUT_RATE, :source_key => INPUT,
-             :value => input_rate, :tags => INTERNAL_TAGS)
-        emit(:key => OUTPUT_RATE, :source_key => INPUT,
-             :value => output_rate, :tags => INTERNAL_TAGS)
-
-        @output_count = 0
-        @input_count = 0
-
-        prev = now
+        generate_statistics
       end
+    end
+
+    def generate_statistics
+      now = Time.now
+      diff = now - @statistics_then
+
+      input_rate = (@input_count.to_f / diff).round @statistics_precision
+      output_rate = (@output_count.to_f / diff).round @statistics_precision
+
+      @input_count = 0
+      @output_count = 0
+
+      emit(:key => INPUT_RATE, :source_key => INPUT,
+           :value => input_rate, :tags => INTERNAL_TAGS)
+      emit(:key => OUTPUT_RATE, :source_key => INPUT,
+           :value => output_rate, :tags => INTERNAL_TAGS)
+
+      @statistics_then = now
     end
   end
 end
