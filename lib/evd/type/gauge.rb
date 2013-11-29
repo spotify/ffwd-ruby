@@ -13,6 +13,9 @@ module EVD::Type
 
     register_type "gauge"
 
+    def initialize(opts={})
+    end
+
     def process(msg)
       key = msg[:key]
       value = msg[:value] || 0

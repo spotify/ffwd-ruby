@@ -30,10 +30,22 @@ module EVD::Type
     }
 
     DEFAULT_PERCENTILES = {
-      :p50 => 0.50,
-      :p95 => 0.95,
-      :p99 => 0.99,
-      :p999 => 0.999,
+      :p50 => {
+        :percentage => 0.50,
+        :info => "50th percentile",
+      },
+      :p95 => {
+        :percentage => 0.95,
+        :info => "95th percentile",
+      },
+      :p99 => {
+        :percentage => 0.99,
+        :info => "99th percentile",
+      },
+      :p999 => {
+        :percentage => 0.999,
+        :info => "99.9th percentile",
+      },
     }
 
     #
@@ -62,8 +74,9 @@ module EVD::Type
 
       EventMachine::PeriodicTimer.new(@flush_period) do
         @_cache.each do |key, times|
-          calculate(times) do |p, value|
-            emit(:key => "#{key}.#{p}", :source_key => key, :value => value)
+          calculate(times) do |p, info, value|
+            emit :key => "#{key}.#{p}", :source_key => key, :value => value,
+                 :description => "#{info} of #{key}"
           end
         end
 
@@ -77,8 +90,15 @@ module EVD::Type
       perc_map = {}
 
       @percentiles.each do |k, v|
-        index = (total * v).ceil - 1
-        percs = perc_map[index] ||= []
+        index = (total * v[:percentage]).ceil - 1
+
+        if (config = perc_map[index]).nil?
+          config = {:info => v[:info], :percs => []}
+          perc_map[index] = config
+        end
+
+        percs = config[:percs]
+
         percs << {:name => k, :value => nil}
       end
 
@@ -92,7 +112,8 @@ module EVD::Type
         min = t if min.nil? or t < min
         sum += t
 
-        unless (percs = perc_map[index]).nil?
+        unless (config = perc_map[index]).nil?
+          percs = config[:percs]
           percs.each{|d| d[:value] = t}
         end
       end
@@ -105,19 +126,22 @@ module EVD::Type
         sum = sum.round(@precision)
         mean = mean.round(@precision)
 
-        perc_map.each do |index, percs|
+        perc_map.each do |index, config|
+          percs = config[:percs]
           percs.each{|d| d[:value] = d[:value].round(@precision)}
         end
       end
 
-      yield "max", max
-      yield "min", min
-      yield "sum", sum
-      yield "mean", mean
+      yield "max", "Max time", max
+      yield "min", "Min time", min
+      yield "sum", "Sum", sum
+      yield "mean", "Mean", mean
 
-      perc_map.each do |index, percs|
+      perc_map.each do |index, config|
+        info = config[:info]
+        percs = config[:percs]
         percs.each do |d|
-          yield d[:name], d[:value]
+          yield d[:name], info, d[:value]
         end
       end
     end

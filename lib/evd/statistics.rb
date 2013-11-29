@@ -1,6 +1,6 @@
 module EVD
   module Statistics
-    INTERNAL_TAGS = ['evd']
+    INTERNAL_TAGS = Set.new(['evd'])
 
     OUTPUT = "evd_output"
     OUTPUT_RATE = "#{OUTPUT}.rate"

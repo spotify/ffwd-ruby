@@ -38,8 +38,9 @@ module EVD::Plugin
         return if value.nil?
 
         @input_buffer << {:type => type, :key => key, :value => value}
-      rescue
-        puts "Something went wrong: #{$!}"
+      rescue => e
+        log.error "Something went wrong: #{e}"
+        log.error e.backtrace.join("\n")
       end
     end
 

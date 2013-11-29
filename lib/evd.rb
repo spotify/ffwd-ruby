@@ -12,19 +12,21 @@ module EVD
   class CommandLine
     include EVD::Logging
 
-    def load_plugins(config, setup_method)
-      config.each_with_index do |plugin_config, index|
+    def load_plugins(config, plugin_type, setup_method)
+      (config[plugin_type] || []).each_with_index do |plugin_config, index|
+        d = "#{plugin_type} plugin ##{index}"
+
         if (type = plugin_config[:type]).nil?
-          log.error "Missing :type attribute for #{plugin_type} plugin ##{index}"
+          log.error "#{d}: Missing :type attribute for '#{plugin_type}'"
         end
 
         if (plugin = Plugin.registry[type]).nil?
-          log.error "Not a plugin: #{type}"
+          log.error "#{d}: Not an available plugin '#{type}'"
           next
         end
 
         unless plugin.respond_to? setup_method
-          log.error "Not an #{plugin_type} plugin: #{type}"
+          log.error "#{d}: Not an #{plugin_type} plugin '#{type}'"
           next
         end
 
@@ -49,11 +51,11 @@ module EVD
 
       plugins = {:input => [], :output => []}
 
-      load_plugins(config[:output] || [], :output_setup) do |output|
+      load_plugins(config, :output, :output_setup) do |output|
         plugins[:output] << output
       end
 
-      load_plugins(config[:input] || [], :input_setup) do |input|
+      load_plugins(config, :input, :input_setup) do |input|
         plugins[:input] << input
       end
 

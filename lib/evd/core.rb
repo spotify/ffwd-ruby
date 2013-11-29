@@ -21,11 +21,14 @@ module EVD
 
       @output_buffer_limit = opts[:output_buffer_limit] || 1000
       @metadata_limit = opts[:metadata_limit] || 10000
-      @tags = opts[:tags] || []
+      @tags = Set.new(opts[:tags] || [])
       @attr = opts[:attributes] || {}
 
       @debug = opts[:debug]
       @debug_clients = {}
+
+      # Configuration for a specific type.
+      @types = opts[:types] || {}
 
       @statistics = opts[:statistics]
       @s = nil
@@ -87,11 +90,23 @@ module EVD
     #
     def emit(event)
       unless (key = event[:source_key]).nil?
-        event[:tags] = @metadata_tags[key] || @tags
-        event[:attributes] = @metadata_attr[key] || @attr
+        base_tags = @metadata_tags[key] || @tags
+        base_attr = @metadata_attr[key] || @attr
       else
-        event[:tags] = @tags
-        event[:attributes] = @attr
+        base_tags = @tags
+        base_attr = @attr
+      end
+
+      if event[:tags].nil?
+        event[:tags] = base_tags
+      else
+        event[:tags] = event[:tags] + base_tags
+      end
+
+      if event[:attributes].nil?
+        event[:attributes] = base_attr
+      else
+        event[:attributes] = base_attr.merge(event[:attributes])
       end
 
       unless @debug.nil?
@@ -126,7 +141,7 @@ module EVD
       internals = {}
       internals['tags'] = UpdateHash.new(
         @tags, @metadata_tags, @metadata_limit,
-        lambda{|a, b| Set.new(a+ b).to_a})
+        lambda{|a, b| a + b})
       internals['attr'] = UpdateHash.new(
         @attr, @metadata_attr, @metadata_limit,
         lambda{|a, b| a.merge(b)})
@@ -142,7 +157,7 @@ module EVD
       DataType.registry.each do |name, klass|
         log.info "DataType: #{name}"
 
-        data_type = klass.new
+        data_type = klass.new(@types[name] || {})
         data_type.core = self
         datatypes[name] = data_type
       end
@@ -169,6 +184,7 @@ module EVD
 
       return if (type = msg[:type]).nil?
       return if (processor = @datatypes[type] || @internals[type]).nil?
+      msg[:tags] = Set.new(msg[:tags]) unless msg[:tags].nil?
       msg[:time] = Time.now unless msg[:time]
       processor.process msg
     end

@@ -13,6 +13,8 @@
 :input:
   - :type: "json_line"
     :protocol: "tcp"
+  - :type: "riemann"
+    :protocol: "tcp"
   - :type: "statsd"
     :protocol: "udp"
 
@@ -22,3 +24,7 @@
     :host: "localhost"
   - :type: "log"
     :prefix: "idiot"
+
+:types:
+  event:
+    :ttl: 3600

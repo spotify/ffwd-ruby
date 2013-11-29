@@ -75,8 +75,9 @@ module EVD::Plugin
         return if event.nil?
 
         @input_buffer << event
-      rescue
-        puts "Something went wrong: #{$!}"
+      rescue => e
+        log.error "Something went wrong: #{e}"
+        log.error e.backtrace.join("\n")
       end
     end
 
