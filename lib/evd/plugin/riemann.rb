@@ -17,16 +17,27 @@ module EVD::Plugin
     include EVD::Plugin
     include EVD::Logging
 
+    MAPPING = [
+      [:key, :service, :service=],
+      [:value, :metric, :metric=],
+      [:host, :host, :host=],
+      [:state, :state, :state=],
+      [:description, :description, :description=],
+      [:ttl, :ttl, :ttl=],
+      [:time, :time, :time=],
+    ]
+
     register_plugin "riemann"
 
-    class BaseOut
-      attr_reader :dropped_messages
-
+    class ConnectBase
       def initialize(tags, attributes)
         @tags = Set.new(tags || [])
         @attributes = attributes || {}
-        @dropped_messages = 0
       end
+
+      protected
+
+      def handle_event(event); raise "Not implemented: handle_event"; end
 
       def make_event(s)
         tags = @tags
@@ -41,28 +52,20 @@ module EVD::Plugin
 
         e = ::Riemann::Event.new
 
-        e.service = s[:key] unless s[:key].nil?
-        e.metric = s[:value] unless s[:value].nil?
-        e.host = s[:host] unless s[:host].nil?
-        e.state = s[:state] unless s[:state].nil?
-        e.description = s[:description] unless s[:description].nil?
-        e.ttl = s[:ttl] unless s[:ttl].nil?
-        e.time = s[:time] unless s[:time].nil?
         e.tags = tags unless tags.empty?
         e.attributes = attributes unless attributes.empty?
+
+        MAPPING.each do |key, reader, writer|
+          next if (v = s[key]).nil?
+          e.send(writer, v)
+        end
 
         e
       end
 
       def make_message(message)
-        ::Riemann::Message.new(
-          :events => message[:events]
-        )
+        ::Riemann::Message.new(:events => message[:events])
       end
-
-      protected
-
-      def handle_event(event); raise "Not implemented: handle_event"; end
 
       def collect_events(buffer)
         buffer.pop do |event|
@@ -72,7 +75,7 @@ module EVD::Plugin
       end
     end
 
-    class OutputTCP < BaseOut
+    class ConnectTCP < ConnectBase
       include EVD::Logging
 
       class Connection < EventMachine::Connection
@@ -124,7 +127,6 @@ module EVD::Plugin
         def receive_data(data)
           message = read_message data
 
-          # Not a lot to do to handle the situation.
           unless message.ok
             @bad_acks += 1
             log.warning "(#{@peer}) Bad riemann ACK"
@@ -145,7 +147,7 @@ module EVD::Plugin
         @port = port
         @flush_period = flush_period
 
-        @conn = nil
+        @c = nil
         @buffer = []
       end
 
@@ -158,28 +160,26 @@ module EVD::Plugin
       #
       def flush_events
         return if @buffer.empty?
-        return unless @conn.connected?
+        return unless @c.connected?
 
         events = @buffer.map{|e| make_event(e)}
         message = make_message :events => events
 
         @buffer = []
 
-        begin
-          data = message.encode_with_length
-          @conn.send_data data
-        rescue => e
-          log.error "Failed to send events: #{e}"
-          log.error e.backtrace.join("\n")
-        end
+        data = message.encode_with_length
+        @c.send_data data
+      rescue => e
+        log.error "Failed to send events: #{e}"
+        log.error e.backtrace.join("\n")
       end
 
       #
       # start riemann tcp connection.
       #
       def start(buffer)
-        EventMachine.connect(@host, @port, Connection, @host, @port) do |conn|
-          @conn = conn
+        EventMachine.connect(@host, @port, Connection, @host, @port) do |c|
+          @c = c
         end
 
         EventMachine::PeriodicTimer.new(@flush_period) do
@@ -190,7 +190,7 @@ module EVD::Plugin
       end
     end
 
-    class OutputUDP < BaseOut
+    class ConnectUDP < SendBase
       include EVD::Logging
 
       def initialize(host, port, tags, attributes)
@@ -201,13 +201,13 @@ module EVD::Plugin
 
         @bind_host = "0.0.0.0"
         @host_ip = nil
-        @conn = nil
+        @c = nil
       end
 
       def handle_event(event)
         e = make_event(event)
         m = make_message :events => [e]
-        @conn.send_datagram m.encode, @host_ip, @port
+        @c.send_datagram m.encode, @host_ip, @port
       end
 
       def start(buffer)
@@ -220,8 +220,8 @@ module EVD::Plugin
 
         log.info "Resolved server as #{@host_ip}"
 
-        EventMachine.open_datagram_socket(@bind_host, nil) do |conn|
-          @conn = conn
+        EventMachine.open_datagram_socket(@bind_host, nil) do |c|
+          @c = c
           collect_events buffer
         end
       end
@@ -248,7 +248,7 @@ module EVD::Plugin
       end
     end
 
-    class InputTCP
+    class ListenTCP
       include EVD::Logging
 
       class Connection < EventMachine::Connection
@@ -270,22 +270,21 @@ module EVD::Plugin
             unless e.attributes.nil?
               attributes = {}
 
-              e.attributes.each do |a|
-                attributes[a.key] = a.value
+              e.attributes.each do |attr|
+                attributes[attr.key] = attr.value
               end
-            else
-              attributes = nil
+
+              o[:attributes] = attributes unless attributes.empty?
             end
 
-            o[:key] = e.service unless e.service.nil?
-            o[:value] = e.metric unless e.metric.nil?
-            o[:host] = e.host unless e.host.nil?
-            o[:state] = e.state unless e.state.nil?
-            o[:description] = e.description unless e.description.nil?
-            o[:ttl] = e.ttl unless e.ttl.nil?
-            o[:time] = e.time unless e.time.nil?
-            o[:tags] = e.tags unless e.tags.nil? or e.tags.empty?
-            o[:attributes] = attributes unless attributes.nil?
+            unless e.tags.nil? or e.tags.empty?
+              o[:tags] = e.tags
+            end
+
+            MAPPING.each do |key, reader, writer|
+              next if (v = e.send(reader)).nil?
+              o[key] = v
+            end
 
             @buffer << o
           end
@@ -325,10 +324,10 @@ module EVD::Plugin
 
       if protocol == :tcp
         flush_period = opts[:flush_period] || 10
-        return OutputTCP.new host, port, tags, attributes, flush_period
+        return ConnectTCP.new host, port, tags, attributes, flush_period
       end
 
-      return OutputUDP.new host, port, tags, attributes
+      return ConnectUDP.new host, port, tags, attributes
     end
 
     def self.input_setup(opts={})
@@ -337,10 +336,10 @@ module EVD::Plugin
       port = opts[:port] || DEFAULT_PORT[protocol]
 
       if protocol == :tcp
-        return InputTCP.new host, port
+        return ListenTCP.new host, port
       end
 
-      raise "Not supported"
+      raise "Protocol not supported: #{protocol}"
     end
   end
 end

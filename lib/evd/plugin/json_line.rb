@@ -16,6 +16,19 @@ module EVD::Plugin
       include EVD::Logging
       include EventMachine::Protocols::LineText2
 
+      FIELDS = [
+        ["type", :type],
+        ["key", :key],
+        ["value", :value],
+        ["host", :host],
+        ["state", :state],
+        ["description", :description],
+        ["ttl", :ttl],
+        ["time", :time],
+        ["tags", :tags],
+        ["attributes", :attributes],
+      ]
+
       def initialize(input_buffer, buffer_limit)
         @input_buffer = input_buffer
         @buffer_limit = buffer_limit
@@ -29,15 +42,14 @@ module EVD::Plugin
 
         data = JSON.load(data)
 
-        type = data["$type"]
-        key = data["key"]
-        value = data["value"]
+        d = Hash.new
 
-        return if type.nil?
-        return if key.nil?
-        return if value.nil?
+        FIELDS.each do |from, to|
+          next if (v = data[from]).nil?
+          d[to] = v
+        end
 
-        @input_buffer << {:type => type, :key => key, :value => value}
+        @input_buffer << d
       rescue => e
         log.error "Something went wrong: #{e}"
         log.error e.backtrace.join("\n")
