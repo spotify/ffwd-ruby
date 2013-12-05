@@ -23,7 +23,7 @@ module EVD::Plugin
       end
 
       def process(event)
-        log.info "(#{@prefix}) Output: #{event}"
+        log.info "(#{@prefix}) Output: #{event.inspect}"
       end
     end
 

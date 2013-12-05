@@ -17,6 +17,9 @@
     :protocol: "tcp"
   - :type: "statsd"
     :protocol: "udp"
+  - :type: "syslog"
+    :protocol: "unix+udp"
+    :path: "/tmp/evd.sock"
 
 :output:
   - :type: "riemann"

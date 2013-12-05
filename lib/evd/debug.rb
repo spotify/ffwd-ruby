@@ -45,8 +45,8 @@ module EVD
       end
 
       def start
+        log.info "Listening on tcp://#{@peer}"
         EventMachine.start_server(@host, @port, Connection, @clients)
-        log.info "Listening on #{@peer}"
       end
     end
 
@@ -55,7 +55,7 @@ module EVD
       port = opts[:port] || 9999
       proto = EVD.parse_protocol(opts[:protocol] || "tcp")
 
-      return TCP.new clients, host, port if proto == :tcp
+      return TCP.new clients, host, port if proto == EVD::TCP
 
       throw Exception.new("Unsupported protocol '#{proto}'")
     end

@@ -121,8 +121,8 @@ module EVD::Plugin
       buffer_limit = opts["buffer_limit"] || 1000
       proto = EVD.parse_protocol(opts[:protocol] || "tcp")
 
-      return UDP.new host, port, buffer_limit if proto == :udp
-      return TCP.new host, port, buffer_limit if proto == :tcp
+      return UDP.new host, port, buffer_limit if proto == EVD::UDP
+      return TCP.new host, port, buffer_limit if proto == EVD::TCP
 
       throw Exception.new("Unsupported protocol '#{proto}'")
     end

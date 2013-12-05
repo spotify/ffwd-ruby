@@ -31,8 +31,8 @@ module EVD
         now = Time.now
         diff = now - @then
 
-        input_rate = (@input_count.to_f / diff).round @precision
-        output_rate = (@output_count.to_f / diff).round @precision
+        input_rate = (@input_count.to_f / diff)
+        output_rate = (@output_count.to_f / diff)
 
         @input_count = 0
         @output_count = 0
