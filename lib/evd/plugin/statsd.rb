@@ -18,8 +18,8 @@ module EVD::Plugin
     class Connection < EventMachine::Connection
       include EVD::Logging
 
-      def initialize(input_buffer, buffer_limit)
-        @input_buffer = input_buffer
+      def initialize(buffer, buffer_limit)
+        @buffer = buffer
         @buffer_limit = buffer_limit
       end
 
@@ -65,7 +65,7 @@ module EVD::Plugin
       end
 
       def receive_data(data)
-        if @input_buffer.size > @buffer_limit
+        if @buffer.size > @buffer_limit
           log.warning "Buffer limit reached, dropping event"
           return
         end
@@ -74,57 +74,23 @@ module EVD::Plugin
 
         return if event.nil?
 
-        @input_buffer << event
+        @buffer << event
       rescue => e
         log.error "Something went wrong: #{e}"
         log.error e.backtrace.join("\n")
       end
     end
 
-    class TCP
-      include EVD::Logging
-
-      def initialize(host, port, buffer_limit)
-        @host = host
-        @port = port
-        @peer = "#{@host}:#{@port}"
-        @buffer_limit = buffer_limit
-      end
-
-      def start(buffer)
-        EventMachine.start_server(@host, @port, Connection,
-                                  buffer, @buffer_limit)
-        log.info "Listening on #{@peer}"
-      end
-    end
-
-    class UDP
-      include EVD::Logging
-
-      def initialize(host, port, buffer_limit)
-        @host = host
-        @port = port
-        @peer = "#{@host}:#{@port}"
-        @buffer_limit = buffer_limit
-      end
-
-      def start(buffer)
-        EventMachine.open_datagram_socket(@host, @port, Connection,
-                                          buffer, @buffer_limit)
-        log.info "Listening on #{@peer}"
-      end
-    end
+    DEFAULT_HOST = "localhost"
+    DEFAULT_PORT = 8125
 
     def self.input_setup(opts={})
-      host = opts[:host] || "localhost"
-      port = opts[:port] || 8125
-      buffer_limit = opts["buffer_limit"] || 1000
+      opts[:host] ||= DEFAULT_HOST
+      opts[:port] ||= DEFAULT_PORT
+      buffer_limit = opts[:buffer_limit] || 1000
       proto = EVD.parse_protocol(opts[:protocol] || "tcp")
 
-      return UDP.new host, port, buffer_limit if proto == EVD::UDP
-      return TCP.new host, port, buffer_limit if proto == EVD::TCP
-
-      throw Exception.new("Unsupported protocol '#{proto}'")
+      proto.listen log, opts, Connection, buffer_limit
     end
   end
 end

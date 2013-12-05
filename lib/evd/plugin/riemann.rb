@@ -50,13 +50,10 @@ module EVD::Plugin
         m.encode
       end
 
-      def recv_data(peer, data)
+      def receive_data(data)
         message = read_message data
-
         return if message.ok
-
         @bad_acks += 1
-        log.warning "(#{peer}) Bad riemann acknowledge received"
       end
 
       private
@@ -94,7 +91,7 @@ module EVD::Plugin
       end
     end
 
-    class Connection < EventMachine::Connection
+    class ConnectionBase < EventMachine::Connection
       include EVD::Logging
       include EventMachine::Protocols::ObjectProtocol
 
@@ -108,8 +105,9 @@ module EVD::Plugin
         end
       end
 
-      def initialize(buffer)
+      def initialize(buffer, log)
         @buffer = buffer
+        @log = log
       end
 
       def serializer
@@ -142,17 +140,37 @@ module EVD::Plugin
           @buffer << o
         end
 
-        send_object(::Riemann::Message.new(:ok => true))
+        send_ok
       rescue => e
-        log.error "Failed to receive object: #{e}"
-        log.error e.backtrace.join("\n")
+        @log.error "Failed to receive object: #{e}"
+        @log.error e.backtrace.join("\n")
 
-        send_object(::Riemann::Message.new(:ok => false, :error => e.to_s))
+        send_error e
+      end
+
+      protected
+
+      def send_ok; end
+      def send_error(e); end
+    end
+
+    class ConnectionTCP < ConnectionBase
+      def send_ok
+        send_object(::Riemann::Message.new(
+          :ok => true))
+      end
+
+      def send_error(e)
+        send_object(::Riemann::Message.new(
+          :ok => false, :error => e.to_s))
       end
     end
 
+    class ConnectionUDP < ConnectionBase; end
+
     DEFAULT_HOST = "localhost"
     DEFAULT_PORT = 5555
+    DEFAULT_PROTOCOL = 'tcp'
 
     def self.output_setup(opts={})
       opts[:host] ||= DEFAULT_HOST
@@ -162,15 +180,22 @@ module EVD::Plugin
       tags = opts[:tags] || []
       handler = Handler.new tags, attributes
 
-      protocol = EVD.parse_protocol(opts[:protocol] || "tcp")
+      protocol = EVD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
       protocol.connect log, opts, handler
     end
 
     def self.input_setup(opts={})
       opts[:host] ||= DEFAULT_HOST
       opts[:port] ||= DEFAULT_PORT
-      protocol = EVD.parse_protocol(opts[:protocol] || "tcp")
-      protocol.listen log, opts, Connection
+      protocol = EVD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
+
+      if protocol.family == :udp
+        connection = ConnectionUDP
+      else
+        connection = ConnectionTCP
+      end
+
+      protocol.listen log, opts, connection, log
     end
   end
 end
