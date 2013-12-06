@@ -18,9 +18,8 @@ module EVD::Plugin
     class Connection < EventMachine::Connection
       include EVD::Logging
 
-      def initialize(buffer, buffer_limit)
+      def initialize(buffer)
         @buffer = buffer
-        @buffer_limit = buffer_limit
       end
 
       def gauge(name, value)
@@ -65,15 +64,8 @@ module EVD::Plugin
       end
 
       def receive_data(data)
-        if @buffer.size > @buffer_limit
-          log.warning "Buffer limit reached, dropping event"
-          return
-        end
-
         event = parse(data)
-
         return if event.nil?
-
         @buffer << event
       rescue => e
         log.error "Something went wrong: #{e}"
@@ -87,10 +79,9 @@ module EVD::Plugin
     def self.input_setup(opts={})
       opts[:host] ||= DEFAULT_HOST
       opts[:port] ||= DEFAULT_PORT
-      buffer_limit = opts[:buffer_limit] || 1000
       proto = EVD.parse_protocol(opts[:protocol] || "tcp")
 
-      proto.listen log, opts, Connection, buffer_limit
+      proto.listen log, opts, Connection
     end
   end
 end
