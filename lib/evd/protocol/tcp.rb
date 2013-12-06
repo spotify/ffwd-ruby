@@ -29,6 +29,7 @@ module EVD::TCP
 
       @peer = "#{host}:#{port}"
       @connection = nil
+      @closing = false
       @buffer = []
       @reconnect_timer = nil
       @reconnect_timeout = INITIAL_TIMEOUT
@@ -49,6 +50,11 @@ module EVD::TCP
 
     def unbind
       @connected = false
+
+      if @closing
+        @log.info "Disconnected from tcp://#{@peer}"
+        return
+      end
 
       @log.info "Disconnected from tcp://#{@peer}, reconnecting in #{@reconnect_timeout}s"
 
@@ -83,7 +89,16 @@ module EVD::TCP
         flush_events
       end
 
+      EventMachine.add_shutdown_hook do
+        close
+      end
+
       collect_events_buffer buffer
+    end
+
+    def close
+      @closing = true
+      @connection.close_connection
     end
 
     private
