@@ -15,7 +15,7 @@ module EVD::Plugin
     GAUGE = "gauge"
     HISTOGRAM = "histogram"
 
-    class Connection < EventMachine::Connection
+    class Connection < EM::Connection
       include EVD::Logging
 
       def initialize(buffer)

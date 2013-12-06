@@ -41,7 +41,7 @@ module EVD::Type
 
     def start
       unless @ttl.nil?
-        EventMachine::PeriodicTimer.new(@ttl) do
+        EM::PeriodicTimer.new(@ttl) do
           expire!
         end
       end

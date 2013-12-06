@@ -92,7 +92,7 @@ module EVD::Type
     def start
       log.info "Digesting on a window of #{@window}s"
 
-      EventMachine::PeriodicTimer.new(@window) do
+      EM::PeriodicTimer.new(@window) do
         digest!
       end
     end

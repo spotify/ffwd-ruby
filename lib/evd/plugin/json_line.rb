@@ -12,9 +12,9 @@ module EVD::Plugin
 
     register_plugin "json_line"
 
-    class Connection < EventMachine::Connection
+    class Connection < EM::Connection
       include EVD::Logging
-      include EventMachine::Protocols::LineText2
+      include EM::Protocols::LineText2
 
       FIELDS = [
         ["type", :type],

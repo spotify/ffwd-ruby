@@ -15,7 +15,7 @@ module EVD::UnixTCP
       s = Socket.new(Socket::AF_UNIX, Socket::SOCK_STREAM, 0)
       s.bind(Socket.pack_sockaddr_un(@path))
 
-      EventMachine.attach(s, @handler, buffer, *@args)
+      EM.attach(s, @handler, buffer, *@args)
     end
   end
 

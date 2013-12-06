@@ -1,5 +1,5 @@
 module EVD::TCP
-  class Connection < EventMachine::Connection
+  class Connection < EM::Connection
     def initialize(parent)
       @parent = parent
     end
@@ -63,7 +63,7 @@ module EVD::TCP
         @reconnect_timer = nil
       end
 
-      @reconnect_timer = EventMachine::Timer.new(@reconnect_timeout) do
+      @reconnect_timer = EM::Timer.new(@reconnect_timeout) do
         @reconnect_timeout *= 2
         @reconnect_timer = nil
         @connection.reconnect @host, @port
@@ -76,7 +76,9 @@ module EVD::TCP
 
     # Start TCP connection.
     def start(buffer)
-      @connection = EventMachine.connect(@host, @port, Connection, self)
+      @connection = EM.connect(@host, @port, Connection, self)
+
+      EM.add_shutdown_hook{close}
 
       if @flush_period == 0
         collect_events buffer
@@ -84,14 +86,7 @@ module EVD::TCP
       end
 
       @log.info "Flushing every #{@flush_period}s"
-
-      EventMachine::PeriodicTimer.new(@flush_period) do
-        flush_events
-      end
-
-      EventMachine.add_shutdown_hook do
-        close
-      end
+      EM::PeriodicTimer.new(@flush_period){flush!}
 
       collect_events_buffer buffer
     end
@@ -104,7 +99,7 @@ module EVD::TCP
     private
 
     # Flush buffered events (if any).
-    def flush_events
+    def flush!
       return if @buffer.empty?
       return unless @connected
       data = @handler.serialize_events @buffer
@@ -153,7 +148,7 @@ module EVD::TCP
 
     def start(buffer)
       @log.info "Listening on tcp://#{@peer}"
-      EventMachine.start_server @host, @port, @handler, buffer, *@args
+      EM.start_server @host, @port, @handler, buffer, *@args
     end
   end
 

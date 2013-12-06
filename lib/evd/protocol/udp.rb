@@ -21,7 +21,7 @@ module EVD::UDP
 
       @log.info "Resolved server as #{@host_ip}"
 
-      EventMachine.open_datagram_socket(@bind_host, nil) do |connection|
+      EM.open_datagram_socket(@bind_host, nil) do |connection|
         @connection = connection
         collect_events buffer
       end
@@ -63,7 +63,7 @@ module EVD::UDP
 
     def start(b)
       @log.info "Listening on udp://#{@peer}"
-      EventMachine.open_datagram_socket(@host, @port, @handler, b, *@args)
+      EM.open_datagram_socket(@host, @port, @handler, b, *@args)
     end
   end
 

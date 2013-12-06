@@ -13,8 +13,8 @@ module EVD::Plugin
 
     register_plugin "syslog"
 
-    class Connection < EventMachine::Connection
-      include EventMachine::Protocols::LineText2
+    class Connection < EM::Connection
+      include EM::Protocols::LineText2
 
       def initialize(buffer)
         @buffer = buffer

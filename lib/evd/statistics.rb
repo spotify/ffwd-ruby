@@ -22,7 +22,7 @@ module EVD
       def start
         @then = Time.now
 
-        EventMachine::PeriodicTimer.new(@period) do
+        EM::PeriodicTimer.new(@period) do
           generate
         end
       end

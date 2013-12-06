@@ -111,9 +111,9 @@ module EVD::Plugin
       end
     end
 
-    class ConnectionBase < EventMachine::Connection
+    class ConnectionBase < EM::Connection
       include EVD::Logging
-      include EventMachine::Protocols::ObjectProtocol
+      include EM::Protocols::ObjectProtocol
 
       module RiemannSerializer
         def self.dump(m)

@@ -1,8 +1,6 @@
 require 'evd/plugin'
 require 'evd/logging'
 
-require 'eventmachine'
-
 module EVD::Plugin
   module Kafka
     include EVD::Plugin

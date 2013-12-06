@@ -27,10 +27,10 @@ module EVD
       @plugin_buffer_limit = opts[:plugin_buffer_limit] || @buffer_limit
       @report_interval = opts[:report_interval] || DEFAULT_REPORT_INTERVAL
 
-      @input_buffer = EVD::Limited::Queue.new(
+      @input_buffer = EVD::Limited::Channel.new(
         'core input', log, @input_buffer_limit)
 
-      @output_buffer = EVD::Limited::Queue.new(
+      @output_buffer = EVD::Limited::Channel.new(
         'core output', log, @output_buffer_limit)
 
       @output_buffers = []
@@ -75,14 +75,14 @@ module EVD
       input_plugins = plugins[:input]
       output_plugins = plugins[:output]
 
-      EventMachine.run do
+      EM.run do
         input_plugins.each do |type, plugin|
           plugin.start @input_buffer
         end
 
         output_plugins.each_with_index do |plugin_def, index|
           type, plugin = plugin_def
-          output_buffer = EVD::Limited::Queue.new(
+          output_buffer = EVD::Limited::Channel.new(
             "output ##{index} '#{type}'",
             log, @plugin_buffer_limit)
           plugin.start output_buffer
@@ -102,7 +102,7 @@ module EVD
         end
 
         unless @reporters.empty?
-          EventMachine::PeriodicTimer.new(@report_interval) do
+          EM::PeriodicTimer.new(@report_interval) do
             process_reporters
           end
         end
