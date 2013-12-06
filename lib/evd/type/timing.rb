@@ -66,22 +66,25 @@ module EVD::Type
       @_cache = {}
     end
 
-    #
     # Setup all EventMachine hooks.
-    #
     def start
-      log.info "Setup with flush period #{@flush_period}"
+      log.info "Flusning every #{@flush_period}s"
 
       EventMachine::PeriodicTimer.new(@flush_period) do
-        @_cache.each do |key, times|
-          calculate(times) do |p, info, value|
-            emit :key => "#{key}.#{p}", :source_key => key, :value => value,
-                 :description => "#{info} of #{key}"
-          end
-        end
-
-        @_cache = {}
+        flush!
       end
+    end
+
+    # Flush the cache.
+    def flush!
+      @_cache.each do |key, times|
+        calculate(times) do |p, info, value|
+          emit :key => "#{key}.#{p}", :source_key => key, :value => value,
+                :description => "#{info} of #{key}"
+        end
+      end
+
+      @_cache = {}
     end
 
     def calculate(times)

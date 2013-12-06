@@ -6,6 +6,7 @@ require 'evd/logging'
 require 'evd/data_type'
 require 'evd/protocol'
 require 'evd/update_hash'
+require 'evd/limited'
 
 require 'evd/debug'
 require 'evd/statistics'
@@ -14,12 +15,24 @@ module EVD
   class Core
     include EVD::Logging
 
+    # Arbitrary default queue limit.
+    # Having a queue limit is critical to make sure we never run out of memory.
+    DEFAULT_BUFFER_LIMIT = 5000
+
     def initialize(opts={})
-      @input_buffer = EventMachine::Queue.new
-      @output_buffer = EventMachine::Queue.new
+      @buffer_limit = opts[:buffer_limit] || DEFAULT_BUFFER_LIMIT
+      @input_buffer_limit = opts[:input_buffer_limit] || @buffer_limit
+      @output_buffer_limit = opts[:output_buffer_limit] || @buffer_limit
+      @plugin_buffer_limit = opts[:plugin_buffer_limit] || @buffer_limit
+
+      @input_buffer = EVD::Limited::Queue.new(
+        'core input', log, @input_buffer_limit)
+
+      @output_buffer = EVD::Limited::Queue.new(
+        'core output', log, @output_buffer_limit)
+
       @output_buffers = []
 
-      @output_buffer_limit = opts[:output_buffer_limit] || 1000
       @metadata_limit = opts[:metadata_limit] || 10000
       @tags = Set.new(opts[:tags] || [])
       @attr = opts[:attributes] || {}
@@ -30,12 +43,16 @@ module EVD
       # Configuration for a specific type.
       @types = opts[:types] || {}
 
-      @statistics = opts[:statistics]
-      @s = nil
+      # Configuration for statistics module.
+      unless (config = opts[:statistics]).nil?
+        @statistics = EVD::Statistics.setup(self, config)
+      else
+        @statistics = nil
+      end
 
-      @metadata = {}
-
+      # Registered extensible data types.
       @datatypes = {}
+      # Data types internal to core module.
       @internals = {}
 
       @metadata_tags = {}
@@ -55,12 +72,15 @@ module EVD
       output_plugins = plugins[:output]
 
       EventMachine.run do
-        input_plugins.each do |plugin|
+        input_plugins.each do |type, plugin|
           plugin.start @input_buffer
         end
 
-        output_plugins.each do |plugin|
-          output_buffer = EventMachine::Queue.new
+        output_plugins.each_with_index do |plugin_def, index|
+          type, plugin = plugin_def
+          output_buffer = EVD::Limited::Queue.new(
+            "output ##{index} '#{type}'",
+            log, @plugin_buffer_limit)
           plugin.start output_buffer
           @output_buffers << output_buffer
         end
@@ -70,10 +90,7 @@ module EVD
           datatype.start
         end
 
-        unless @statistics.nil?
-          @s = EVD::Statistics.setup(self, @statistics)
-          @s.start
-        end
+        @statistics.start unless @statistics.nil?
 
         unless @debug.nil?
           debug = EVD::Debug.setup @debug_clients, @debug
@@ -126,11 +143,6 @@ module EVD
     end
 
     def emit_output(event)
-      if @output_buffer.size >= @output_buffer_limit
-        log.warning "Dropping output event, limit reached"
-        return
-      end
-
       @output_buffer << event
     end
 
@@ -180,7 +192,7 @@ module EVD
     end
 
     def process_input(msg)
-      @s.input_inc unless @s.nil?
+      @statistics.input_inc unless @statistics.nil?
 
       return if (type = msg[:type]).nil?
       return if (processor = @datatypes[type] || @internals[type]).nil?
@@ -190,14 +202,9 @@ module EVD
     end
 
     def process_output(event)
-      @s.output_inc unless @s.nil?
+      @statistics.output_inc unless @statistics.nil?
 
       @output_buffers.each do |buffer|
-        if buffer.size >= @output_buffer_limit
-          log.warning "Output buffer limit reached, dropping event for plugin"
-          next
-        end
-
         buffer << event
       end
     end
