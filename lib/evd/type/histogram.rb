@@ -3,36 +3,34 @@ require 'evd/logging'
 
 module EVD::Type
   #
-  # Implements timing statistics (similar to statsd).
+  # Implements histogram statistics over a tumbling time window.
   #
-  # Timing statistics receives 'times' continiuosly and regularly flushes out
-  # the following statistics.
+  # Histogram received metrics continiuosly and regularly flushes out the
+  # following statistics.
   #
-  # max - Max timing collected.
-  # min - Min timing collected.
-  # mean - Mean timing collected.
-  # p50 - The 50th percentile time collected.
-  # p95 - The 95th percentile time collected.
-  # p99 - The 99th percentile time collected.
-  # p999 - The 99.9th percentile time collected.
+  # <key>.min - Min value collected.
+  # <key>.max - Max value collected.
+  # <key>.mean - Mean value collected.
+  # <key>.p50 - The 50th percentile value collected.
+  # <key>.p75 - The 75th percentile value collected.
+  # <key>.p95 - The 95th percentile value collected.
+  # <key>.p99 - The 99th percentile value collected.
+  # <key>.p999 - The 99.9th percentile value collected.
   #
-  class Timing
+  class Histogram
     include EVD::DataType
     include EVD::Logging
 
-    register_type "timing"
-
-    UNITS = {
-      "ms" => 1,
-      "s" => 1000,
-      "m" => 1000 * 60,
-      "h" => 1000 * 3600,
-    }
+    register_type "histogram"
 
     DEFAULT_PERCENTILES = {
       :p50 => {
         :percentage => 0.50,
         :info => "50th percentile",
+      },
+      :p75 => {
+        :percentage => 0.75,
+        :info => "75th percentile",
       },
       :p95 => {
         :percentage => 0.95,
@@ -51,44 +49,70 @@ module EVD::Type
     #
     # Options:
     #
-    # flush_period - Define at what period the cache is flushed and generates
+    # :window - Define at what period the cache is flushed and generates
     # metrics.
-    # cache_limit - Limit the amount of cache entries (by key).
-    # times_limit - Limit the amount of limits for each cache entry.
-    #
+    # :cache_limit - Limit the amount of cache entries (by key).
+    # :bucket_limit - Limit the amount of limits for each cache entry.
+    # :precision - Precision of emitted metrics.
+    # :percentiles - Configuration hash of percentile metrics.
+    # Structure:
+    #   {:p10 => {:info => "Some description", :percentage => 0.1}, ...}
     def initialize(opts={})
-      @flush_period = opts[:flush_period] || 10
+      @window = opts[:window] || 10
       @cache_limit = opts[:cache_limit] || 1000
-      @times_limit = opts[:times_limit] || 10000
+      @bucket_limit = opts[:bucket_limit] || 10000
       @precision = opts[:precision] || 3
       @percentiles = opts[:percentiles] || DEFAULT_PERCENTILES
 
-      @_cache = {}
+      # Dropped values.
+      @dropped = 0
+      # Dropped values that would have gone into a bucket.
+      @bucket_droped = 0
+
+      @cache = {}
+    end
+
+    def report?
+      @dropped > 0 or @bucket_dropped > 0
+    end
+
+    def report
+      if @dropped > 0
+        log.warning "Dropped #{@dropped} event(s)"
+        @dropped = 0
+      end
+
+      if @bucket_dropped > 0
+        log.warning "Dropped #{@bucket_dropped} bucket value(s)"
+        @bucket_dropped = 0
+      end
     end
 
     # Setup all EventMachine hooks.
     def start
-      log.info "Flusning every #{@flush_period}s"
+      log.info "Digesting on a window of #{@window}s"
 
-      EventMachine::PeriodicTimer.new(@flush_period) do
-        flush!
+      EventMachine::PeriodicTimer.new(@window) do
+        digest!
       end
     end
 
-    # Flush the cache.
-    def flush!
-      @_cache.each do |key, times|
-        calculate(times) do |p, info, value|
+    # Digest the cache.
+    def digest!
+      return if @cache.empty?
+
+      @cache.each do |key, bucket|
+        calculate(bucket) do |p, info, value|
           emit :key => "#{key}.#{p}", :source_key => key, :value => value,
                 :description => "#{info} of #{key}"
         end
       end
 
-      @_cache = {}
+      @cache = {}
     end
 
-    def calculate(times)
-      total = times.size
+    def calculate(bucket)
+      total = bucket.size
 
       perc_map = {}
 
@@ -110,7 +134,7 @@ module EVD::Type
       sum = 0.0
       mean = nil
 
-      times.sort.each_with_index do |t, index|
+      bucket.sort.each_with_index do |t, index|
         max = t if max.nil? or t > max
         min = t if min.nil? or t < min
         sum += t
@@ -149,34 +173,26 @@ module EVD::Type
       end
     end
 
-    def parse_unit(unit)
-      factor = UNITS[unit.downcase]
-      raise Exception.new("Unknown unit: #{unit}") if factor.nil?
-      factor
-    end
-
     def process(msg)
       key = msg[:key]
       value = msg[:value] || 0
       time = msg[:time]
-      factor = parse_unit(msg[:unit] || "ms")
 
-      if (times = @_cache[key]).nil?
-        if @_cache.size >= @cache_limit
-          log.warning "Dropping cache update '#{key}', limit reached"
+      if (bucket = @cache[key]).nil?
+        if @cache.size >= @cache_limit
+          @dropped += 1
           return
         end
 
-        @_cache[key] = times = []
+        @cache[key] = bucket = []
       end
 
-      if times.size >= @times_limit
-        log.warning "Dropping times update '#{key}', limit reached"
+      if bucket.size >= @times_limit
+        @bucket_dropped += 1
         return
       end
 
-      value = (value * factor)
-      times << value if value >= 0
+      bucket << value
     end
   end
 end

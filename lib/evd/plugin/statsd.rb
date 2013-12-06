@@ -13,7 +13,7 @@ module EVD::Plugin
 
     COUNT = "count"
     GAUGE = "gauge"
-    TIMING = "timing"
+    HISTOGRAM = "histogram"
 
     class Connection < EventMachine::Connection
       include EVD::Logging
@@ -30,8 +30,8 @@ module EVD::Plugin
         {:type => COUNT, :key => name, :value => value}
       end
 
-      def timing(name, value, unit)
-        {:type => TIMING, :unit => unit, :key => name, :value => value}
+      def timing(name, value)
+        {:type => HISTOGRAM, :key => name, :value => value}
       end
 
       def parse(line)

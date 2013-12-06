@@ -10,14 +10,22 @@ module EVD
       core.emit(data)
     end
 
-    def self.registry
-      @@registry ||= {}
+    def name
+      self.class.name
     end
 
     module ClassMethods
       def register_type(name)
+        unless DataType.registry[name].nil?
+          raise "Already registered '#{name}'"
+        end
+
         DataType.registry[name] = self
       end
+    end
+
+    def self.registry
+      @@registry ||= {}
     end
 
     def self.included(mod)

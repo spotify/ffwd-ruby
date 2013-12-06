@@ -18,12 +18,14 @@ module EVD
     # Arbitrary default queue limit.
     # Having a queue limit is critical to make sure we never run out of memory.
     DEFAULT_BUFFER_LIMIT = 5000
+    DEFAULT_REPORT_INTERVAL = 600
 
     def initialize(opts={})
       @buffer_limit = opts[:buffer_limit] || DEFAULT_BUFFER_LIMIT
       @input_buffer_limit = opts[:input_buffer_limit] || @buffer_limit
       @output_buffer_limit = opts[:output_buffer_limit] || @buffer_limit
       @plugin_buffer_limit = opts[:plugin_buffer_limit] || @buffer_limit
+      @report_interval = opts[:report_interval] || DEFAULT_REPORT_INTERVAL
 
       @input_buffer = EVD::Limited::Queue.new(
         'core input', log, @input_buffer_limit)
@@ -52,6 +54,7 @@ module EVD
 
       # Registered extensible data types.
       @datatypes = {}
+      @reporters = []
       # Data types internal to core module.
       @internals = {}
 
@@ -66,6 +69,7 @@ module EVD
     #
     def run(plugins)
       @datatypes = setup_datatypes
+      @reporters = setup_reporters @datatypes
       @internals = setup_internals
 
       input_plugins = plugins[:input]
@@ -95,6 +99,12 @@ module EVD
         unless @debug.nil?
           debug = EVD::Debug.setup @debug_clients, @debug
           debug.start
+        end
+
+        unless @reporters.empty?
+          EventMachine::PeriodicTimer.new(@report_interval) do
+            process_reporters
+          end
         end
 
         process_input_buffer
@@ -172,12 +182,38 @@ module EVD
       DataType.registry.each do |name, klass|
         log.info "DataType: #{name}"
 
-        data_type = klass.new(@types[name] || {})
-        data_type.core = self
-        datatypes[name] = data_type
+        datatype = klass.new(@types[name] || {})
+        datatype.core = self
+        datatypes[name] = datatype
       end
 
       datatypes
+    end
+
+    def setup_reporters(datatypes)
+      reporters = []
+
+      datatypes.each do |name, d|
+        next unless d.respond_to? :report and d.respond_to? :report?
+        reporters << d
+      end
+
+      reporters
+    end
+
+    def process_reporters
+      active = []
+
+      @reporters.each do |reporter|
+        active << reporter if reporter.report?
+      end
+
+      return if active.empty?
+
+      active.each do |reporter|
+        log.info "report '#{reporter.name}'"
+        reporter.report
+      end
     end
 
     def process_input_buffer
