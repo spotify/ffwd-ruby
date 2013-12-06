@@ -157,4 +157,3 @@ module EVD::TCP
     Server.new log, host, port, handler, *args
   end
 end
-

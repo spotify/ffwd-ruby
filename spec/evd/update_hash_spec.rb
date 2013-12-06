@@ -1,6 +1,8 @@
 require 'evd/update_hash'
 
 describe EVD::UpdateHash do
+  EVD.log_disable
+
   let(:base_array){[:bar]}
   let(:base_hash){{:bar => :bar_val}}
   let(:limit){1}

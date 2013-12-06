@@ -22,6 +22,14 @@ module EVD
     @log_opts = log_opts
   end
 
+  def self.log_disable
+    @log_disable = true
+  end
+
+  def self.log_disabled?
+    @log_disable || false
+  end
+
   class ClassLogger
     def initialize(klass)
       @klass_name = klass.name
@@ -44,6 +52,13 @@ module EVD
     end
   end
 
+  class FakeLogger
+    def info(message, *args); end
+    def error(message, *args); end
+    def warning(message, *args); end
+    def debug(message, *args); end
+  end
+
   module Logging
     module ClassMethods
       attr_accessor :log
@@ -55,7 +70,12 @@ module EVD
 
     def self.included(klass)
       klass.extend ClassMethods
-      klass.log = ClassLogger.new(klass)
+
+      if EVD.log_disabled?
+        klass.log = FakeLogger.new
+      else
+        klass.log = ClassLogger.new(klass)
+      end
     end
   end
 end
