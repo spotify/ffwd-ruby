@@ -10,6 +10,9 @@
 :statistics:
   :period: 5
 
+# WARNING: This configuration connects to itself, you will se a linear increase
+# in events processed if it is used directly.
+
 :input:
   - :type: "json_line"
     :protocol: "tcp"
@@ -24,6 +27,7 @@
 :output:
   - :type: "riemann"
     :protocol: "tcp"
+    :flush_period: 5
   - :type: "log"
     :prefix: "0xdeadbeef"
 

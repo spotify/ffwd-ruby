@@ -77,7 +77,7 @@ module EVD::TCP
         return
       end
 
-      @log.info "Flush period: #{@flush_period}"
+      @log.info "Flushing every #{@flush_period}s"
 
       EventMachine::PeriodicTimer.new(@flush_period) do
         flush_events

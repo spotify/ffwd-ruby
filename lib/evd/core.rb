@@ -117,7 +117,7 @@ module EVD
       if event[:tags].nil?
         event[:tags] = base_tags
       else
-        event[:tags] = event[:tags] + base_tags
+        event[:tags] += base_tags
       end
 
       if event[:attributes].nil?
@@ -131,6 +131,9 @@ module EVD
       end
 
       emit_output event
+    rescue => e
+      log.error "Failed to emit event: #{e}"
+      log.error e.backtrace.join("\n")
     end
 
     private

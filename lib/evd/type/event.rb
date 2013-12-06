@@ -16,7 +16,6 @@ module EVD::Type
     end
 
     def process(msg)
-      msg = Hash.new(msg)
       msg[:ttl] = @ttl if (msg[:ttl].nil? and not @ttl.nil?)
       msg[:source_key] = msg[:key]
       emit msg

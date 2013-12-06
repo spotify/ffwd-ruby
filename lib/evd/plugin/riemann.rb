@@ -29,25 +29,11 @@ module EVD::Plugin
 
     register_plugin "riemann"
 
-    class Handler
-      include EVD::Logging
-
+    module HandlerMixin
       def initialize(tags, attributes)
         @tags = Set.new(tags || [])
         @attributes = attributes || {}
         @bad_acks = 0
-      end
-
-      def serialize_events(events)
-        events = events.map{|e| make_event(e)}
-        message = make_message :events => events
-        message.encode_with_length
-      end
-
-      def serialize_event(event)
-        e = make_event(event)
-        m = make_message :events => [e]
-        m.encode
       end
 
       def receive_data(data)
@@ -55,6 +41,22 @@ module EVD::Plugin
         return if message.ok
         @bad_acks += 1
       end
+
+      def serialize_events(events)
+        events = events.map{|e| make_event(e)}
+        m = make_message :events => events
+        encode m
+      end
+
+      def serialize_event(event)
+        e = make_event(event)
+        m = make_message :events => [e]
+        encode m
+      end
+
+      protected
+
+      def encode(m); raise "Not implemented: encode"; end
 
       private
 
@@ -88,6 +90,24 @@ module EVD::Plugin
 
       def read_message(data)
         ::Riemann::Message.decode data
+      end
+    end
+
+    class HandlerTCP
+      include EVD::Logging
+      include HandlerMixin
+
+      def encode(m)
+        m.encode_with_length
+      end
+    end
+
+    class HandlerUDP
+      include EVD::Logging
+      include HandlerMixin
+
+      def encode(m)
+        m.encode
       end
     end
 
@@ -129,7 +149,7 @@ module EVD::Plugin
           end
 
           unless e.tags.nil? or e.tags.empty?
-            o[:tags] = e.tags
+            o[:tags] = Set.new(e.tags)
           end
 
           MAPPING.each do |key, reader, writer|
@@ -172,16 +192,25 @@ module EVD::Plugin
     DEFAULT_PORT = 5555
     DEFAULT_PROTOCOL = 'tcp'
 
+    HANDLERS = {
+      :tcp => HandlerTCP,
+      :udp => HandlerUDP,
+    }
+
     def self.output_setup(opts={})
       opts[:host] ||= DEFAULT_HOST
       opts[:port] ||= DEFAULT_PORT
 
       attributes = opts[:attributes] || {}
       tags = opts[:tags] || []
-      handler = Handler.new tags, attributes
-
       protocol = EVD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
-      protocol.connect log, opts, handler
+
+      if (handler = HANDLERS[protocol.family]).nil?
+        raise "No handler for protocol family: #{protocol.family}"
+      end
+      
+      handler_instance = handler.new tags, attributes
+      protocol.connect log, opts, handler_instance
     end
 
     def self.input_setup(opts={})
