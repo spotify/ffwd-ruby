@@ -13,13 +13,14 @@ module EVD::Type
 
     register_type "gauge"
 
+    DEFAULT_MISSING = 0
+
     def initialize(opts={})
+      @missing = opts[:missing] || DEFAULT_MISSING
     end
 
-    def process(msg)
-      key = msg[:key]
-      value = msg[:value] || 0
-      emit(:key => key, :value => value)
+    def process(m)
+      emit m.merge(:value => m[:value] || @missing, :source => m[:key])
     end
   end
 end

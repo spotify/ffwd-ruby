@@ -30,7 +30,7 @@ module EVD::Type
       end
 
       @_cache[key] = value
-      emit(msg.merge(:value => value))
+      emit(msg.merge(:value => value, :source => key))
     end
   end
 end

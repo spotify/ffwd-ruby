@@ -11,14 +11,14 @@ module EVD::Type
 
     register_type "event"
 
+    DEFAULT_TTL = 300
+
     def initialize(opts={})
-      @ttl = opts[:ttl]
+      @ttl = opts[:ttl] || DEFAULT_TTL
     end
 
-    def process(msg)
-      msg[:ttl] = @ttl if (msg[:ttl].nil? and not @ttl.nil?)
-      msg[:source_key] = msg[:key]
-      emit msg
+    def process(m)
+      emit m.merge(:ttl => m[:ttl] || @ttl, :source => m[:key])
     end
   end
 end

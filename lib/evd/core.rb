@@ -107,7 +107,7 @@ module EVD
     # Emit an event.
     #
     def emit(event)
-      unless (key = event[:source_key]).nil?
+      unless (key = event[:source]).nil?
         base_tags = @metadata_tags[key] || @tags
         base_attr = @metadata_attr[key] || @attr
       else
