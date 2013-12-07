@@ -17,6 +17,8 @@ module EVD::Plugin
     include EVD::Plugin
     include EVD::Logging
 
+    register_plugin "riemann"
+
     MAPPING = [
       [:key, :service, :service=],
       [:value, :metric, :metric=],
@@ -26,8 +28,6 @@ module EVD::Plugin
       [:ttl, :ttl, :ttl=],
       [:time, :time, :time=],
     ]
-
-    register_plugin "riemann"
 
     module HandlerMixin
       def initialize(tags, attributes)
