@@ -22,19 +22,14 @@ module EVD::Plugin
 
       def start(channel)
         if @zk
-          req = zk_list_brokers @zk
+          req = zk_find_broker @zk
 
-          req.callback do |brokers|
-            if brokers.empty?
-              log.error "Empty list of brokers..."
-              return
-            end
-
-            log.info "Brokers: #{brokers}"
+          req.callback do |broker|
+            log.info "Connect to: #{broker}"
           end
 
           req.errback do
-            log.error "Failed to request brokers"
+            log.error "Failed to find broker"
           end
         end
       end

@@ -11,7 +11,7 @@ module EVD
   class Zookeeper
     def initialize(*args)
       @args = args
-      @mutex = Mutex.new
+      @client_mutex = Mutex.new
     end
 
     def get_children(*args)
@@ -35,7 +35,7 @@ module EVD
     def client
       raise "Should not be used in the reactor thread" if EM.reactor_thread?
 
-      @mutex.synchronize do
+      @client_mutex.synchronize do
         @client ||= ::Zookeeper.new(*@args)
       end
     end

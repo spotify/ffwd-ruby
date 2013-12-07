@@ -52,8 +52,39 @@ module EVD::Plugin
         end
       end
 
+      class FindBroker
+        include EM::Deferrable
+
+        def initialize(zk)
+          request zk
+        end
+
+        private
+
+        def request(zk)
+          list = ListBrokers.new(zk)
+
+          list.callback do |brokers|
+            if brokers.empty?
+              fail RuntimeError.new("No brokers registered")
+              return
+            end
+
+            succeed brokers.first
+          end
+
+          list.errback do |e|
+            fail e
+          end
+        end
+      end
+
       def zk_list_brokers zk
         ListBrokers.new(zk)
+      end
+
+      def zk_find_broker zk
+        FindBroker.new(zk)
       end
     end
   end
