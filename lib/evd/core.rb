@@ -6,7 +6,7 @@ require 'evd/logging'
 require 'evd/data_type'
 require 'evd/protocol'
 require 'evd/update_hash'
-require 'evd/limited'
+require 'evd/channel'
 
 require 'evd/debug'
 require 'evd/statistics'
@@ -27,13 +27,8 @@ module EVD
       @plugin_buffer_limit = opts[:plugin_buffer_limit] || @buffer_limit
       @report_interval = opts[:report_interval] || DEFAULT_REPORT_INTERVAL
 
-      @input_buffer = EVD::Limited::Channel.new(
-        'core input', log, @input_buffer_limit)
-
-      @output_buffer = EVD::Limited::Channel.new(
-        'core output', log, @output_buffer_limit)
-
-      @output_buffers = []
+      @input_channel = EVD::Channel.new(log, 'input')
+      @output_channel = EVD::Channel.new(log, 'output')
 
       @metadata_limit = opts[:metadata_limit] || 10000
       @tags = Set.new(opts[:tags] || [])
@@ -69,25 +64,20 @@ module EVD
     #
     def run(plugins)
       @datatypes = setup_datatypes
-      @reporters = setup_reporters @datatypes
       @internals = setup_internals
 
       input_plugins = plugins[:input]
       output_plugins = plugins[:output]
 
-      EM.run do
-        input_plugins.each do |type, plugin|
-          plugin.start @input_buffer
-        end
+      @reporters = []
+      @reporters += setup_reporters(@datatypes.values)
+      @reporters += setup_reporters(output_plugins)
 
-        output_plugins.each_with_index do |plugin_def, index|
-          type, plugin = plugin_def
-          output_buffer = EVD::Limited::Channel.new(
-            "output ##{index} '#{type}'",
-            log, @plugin_buffer_limit)
-          plugin.start output_buffer
-          @output_buffers << output_buffer
-        end
+      log.info "Registered #{@reporters.size} reporter(s)"
+
+      EM.run do
+        input_plugins.each {|p| p.start @input_channel}
+        output_plugins.each {|p| p.start @output_channel}
 
         @datatypes.each do |name, datatype|
           next unless datatype.respond_to?(:start)
@@ -107,8 +97,9 @@ module EVD
           end
         end
 
-        process_input_buffer
-        process_output_buffer
+        @input_channel.subscribe do |event|
+          process_input event
+        end
       end
     end
 
@@ -140,7 +131,9 @@ module EVD
         emit_debug event
       end
 
-      emit_output event
+      @statistics.output_inc unless @statistics.nil?
+
+      @output_channel << event
     rescue => e
       log.error "Failed to emit event: #{e}"
       log.error e.backtrace.join("\n")
@@ -153,10 +146,6 @@ module EVD
         data = JSON.dump(event)
         client.send_data "#{data}\n"
       end
-    end
-
-    def emit_output(event)
-      @output_buffer << event
     end
 
     #
@@ -190,12 +179,12 @@ module EVD
       datatypes
     end
 
-    def setup_reporters(datatypes)
+    def setup_reporters(instances)
       reporters = []
 
-      datatypes.each do |name, d|
-        next unless d.respond_to? :report and d.respond_to? :report?
-        reporters << d
+      instances.each do |i|
+        next unless i.respond_to? :report and i.respond_to? :report?
+        reporters << i
       end
 
       reporters
@@ -211,22 +200,7 @@ module EVD
       return if active.empty?
 
       active.each do |reporter|
-        log.info "report '#{reporter.name}'"
         reporter.report
-      end
-    end
-
-    def process_input_buffer
-      @input_buffer.pop do |msg|
-        process_input msg
-        process_input_buffer
-      end
-    end
-
-    def process_output_buffer
-      @output_buffer.pop do |event|
-        process_output event
-        process_output_buffer
       end
     end
 
@@ -238,14 +212,6 @@ module EVD
       msg[:tags] = Set.new(msg[:tags]) unless msg[:tags].nil?
       msg[:time] = Time.now unless msg[:time]
       processor.process msg
-    end
-
-    def process_output(event)
-      @statistics.output_inc unless @statistics.nil?
-
-      @output_buffers.each do |buffer|
-        buffer << event
-      end
     end
   end
 end

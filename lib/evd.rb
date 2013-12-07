@@ -30,7 +30,7 @@ module EVD
           next
         end
 
-        yield [type, plugin.send(setup_method, plugin_config)]
+        yield plugin.send(setup_method, plugin_config)
       end
     end
 
@@ -51,12 +51,12 @@ module EVD
 
       plugins = {:input => [], :output => []}
 
-      load_plugins(config, :output, :output_setup) do |type, output|
-        plugins[:output] << [type, output]
+      load_plugins(config, :output, :output_setup) do |output|
+        plugins[:output] << output
       end
 
-      load_plugins(config, :input, :input_setup) do |type, input|
-        plugins[:input] << [type, input]
+      load_plugins(config, :input, :input_setup) do |input|
+        plugins[:input] << input
       end
 
       return plugins, config

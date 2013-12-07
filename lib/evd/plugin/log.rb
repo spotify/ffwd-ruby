@@ -16,9 +16,8 @@ module EVD::Plugin
       end
 
       def start(buffer)
-        buffer.pop do |event|
+        buffer.subscribe do |event|
           process event
-          start buffer
         end
       end
 

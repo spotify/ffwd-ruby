@@ -20,20 +20,38 @@ module EVD::TCP
   class Client
     INITIAL_TIMEOUT = 2
 
-    def initialize(log, host, port, handler, flush_period)
+    def initialize(log, host, port, handler, flush_period, outbound_limit)
       @log = log
       @host = host
       @port = port
       @handler = handler
       @flush_period = flush_period
+      @outbound_limit = outbound_limit
 
       @peer = "#{host}:#{port}"
       @connection = nil
       @closing = false
       @buffer = []
+      @dropped = 0
+      @total = 0
       @reconnect_timer = nil
       @reconnect_timeout = INITIAL_TIMEOUT
       @connected = false
+
+      @dropped = 0
+    end
+
+    def report?
+      true
+    end
+
+    def report
+      if @dropped > 0
+        @log.warning "Dropped #{@dropped} out of #{@total} event(s)"
+        @dropped = 0
+      end
+
+      @total = 0
     end
 
     def connection_completed
@@ -102,6 +120,14 @@ module EVD::TCP
     def flush!
       return if @buffer.empty?
       return unless @connected
+
+      @total += @buffer.size
+
+      if @connection.get_outbound_data_size >= @outbound_limit
+        @dropped += @buffer.size
+        return
+      end
+
       data = @handler.serialize_events @buffer
       @connection.send_data data
     rescue => e
@@ -113,6 +139,14 @@ module EVD::TCP
 
     def handle_event(event)
       return unless @connected
+
+      @total += 1
+
+      if @connection.get_outbound_data_size >= @outbound_limit
+        @dropped += 1
+        return
+      end
+
       data = @handler.serialize_event event
       @connection.send_data data
     rescue => e
@@ -121,16 +155,14 @@ module EVD::TCP
     end
 
     def collect_events(buffer)
-      buffer.pop do |event|
+      buffer.subscribe do |event|
         handle_event event
-        collect_events buffer
       end
     end
 
     def collect_events_buffer(buffer)
-      buffer.pop do |event|
+      buffer.subscribe do |event|
         @buffer << event
-        collect_events_buffer buffer
       end
     end
   end
@@ -154,11 +186,15 @@ module EVD::TCP
 
   def self.family; :tcp; end
 
+  DEFAULT_FLUSH_PERIOD = 10
+  DEFAULT_OUTBOUND_LIMIT = 2 ** 20
+
   def self.connect(log, opts, handler)
     raise "Missing required key :host" if (host = opts[:host]).nil?
     raise "Missing required key :port" if (port = opts[:port]).nil?
-    flush_period = opts[:flush_period] || 10
-    Client.new log, host, port, handler, flush_period
+    flush_period = opts[:flush_period] || DEFAULT_FLUSH_PERIOD
+    outbound_limit = opts[:outbound_limit] || DEFAULT_OUTBOUND_LIMIT
+    Client.new log, host, port, handler, flush_period, outbound_limit
   end
 
   def self.listen(log, opts, handler, *args)

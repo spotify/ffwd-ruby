@@ -10,6 +10,8 @@
 :statistics:
   :period: 5
 
+:report_interval: 10
+
 # WARNING: This configuration connects to itself, you will se a linear increase
 # in events processed if it is used directly.
 

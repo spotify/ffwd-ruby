@@ -35,9 +35,8 @@ module EVD::UDP
     end
 
     def collect_events(buffer)
-      buffer.pop do |event|
+      buffer.subscribe do |event|
         handle_event event
-        collect_events buffer
       end
     end
 
