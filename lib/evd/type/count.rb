@@ -16,9 +16,9 @@ module EVD::Type
       @_cache = {}
     end
 
-    def process(msg)
-      key = msg[:key]
-      value = msg[:value]
+    def process(m)
+      key = m[:key]
+      value = m[:value]
 
       unless (prev_value = @_cache[key]).nil?
         value = prev_value + value
@@ -30,7 +30,7 @@ module EVD::Type
       end
 
       @_cache[key] = value
-      emit(msg.merge(:value => value, :source => key))
+      emit(m.merge :value => value, :source => key)
     end
   end
 end

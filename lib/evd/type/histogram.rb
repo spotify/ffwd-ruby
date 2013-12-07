@@ -23,27 +23,14 @@ module EVD::Type
 
     register_type "histogram"
 
+    DEFAULT_MISSING = 0
+
     DEFAULT_PERCENTILES = {
-      :p50 => {
-        :percentage => 0.50,
-        :info => "50th percentile",
-      },
-      :p75 => {
-        :percentage => 0.75,
-        :info => "75th percentile",
-      },
-      :p95 => {
-        :percentage => 0.95,
-        :info => "95th percentile",
-      },
-      :p99 => {
-        :percentage => 0.99,
-        :info => "99th percentile",
-      },
-      :p999 => {
-        :percentage => 0.999,
-        :info => "99.9th percentile",
-      },
+      :p50 => {:percentage => 0.50, :info => "50th"},
+      :p75 => {:percentage => 0.75, :info => "75th"},
+      :p95 => {:percentage => 0.95, :info => "95th"},
+      :p99 => {:percentage => 0.99, :info => "99th"},
+      :p999 => {:percentage => 0.999, :info => "99.9th"},
     }
 
     #
@@ -62,6 +49,8 @@ module EVD::Type
       @cache_limit = opts[:cache_limit] || 1000
       @bucket_limit = opts[:bucket_limit] || 10000
       @precision = opts[:precision] || 3
+
+      @missing = opts[:missing] || DEFAULT_MISSING
       @percentiles = opts[:percentiles] || DEFAULT_PERCENTILES
 
       # Dropped values.
@@ -120,12 +109,12 @@ module EVD::Type
         index = (total * v[:percentage]).ceil - 1
 
         if (config = perc_map[index]).nil?
-          config = {:info => v[:info], :percs => []}
+          info = "#{v[:info]} percentile"
+          config = {:info => info, :percs => []}
           perc_map[index] = config
         end
 
         percs = config[:percs]
-
         percs << {:name => k, :value => nil}
       end
 
@@ -173,10 +162,9 @@ module EVD::Type
       end
     end
 
-    def process(msg)
-      key = msg[:key]
-      value = msg[:value] || 0
-      time = msg[:time]
+    def process(m)
+      key = m[:key]
+      value = m[:value] || @missing
 
       if (bucket = @cache[key]).nil?
         if @cache.size >= @cache_limit
