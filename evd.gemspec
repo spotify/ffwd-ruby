@@ -24,5 +24,8 @@ Gem::Specification.new do |spec|
   spec.add_dependency "eventmachine"
   spec.add_dependency "riemann-client"
   spec.add_dependency "zookeeper"
+  spec.add_dependency "kafka-rb"
+
   spec.add_development_dependency "rspec"
+  spec.add_development_dependency "rspec-mocks"
 end

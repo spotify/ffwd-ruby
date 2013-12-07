@@ -1,4 +1,5 @@
 require 'zookeeper'
+require 'thread'
 
 module EVD
   class Request
@@ -9,7 +10,8 @@ module EVD
   # EventMachine.
   class Zookeeper
     def initialize(*args)
-      @zk = ::Zookeeper.new(*args)
+      @args = args
+      @mutex = Mutex.new
     end
 
     def get_children(*args)
@@ -26,12 +28,24 @@ module EVD
 
     private
 
+    # Setup the shared zookeeper connection in a mutex, because multiple
+    # threads could access it at once.
+    # NOTE: It is important that ::Zookeeper is not instantiated on the reactor
+    # thread, because it blocks if it is unable to establish a connection.
+    def client
+      raise "Should not be used in the reactor thread" if EM.reactor_thread?
+
+      @mutex.synchronize do
+        @client ||= ::Zookeeper.new(*@args)
+      end
+    end
+
     def execute(&block)
       request = Request.new
 
       EM.defer do
         begin
-          result = block.call(@zk)
+          result = block.call(client)
           EM.next_tick{request.succeed(result)}
         rescue => e
           EM.next_tick{request.fail(e)}
