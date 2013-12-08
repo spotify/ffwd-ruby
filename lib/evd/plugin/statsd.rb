@@ -56,7 +56,7 @@ module EVD::Plugin
         end
 
         if type == "ms"
-          return timing(name, value, "ms")
+          return timing(name, value)
         end
 
         log.warning "Not supported type: #{type}"

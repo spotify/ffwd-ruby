@@ -39,7 +39,7 @@ module EVD::Processor
       @expired = 0
     end
 
-    def start
+    def start(core)
       unless @ttl.nil?
         EM::PeriodicTimer.new(@ttl) do
           expire!
@@ -80,7 +80,7 @@ module EVD::Processor
       end
     end
 
-    def process(msg)
+    def process(core, msg)
       key = msg[:key]
       time = msg[:time]
       value = msg[:value] || 0
@@ -97,7 +97,7 @@ module EVD::Processor
         if diff > 0 and valid and aged
           rate = ((value - prev_value) / diff)
           rate = rate.round(@precision) unless @precision.nil?
-          emit :key => "#{key}.rate", :source => key, :value => rate
+          core.emit :key => "#{key}.rate", :source => key, :value => rate
         end
       else
         if @cache.size >= @limit

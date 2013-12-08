@@ -19,10 +19,10 @@ module EVD::Processor
       @missing = opts[:missing] || DEFAULT_MISSING
     end
 
-    def process(m)
+    def process(core, m)
       m[:value] ||= @missing
       m[:source] = m[:key]
-      emit m
+      core.emit m
     end
   end
 end

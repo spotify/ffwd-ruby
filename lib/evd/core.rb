@@ -4,7 +4,6 @@ require 'eventmachine'
 
 require 'evd/logging'
 require 'evd/protocol'
-require 'evd/update_hash'
 require 'evd/channel'
 
 require 'evd/processor'
@@ -47,11 +46,8 @@ module EVD
       # Registered extensible data types.
       @processors = {}
       @reporters = []
-      # Data types internal to core module.
-      @internals = {}
 
       @metadata_tags = {}
-      @metadata_attr = {}
     end
 
     #
@@ -61,7 +57,6 @@ module EVD
     #
     def run(plugins)
       @processors = setup_processors
-      @internals = setup_internals
 
       input_plugins = plugins[:input]
       output_plugins = plugins[:output]
@@ -78,7 +73,7 @@ module EVD
 
         @processors.each do |name, processor|
           next unless processor.respond_to?(:start)
-          processor.start
+          processor.start self
         end
 
         @statistics.start unless @statistics.nil?
@@ -103,11 +98,26 @@ module EVD
     #
     # Emit an event.
     #
-    def emit(event)
+    def emit(event, tags=nil, attributes=nil)
       event = EVD.event event
 
-      event.tags = @metadata_tags[event.source] || @tags
-      event.attributes = @metadata_attr[event.source] || @attributes
+      if @tags
+        new_tags = @tags.clone
+        new_tags += tags if tags
+      else
+        new_tags = tags
+      end
+
+      if @attributes
+        new_attr = @attributes.clone
+        new_attr.update(attributes) if attributes
+      else
+        new_attr = attributes
+      end
+
+      event.tags = new_tags
+      event.attributes = new_attr
+
       event.time ||= Time.new.to_i
 
       unless @debug.nil?
@@ -131,29 +141,13 @@ module EVD
     end
 
     #
-    # setup hash of internal functions.
-    #
-    def setup_internals
-      internals = {}
-      internals['tags'] = UpdateHash.new(
-        @tags, @metadata_tags, @metadata_limit,
-        lambda{|a, b| a + b})
-      internals['attr'] = UpdateHash.new(
-        @attr, @metadata_attr, @metadata_limit,
-        lambda{|a, b| a.merge(b)})
-      internals
-    end
-
-    #
     # setup hash of datatype functions.
     #
     def setup_processors
       processors = {}
 
       Processor.registry.each do |name, klass|
-        processor = klass.new(@processor_opts[name] || {})
-        processor.core = self
-        processors[name] = processor
+        processors[name] = klass.new(@processor_opts[name] || {})
       end
 
       raise "No processors loaded" if processors.empty?
@@ -186,15 +180,46 @@ module EVD
       end
     end
 
-    def process_input(msg)
+    class EventEmitter
+      def initialize(core, tags, attributes)
+        @core = core
+        @tags = tags
+        @attributes = attributes
+      end
+
+      def emit(m, tags=nil, attributes=nil)
+        if @attributes
+          new_attr = @attributes.clone
+          new_attr.update(attributes) if attributes
+        else
+          new_attr = @attributes
+        end
+
+        if @tags
+          new_tags = @tags.clone
+          new_tags += tags if tags
+        else
+          new_tags = tags
+        end
+
+        @core.emit m, new_tags, new_attr
+      end
+    end
+
+    def process_input(m)
       @statistics.input_inc unless @statistics.nil?
 
-      return if (type = msg[:type]).nil?
-      return if (processor = @processors[type] || @internals[type]).nil?
+      return if (type = m[:type]).nil?
+      return if (processor = @processors[type]).nil?
 
-      msg[:tags] = Set.new(msg[:tags]) unless msg[:tags].nil?
-      msg[:time] = Time.now unless msg[:time]
-      processor.process msg
+      core = if m[:tags] or m[:attributes]
+        EventEmitter.new self, m[:tags], m[:attributes]
+      else
+        self
+      end
+
+      m[:time] = Time.now unless m[:time]
+      processor.process core, m
     end
   end
 end

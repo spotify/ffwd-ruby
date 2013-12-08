@@ -80,22 +80,22 @@ module EVD::Processor
     end
 
     # Setup all EventMachine hooks.
-    def start
+    def start(core)
       log.info "Digesting on a window of #{@window}s"
 
       EM::PeriodicTimer.new(@window) do
-        digest!
+        digest! core
       end
     end
 
     # Digest the cache.
-    def digest!
+    def digest!(core)
       return if @cache.empty?
 
       @cache.each do |key, bucket|
         calculate(bucket) do |p, info, value|
-          emit :key => "#{key}.#{p}", :source => key,
-               :value => value, :description => "#{info} of #{key}"
+          core.emit :key => "#{key}.#{p}", :source => key,
+                    :value => value, :description => "#{info} of #{key}"
         end
       end
 
@@ -164,7 +164,7 @@ module EVD::Processor
       end
     end
 
-    def process(m)
+    def process(core, m)
       key = m[:key]
       value = m[:value] || @missing
 
@@ -177,7 +177,7 @@ module EVD::Processor
         @cache[key] = bucket = []
       end
 
-      if bucket.size >= @times_limit
+      if bucket.size >= @bucket_limit
         @bucket_dropped += 1
         return
       end

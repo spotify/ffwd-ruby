@@ -17,7 +17,7 @@ module EVD::Processor
       @_cache = {}
     end
 
-    def process(m)
+    def process(core, m)
       key = m[:key]
       value = m[:value]
 
@@ -31,7 +31,7 @@ module EVD::Processor
       end
 
       @_cache[key] = value
-      emit :key => key, :value => value, :source => key
+      core.emit :key => key, :value => value, :source => key
     end
   end
 end

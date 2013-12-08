@@ -18,10 +18,10 @@ module EVD::Processor
       @ttl = opts[:ttl] || DEFAULT_TTL
     end
 
-    def process(m)
+    def process(core, m)
       m[:ttl] ||= @ttl
       m[:source] = m[:key]
-      emit m
+      core.emit m
     end
   end
 end

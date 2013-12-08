@@ -1,13 +1,7 @@
 module EVD
   module Processor
-    attr_accessor :core
-
     def process(msg)
       raise Exception.new("process: Not Implemented")
-    end
-
-    def emit(event)
-      core.emit event
     end
 
     def name
@@ -31,9 +25,5 @@ module EVD
     def self.included(mod)
       mod.extend ClassMethods
     end
-  end
-
-  def self.data_type(name)
-    Processor.registry[name]
   end
 end
