@@ -40,7 +40,7 @@ module EVD::Plugin
 
       def start(channel)
         if @zookeeper
-          req = zk_find_brokers log, @zookeeper
+          req = find_brokers log, @zookeeper
 
           req.callback do |brokers|
             if brokers.empty?
@@ -51,8 +51,8 @@ module EVD::Plugin
             end
           end
 
-          req.errback do
-            log.error "Failed to find brokers"
+          req.errback do |e|
+            log.error "Failed to find brokers", e
           end
         end
 
@@ -77,7 +77,7 @@ module EVD::Plugin
       rescue => e
         log.error "Failed to flush messages", e
       ensure
-        @buffer = []
+        @buffer.clear
       end
 
       private
@@ -98,13 +98,13 @@ module EVD::Plugin
       end
     end
 
-    DEFAULT_URL = "localhost:2181"
+    DEFAULT_ZK_URL = "localhost:2181"
     DEFAULT_TOPIC = "test"
     DEFAULT_PRODUCER = "test"
     DEFAULT_FLUSH_PERIOD = 10
 
     def self.output_setup(opts={})
-      zk_url = opts[:zk_url] || DEFAULT_URL
+      zk_url = opts[:zk_url] || DEFAULT_ZK_URL
       topic = opts[:topic] || DEFAULT_TOPIC
       producer = opts[:producer] || DEFAULT_PRODUCER
       flush_period = opts[:flush_period] || DEFAULT_FLUSH_PERIOD

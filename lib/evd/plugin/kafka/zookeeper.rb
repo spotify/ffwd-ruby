@@ -55,12 +55,10 @@ module EVD::Plugin
           list.errback do |e|
             fail e
           end
-
-          self
         end
       end
 
-      def zk_find_brokers(log, zk)
+      def find_brokers(log, zk)
         FindBrokers.new(log, zk)
       end
     end

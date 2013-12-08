@@ -15,14 +15,10 @@ module EVD::Plugin
         @prefix = prefix
       end
 
-      def start(buffer)
-        buffer.subscribe do |event|
-          process event
+      def start(channel)
+        channel.subscribe do |event|
+          log.info "(#{@prefix}) Output: #{event.inspect}"
         end
-      end
-
-      def process(event)
-        log.info "(#{@prefix}) Output: #{event.inspect}"
       end
     end
 

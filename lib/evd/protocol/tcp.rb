@@ -32,13 +32,12 @@ module EVD::TCP
       @connection = nil
       @closing = false
       @buffer = []
-      @dropped = 0
-      @total = 0
       @reconnect_timer = nil
       @reconnect_timeout = INITIAL_TIMEOUT
       @connected = false
 
       @dropped = 0
+      @total = 0
     end
 
     def report?
@@ -93,20 +92,19 @@ module EVD::TCP
     end
 
     # Start TCP connection.
-    def start(buffer)
+    def start(channel)
       @connection = EM.connect(@host, @port, Connection, self)
 
       EM.add_shutdown_hook{close}
 
       if @flush_period == 0
-        collect_events buffer
+        channel.subscribe{|e| handle_event e}
         return
       end
 
       @log.info "Flushing every #{@flush_period}s"
       EM::PeriodicTimer.new(@flush_period){flush!}
-
-      collect_events_buffer buffer
+      channel.subscribe{|e| @buffer << e}
     end
 
     def close
@@ -137,9 +135,12 @@ module EVD::TCP
     end
 
     def handle_event(event)
-      return unless @connected
-
       @total += 1
+
+      unless @connected
+        @dropped += 1
+        return
+      end
 
       if @connection.get_outbound_data_size >= @outbound_limit
         @dropped += 1
@@ -150,18 +151,6 @@ module EVD::TCP
       @connection.send_data data
     rescue => e
       @log.error "Failed to handle event", e
-    end
-
-    def collect_events(buffer)
-      buffer.subscribe do |event|
-        handle_event event
-      end
-    end
-
-    def collect_events_buffer(buffer)
-      buffer.subscribe do |event|
-        @buffer << event
-      end
     end
   end
 
@@ -176,9 +165,9 @@ module EVD::TCP
       @peer = "#{host}:#{port}"
     end
 
-    def start(buffer)
+    def start(channel)
       @log.info "Listening on tcp://#{@peer}"
-      EM.start_server @host, @port, @handler, buffer, *@args
+      EM.start_server @host, @port, @handler, channel, *@args
     end
   end
 

@@ -38,6 +38,8 @@ module EVD
       @mutex.synchronize do
         @client ||= ::Zookeeper.new(*@args)
       end
+
+      return @client
     end
 
     def execute(&block)

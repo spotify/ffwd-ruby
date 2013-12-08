@@ -41,11 +41,11 @@ module EVD
 
     def error(message, e = nil, *args)
       EVD.log.error("#{@klass_name}: #{message}", *args)
+
       return unless e
-      EVD.log.error("#{@klass_name}: Exception: #{e}")
-      e.backtrace.each do |bt|
-        EVD.log.error("  #{bt}")
-      end
+
+      bt = e.backtrace.map{|b| "  #{b}"}.join("\n")
+      EVD.log.error("#{@klass_name}: Exception: #{e}\n#{bt}")
     end
 
     def warning(message, *args)

@@ -30,8 +30,8 @@
   - :type: "riemann"
     :protocol: "tcp"
     :flush_period: 5
-  - :type: "log"
-    :prefix: "0xdeadbeef"
+#  - :type: "log"
+#    :prefix: "0xdeadbeef"
   - :type: "kafka"
 
 :types:
