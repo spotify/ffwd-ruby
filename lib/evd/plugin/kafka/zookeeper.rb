@@ -58,7 +58,7 @@ module EVD::Plugin
         end
       end
 
-      def find_brokers(log, zk)
+      def zk_find_brokers(log, zk)
         FindBrokers.new(log, zk)
       end
     end
