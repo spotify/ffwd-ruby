@@ -3,10 +3,11 @@ require 'json'
 require 'eventmachine'
 
 require 'evd/logging'
-require 'evd/data_type'
 require 'evd/protocol'
 require 'evd/update_hash'
 require 'evd/channel'
+
+require 'evd/processor'
 
 require 'evd/debug'
 require 'evd/statistics'
@@ -21,10 +22,6 @@ module EVD
     DEFAULT_REPORT_INTERVAL = 600
 
     def initialize(opts={})
-      @buffer_limit = opts[:buffer_limit] || DEFAULT_BUFFER_LIMIT
-      @input_buffer_limit = opts[:input_buffer_limit] || @buffer_limit
-      @output_buffer_limit = opts[:output_buffer_limit] || @buffer_limit
-      @plugin_buffer_limit = opts[:plugin_buffer_limit] || @buffer_limit
       @report_interval = opts[:report_interval] || DEFAULT_REPORT_INTERVAL
 
       @input_channel = EVD::Channel.new(log, 'input')
@@ -32,13 +29,13 @@ module EVD
 
       @metadata_limit = opts[:metadata_limit] || 10000
       @tags = Set.new(opts[:tags] || [])
-      @attr = opts[:attributes] || {}
+      @attributes = opts[:attributes] || {}
 
       @debug = opts[:debug]
       @debug_clients = {}
 
       # Configuration for a specific type.
-      @types = opts[:types] || {}
+      @processor_opts = opts[:processor_opts] || {}
 
       # Configuration for statistics module.
       unless (config = opts[:statistics]).nil?
@@ -48,7 +45,7 @@ module EVD
       end
 
       # Registered extensible data types.
-      @datatypes = {}
+      @processors = {}
       @reporters = []
       # Data types internal to core module.
       @internals = {}
@@ -63,14 +60,14 @@ module EVD
     # Starts an EventMachine and runs the given set of plugins.
     #
     def run(plugins)
-      @datatypes = setup_datatypes
+      @processors = setup_processors
       @internals = setup_internals
 
       input_plugins = plugins[:input]
       output_plugins = plugins[:output]
 
       @reporters = []
-      @reporters += setup_reporters(@datatypes.values)
+      @reporters += setup_reporters(@processors.values)
       @reporters += setup_reporters(output_plugins)
 
       log.info "Registered #{@reporters.size} reporter(s)"
@@ -79,9 +76,9 @@ module EVD
         input_plugins.each {|p| p.start @input_channel}
         output_plugins.each {|p| p.start @output_channel}
 
-        @datatypes.each do |name, datatype|
-          next unless datatype.respond_to?(:start)
-          datatype.start
+        @processors.each do |name, processor|
+          next unless processor.respond_to?(:start)
+          processor.start
         end
 
         @statistics.start unless @statistics.nil?
@@ -107,25 +104,11 @@ module EVD
     # Emit an event.
     #
     def emit(event)
-      unless (key = event[:source]).nil?
-        base_tags = @metadata_tags[key] || @tags
-        base_attr = @metadata_attr[key] || @attr
-      else
-        base_tags = @tags
-        base_attr = @attr
-      end
+      event = EVD.event event
 
-      if event[:tags].nil?
-        event[:tags] = base_tags
-      else
-        event[:tags] += base_tags
-      end
-
-      if event[:attributes].nil?
-        event[:attributes] = base_attr
-      else
-        event[:attributes] = base_attr.merge(event[:attributes])
-      end
+      event.tags = @metadata_tags[event.source] || @tags
+      event.attributes = @metadata_attr[event.source] || @attributes
+      event.time ||= Time.new.to_i
 
       unless @debug.nil?
         emit_debug event
@@ -164,18 +147,18 @@ module EVD
     #
     # setup hash of datatype functions.
     #
-    def setup_datatypes
-      types = {}
+    def setup_processors
+      processors = {}
 
-      DataType.registry.each do |name, klass|
-        datatype = klass.new(@types[name] || {})
-        datatype.core = self
-        types[name] = datatype
+      Processor.registry.each do |name, klass|
+        processor = klass.new(@processor_opts[name] || {})
+        processor.core = self
+        processors[name] = processor
       end
 
-      raise "No data types loaded" if types.empty?
-      log.info "Loaded data types: #{types.keys.join(', ')}"
-      return types
+      raise "No processors loaded" if processors.empty?
+      log.info "Loaded processors: #{processors.keys.join(', ')}"
+      return processors
     end
 
     def setup_reporters(instances)
@@ -207,7 +190,8 @@ module EVD
       @statistics.input_inc unless @statistics.nil?
 
       return if (type = msg[:type]).nil?
-      return if (processor = @datatypes[type] || @internals[type]).nil?
+      return if (processor = @processors[type] || @internals[type]).nil?
+
       msg[:tags] = Set.new(msg[:tags]) unless msg[:tags].nil?
       msg[:time] = Time.now unless msg[:time]
       processor.process msg

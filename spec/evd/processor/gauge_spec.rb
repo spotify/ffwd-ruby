@@ -1,6 +1,6 @@
-require 'evd/type/gauge'
+require 'evd/processor/gauge'
 
-describe EVD::Type::Gauge do
+describe EVD::Processor::GaugeProcessor do
   EVD.log_disable
 
   opts = {}
@@ -8,14 +8,13 @@ describe EVD::Type::Gauge do
   m2 = {:key => :foo}
 
   let(:gauge) do
-    EVD::Type::Gauge.new opts
+    EVD::Processor::GaugeProcessor.new opts
   end
 
   it "should preserve the original message" do
     core = double
     gauge.core = core
-    core.should_receive(:emit).with m1.merge(
-      :source => m1[:key])
+    core.should_receive(:emit).with m1.merge(:source => m1[:key])
     gauge.process m1
   end
 
@@ -23,7 +22,7 @@ describe EVD::Type::Gauge do
     core = double
     gauge.core = core
     core.should_receive(:emit).with m2.merge(
-      :value => EVD::Type::Gauge::DEFAULT_MISSING,
+      :value => EVD::Processor::GaugeProcessor::DEFAULT_MISSING,
       :source => m2[:key])
     gauge.process m2
   end

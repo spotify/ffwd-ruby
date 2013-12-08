@@ -1,13 +1,13 @@
 module EVD
-  module DataType
+  module Processor
     attr_accessor :core
 
     def process(msg)
       raise Exception.new("process: Not Implemented")
     end
 
-    def emit(data)
-      core.emit(data)
+    def emit(event)
+      core.emit event
     end
 
     def name
@@ -16,11 +16,11 @@ module EVD
 
     module ClassMethods
       def register_type(name)
-        unless DataType.registry[name].nil?
+        unless Processor.registry[name].nil?
           raise "Already registered '#{name}'"
         end
 
-        DataType.registry[name] = self
+        Processor.registry[name] = self
       end
     end
 
@@ -34,6 +34,6 @@ module EVD
   end
 
   def self.data_type(name)
-    DataType.registry[name]
+    Processor.registry[name]
   end
 end

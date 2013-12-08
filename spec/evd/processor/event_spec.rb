@@ -1,6 +1,6 @@
-require 'evd/type/event'
+require 'evd/processor/event'
 
-describe EVD::Type::Event do
+describe EVD::Processor::EventProcessor do
   EVD.log_disable
 
   opts = {}
@@ -8,7 +8,7 @@ describe EVD::Type::Event do
   m2 = {:key => :foo}
 
   let(:event) do
-    EVD::Type::Event.new opts
+    EVD::Processor::EventProcessor.new opts
   end
 
   it "should set default ttl on message if missing" do
@@ -18,7 +18,7 @@ describe EVD::Type::Event do
       :source => :foo)
     event.process m1
     core.should_receive(:emit).with m2.merge(
-      :ttl => EVD::Type::Event::DEFAULT_TTL,
+      :ttl => EVD::Processor::EventProcessor::DEFAULT_TTL,
       :source => :foo)
     event.process m2
   end

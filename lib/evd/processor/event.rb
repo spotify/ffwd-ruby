@@ -1,13 +1,14 @@
+require 'evd/event'
+require 'evd/processor'
 require 'evd/logging'
-require 'evd/data_type'
 
-module EVD::Type
+module EVD::Processor
   #
   # Implements counting statistics (similar to statsd).
   #
-  class Event
+  class EventProcessor
     include EVD::Logging
-    include EVD::DataType
+    include EVD::Processor
 
     register_type "event"
 
@@ -18,7 +19,9 @@ module EVD::Type
     end
 
     def process(m)
-      emit m.merge(:ttl => m[:ttl] || @ttl, :source => m[:key])
+      m[:ttl] ||= @ttl
+      m[:source] = m[:key]
+      emit m
     end
   end
 end

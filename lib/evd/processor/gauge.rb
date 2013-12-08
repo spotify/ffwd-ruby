@@ -1,15 +1,15 @@
+require 'evd/processor'
 require 'evd/logging'
-require 'evd/data_type'
 
-module EVD::Type
+module EVD::Processor
   #
   # Implements gauge statistics (similar to statsd).
   #
   # A gauge is simply an absolute value which will immediately be updated.
   #
-  class Gauge
+  class GaugeProcessor
     include EVD::Logging
-    include EVD::DataType
+    include EVD::Processor
 
     register_type "gauge"
 
@@ -20,7 +20,9 @@ module EVD::Type
     end
 
     def process(m)
-      emit m.merge(:value => m[:value] || @missing, :source => m[:key])
+      m[:value] ||= @missing
+      m[:source] = m[:key]
+      emit m
     end
   end
 end

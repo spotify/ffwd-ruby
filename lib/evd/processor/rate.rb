@@ -1,13 +1,13 @@
+require 'evd/processor'
 require 'evd/logging'
-require 'evd/data_type'
 
-module EVD::Type
+module EVD::Processor
   #
   # Implements rate statistics (similar to derive in collectd).
   #
-  class Rate
+  class RateProcessor
     include EVD::Logging
-    include EVD::DataType
+    include EVD::Processor
 
     register_type "rate"
 
@@ -97,7 +97,7 @@ module EVD::Type
         if diff > 0 and valid and aged
           rate = ((value - prev_value) / diff)
           rate = rate.round(@precision) unless @precision.nil?
-          emit(:key => "#{key}.rate", :source_key => key, :value => rate)
+          emit :key => "#{key}.rate", :source => key, :value => rate
         end
       else
         if @cache.size >= @limit

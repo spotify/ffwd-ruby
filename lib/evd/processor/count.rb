@@ -1,13 +1,14 @@
+require 'evd/processor'
 require 'evd/logging'
-require 'evd/data_type'
+require 'evd/event'
 
-module EVD::Type
+module EVD::Processor
   #
   # Implements counting statistics (similar to statsd).
   #
-  class Count
+  class CountProcessor
     include EVD::Logging
-    include EVD::DataType
+    include EVD::Processor
 
     register_type "count"
 
@@ -30,7 +31,7 @@ module EVD::Type
       end
 
       @_cache[key] = value
-      emit(m.merge :value => value, :source => key)
+      emit :key => key, :value => value, :source => key
     end
   end
 end

@@ -29,6 +29,76 @@ module EVD::Plugin
       [:time, :time, :time=],
     ]
 
+    module RiemannUtils
+      private
+
+      def make_event(event)
+        tags = @tags
+        tags += event.tags unless event.tags.nil?
+        tags = tags.map{|v| v.dup}
+
+        unless event.attributes.nil?
+          attributes = @attributes.merge(event.attributes)
+        else
+          attributes = @attributes
+        end
+
+        e = ::Riemann::Event.new
+
+        unless attributes.empty?
+          attributes = attributes.map{|k, v|
+            ::Riemann::Attribute.new(:key => k.dup, :value => v.dup)
+          }
+
+          e.attributes = attributes unless attributes.empty?
+        end
+
+        unless tags.empty?
+          e.tags = tags
+        end
+
+        MAPPING.each do |key, reader, writer|
+          next if (v = event.send(key)).nil?
+          e.send(writer, v)
+        end
+
+        e
+      end
+
+      def read_event(event)
+        input = {:type => 'event'}
+
+        unless event.attributes.nil?
+          attributes = {}
+
+          event.attributes.each do |attr|
+            attributes[attr.key] = attr.value
+          end
+
+          input[:attributes] = attributes unless attributes.empty?
+        end
+
+        unless event.tags.nil? or event.tags.empty?
+          input[:tags] = Set.new(event.tags)
+        end
+
+        MAPPING.each do |key, reader, writer|
+          next if (v = event.send(reader)).nil?
+          input[key] = v
+        end
+
+        input
+      end
+
+      def make_message(message)
+        ::Riemann::Message.new(message)
+      end
+
+      def read_message(data)
+        ::Riemann::Message.decode data
+      end
+    end
+
     module HandlerMixin
       def initialize(tags, attributes)
         @tags = Set.new(tags || [])
@@ -43,13 +113,13 @@ module EVD::Plugin
       end
 
       def serialize_events(events)
-        events = events.map{|e| make_event(e)}
+        events = events.map{|e| make_event e}
         m = make_message :events => events
         encode m
       end
 
       def serialize_event(event)
-        e = make_event(event)
+        e = make_event event
         m = make_message :events => [e]
         encode m
       end
@@ -57,44 +127,11 @@ module EVD::Plugin
       protected
 
       def encode(m); raise "Not implemented: encode"; end
-
-      private
-
-      def make_event(s)
-        tags = @tags
-        tags += s[:tags] unless s[:tags].nil?
-        tags = tags.map{|v| v.dup}
-
-        attributes = @attributes
-        attributes = attributes.merge(s[:attributes]) unless s[:attributes].nil?
-        attributes = attributes.map{|k, v|
-          ::Riemann::Attribute.new(:key => k.dup, :value => v.dup)
-        }
-
-        e = ::Riemann::Event.new
-
-        e.tags = tags unless tags.empty?
-        e.attributes = attributes unless attributes.empty?
-
-        MAPPING.each do |key, reader, writer|
-          next if (v = s[key]).nil?
-          e.send(writer, v)
-        end
-
-        e
-      end
-
-      def make_message(message)
-        ::Riemann::Message.new(:events => message[:events])
-      end
-
-      def read_message(data)
-        ::Riemann::Message.decode data
-      end
     end
 
     class HandlerTCP
       include EVD::Logging
+      include RiemannUtils
       include HandlerMixin
 
       def encode(m)
@@ -104,6 +141,7 @@ module EVD::Plugin
 
     class HandlerUDP
       include EVD::Logging
+      include RiemannUtils
       include HandlerMixin
 
       def encode(m)
@@ -113,6 +151,7 @@ module EVD::Plugin
 
     class ConnectionBase < EM::Connection
       include EVD::Logging
+      include RiemannUtils
       include EM::Protocols::ObjectProtocol
 
       module RiemannSerializer
@@ -125,8 +164,8 @@ module EVD::Plugin
         end
       end
 
-      def initialize(buffer, log)
-        @buffer = buffer
+      def initialize(channel, log)
+        @channel = channel
         @log = log
       end
 
@@ -136,28 +175,7 @@ module EVD::Plugin
 
       def receive_object(m)
         m.events.each do |e|
-          o = {:type => 'event'}
-
-          unless e.attributes.nil?
-            attributes = {}
-
-            e.attributes.each do |attr|
-              attributes[attr.key] = attr.value
-            end
-
-            o[:attributes] = attributes unless attributes.empty?
-          end
-
-          unless e.tags.nil? or e.tags.empty?
-            o[:tags] = Set.new(e.tags)
-          end
-
-          MAPPING.each do |key, reader, writer|
-            next if (v = e.send(reader)).nil?
-            o[key] = v
-          end
-
-          @buffer << o
+          @channel << read_event(e)
         end
 
         send_ok
@@ -206,7 +224,7 @@ module EVD::Plugin
       if (handler = HANDLERS[protocol.family]).nil?
         raise "No handler for protocol family: #{protocol.family}"
       end
-      
+
       handler_instance = handler.new tags, attributes
       protocol.connect log, opts, handler_instance
     end

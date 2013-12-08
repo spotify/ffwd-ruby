@@ -16,6 +16,16 @@ module EVD::Plugin
       include EVD::Logging
       include EVD::Plugin::Kafka::Zookeeper
 
+      MAPPING = [
+        :host,
+        :ttl,
+        :key,
+        :time,
+        :value,
+        :tags,
+        :attributes,
+      ]
+
       def initialize(zk_url, producer, topic, flush_period)
         @zookeeper = EVD::Zookeeper.new(zk_url) unless zk_url.nil?
         @kafka = EVD::Kafka.new
@@ -84,12 +94,12 @@ module EVD::Plugin
 
       def make_hash(event)
         o = {}
-        o[:host] = event[:host] if event[:host]
-        o[:ttl] = event[:ttl] if event[:ttl]
-        o[:key] = event[:key] if event[:key]
-        o[:value] = event[:value] if event[:value]
-        o[:tags] = event[:tags].to_a if event[:tags]
-        o[:attributes] = event[:attributes] if event[:attributes]
+
+        MAPPING.each do |key|
+          next if (v = event.send(from)).nil?
+          o[key] = v
+        end
+
         return o
       end
 

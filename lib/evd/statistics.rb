@@ -37,10 +37,16 @@ module EVD
         @input_count = 0
         @output_count = 0
 
-        @core.emit(:key => INPUT_RATE, :source_key => INPUT,
-                   :value => input_rate, :tags => INTERNAL_TAGS)
-        @core.emit(:key => OUTPUT_RATE, :source_key => INPUT,
-                   :value => output_rate, :tags => INTERNAL_TAGS)
+        input = EVD.event(
+          :key => INPUT_RATE, :source => INPUT,
+          :value => input_rate, :tags => INTERNAL_TAGS)
+
+        output = EVD.event(
+          :key => OUTPUT_RATE, :source => INPUT,
+          :value => output_rate, :tags => INTERNAL_TAGS)
+
+        @core.emit input
+        @core.emit output
 
         @then = now
       end

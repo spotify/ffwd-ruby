@@ -6,7 +6,6 @@ require 'evd/logging'
 require 'evd/plugin_loader'
 
 require 'evd/plugin'
-require 'evd/data_type'
 
 module EVD
   class CommandLine
@@ -63,7 +62,7 @@ module EVD
     end
 
     def main(opts)
-      PluginLoader.load 'type'
+      PluginLoader.load 'processor'
       PluginLoader.load 'plugin'
 
       result = load_config opts[:config]

@@ -1,7 +1,8 @@
-require 'evd/data_type'
+require 'evd/processor'
 require 'evd/logging'
+require 'evd/event'
 
-module EVD::Type
+module EVD::Processor
   #
   # Implements histogram statistics over a tumbling time window.
   #
@@ -17,8 +18,8 @@ module EVD::Type
   # <key>.p99 - The 99th percentile value collected.
   # <key>.p999 - The 99.9th percentile value collected.
   #
-  class Histogram
-    include EVD::DataType
+  class HistogramProcessor
+    include EVD::Processor
     include EVD::Logging
 
     register_type "histogram"
@@ -93,8 +94,8 @@ module EVD::Type
 
       @cache.each do |key, bucket|
         calculate(bucket) do |p, info, value|
-          emit :key => "#{key}.#{p}", :source_key => key, :value => value,
-                :description => "#{info} of #{key}"
+          emit :key => "#{key}.#{p}", :source => key,
+               :value => value, :description => "#{info} of #{key}"
         end
       end
 

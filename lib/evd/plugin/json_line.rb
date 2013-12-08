@@ -1,7 +1,6 @@
 require 'evd/protocol'
 require 'evd/plugin'
 require 'evd/logging'
-require 'evd/data_type'
 
 require 'eventmachine'
 
