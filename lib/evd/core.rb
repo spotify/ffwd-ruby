@@ -131,8 +131,7 @@ module EVD
 
     def emit_debug(event)
       @debug_clients.each do |peer, client|
-        data = JSON.dump(event)
-        client.send_data "#{data}\n"
+        client.send_data "#{event}\n"
       end
     end
 
