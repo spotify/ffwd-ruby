@@ -3,6 +3,7 @@ require 'evd/plugin'
 require 'evd/logging'
 
 require 'eventmachine'
+require 'set'
 
 module EVD::Plugin
   module JsonLine
@@ -46,6 +47,10 @@ module EVD::Plugin
         FIELDS.each do |from, to|
           next if (v = data[from]).nil?
           d[to] = v
+        end
+
+        unless (tags = d["tags"]).nil?
+          d["tags"] = tags.to_set
         end
 
         @input_buffer << d
