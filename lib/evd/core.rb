@@ -12,6 +12,20 @@ require 'evd/debug'
 require 'evd/statistics'
 
 module EVD
+  # Merge two sets
+  def self.merge_sets(a, b)
+    return b if not a
+    r = a.clone
+    r += b if b
+  end
+
+  # Merge two hashes.
+  def self.merge_hashes(a, b)
+    return b if not a
+    r = a.clone
+    r.update(b) if b
+  end
+
   class Core
     include EVD::Logging
 
@@ -46,8 +60,6 @@ module EVD
       # Registered extensible data types.
       @processors = {}
       @reporters = []
-
-      @metadata_tags = {}
     end
 
     #
@@ -100,24 +112,8 @@ module EVD
     #
     def emit(event, tags=nil, attributes=nil)
       event = EVD.event event
-
-      if @tags
-        new_tags = @tags.clone
-        new_tags += tags if tags
-      else
-        new_tags = tags
-      end
-
-      if @attributes
-        new_attr = @attributes.clone
-        new_attr.update(attributes) if attributes
-      else
-        new_attr = attributes
-      end
-
-      event.tags = new_tags
-      event.attributes = new_attr
-
+      event.tags = EVD.merge_sets @tags, tags
+      event.attributes = EVD.merge_hashes @attributes, attributes
       event.time ||= Time.new.to_i
 
       unless @debug.nil?
@@ -188,20 +184,8 @@ module EVD
       end
 
       def emit(m, tags=nil, attributes=nil)
-        if @attributes
-          new_attr = @attributes.clone
-          new_attr.update(attributes) if attributes
-        else
-          new_attr = @attributes
-        end
-
-        if @tags
-          new_tags = @tags.clone
-          new_tags += tags if tags
-        else
-          new_tags = tags
-        end
-
+        tags = EVD.merge_sets @tags, tags
+        attributes = EVD.merge_hashes @attributes, attributes
         @core.emit m, new_tags, new_attr
       end
     end
