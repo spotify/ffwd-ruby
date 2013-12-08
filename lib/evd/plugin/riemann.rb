@@ -112,13 +112,13 @@ module EVD::Plugin
         @bad_acks += 1
       end
 
-      def serialize_events(events)
+      def serialize_all(events)
         events = events.map{|e| make_event e}
         m = make_message :events => events
         encode m
       end
 
-      def serialize_event(event)
+      def serialize(event)
         e = make_event event
         m = make_message :events => [e]
         encode m

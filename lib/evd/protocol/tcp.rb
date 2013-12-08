@@ -1,3 +1,5 @@
+require 'evd/reporter'
+
 module EVD::TCP
   class Connection < EM::Connection
     def initialize(parent)
@@ -18,7 +20,11 @@ module EVD::TCP
   end
 
   class Client
+    attr_reader :log
+
     INITIAL_TIMEOUT = 2
+
+    include EVD::Reporter
 
     def initialize(log, host, port, handler, flush_period, outbound_limit)
       @log = log
@@ -29,34 +35,22 @@ module EVD::TCP
       @outbound_limit = outbound_limit
 
       @peer = "#{host}:#{port}"
-      @connection = nil
       @closing = false
       @buffer = []
       @reconnect_timer = nil
       @reconnect_timeout = INITIAL_TIMEOUT
-      @connected = false
 
-      @dropped = 0
-      @total = 0
+      @open = false
+      @c = nil
     end
 
-    def report?
-      true
-    end
-
-    def report
-      if @dropped > 0
-        @log.warning "Dropped #{@dropped} out of #{@total} event(s)"
-        @dropped = 0
-      end
-
-      @total = 0
+    def id
+      @peer
     end
 
     def connection_completed
-      @connected = true
+      @open = true
       @log.info "Connected tcp://#{@peer}"
-
       @reconnect_timeout = INITIAL_TIMEOUT
 
       unless @reconnect_timer.nil?
@@ -66,7 +60,7 @@ module EVD::TCP
     end
 
     def unbind
-      @connected = false
+      @open = false
 
       if @closing
         @log.info "Disconnected from tcp://#{@peer}"
@@ -83,7 +77,7 @@ module EVD::TCP
       @reconnect_timer = EM::Timer.new(@reconnect_timeout) do
         @reconnect_timeout *= 2
         @reconnect_timer = nil
-        @connection.reconnect @host, @port
+        @c.reconnect @host, @port
       end
     end
 
@@ -91,9 +85,8 @@ module EVD::TCP
       @handler.receive_data data
     end
 
-    # Start TCP connection.
     def start(channel)
-      @connection = EM.connect(@host, @port, Connection, self)
+      @c = EM.connect(@host, @port, Connection, self)
 
       EM.add_shutdown_hook{close}
 
@@ -109,25 +102,26 @@ module EVD::TCP
 
     def close
       @closing = true
-      @connection.close_connection
+      @c.close_connection
     end
 
     private
 
+    def connected?
+      @open
+    end
+
+    # Check if a connection is writable or not.
+    def writable?
+      connected? and @c.get_outbound_data_size < @outbound_limit
+    end
+
     # Flush buffered events (if any).
     def flush!
       return if @buffer.empty?
-      return unless @connected
-
-      @total += @buffer.size
-
-      if @connection.get_outbound_data_size >= @outbound_limit
-        @dropped += @buffer.size
-        return
-      end
-
-      data = @handler.serialize_events @buffer
-      @connection.send_data data
+      return increment :dropped, @buffer.size unless writable?
+      @c.send_data @handler.serialize_all(@buffer)
+      increment :sent, @buffer.size
     rescue => e
       @log.error "Failed to flush events", e
     ensure
@@ -135,20 +129,9 @@ module EVD::TCP
     end
 
     def handle_event(event)
-      @total += 1
-
-      unless @connected
-        @dropped += 1
-        return
-      end
-
-      if @connection.get_outbound_data_size >= @outbound_limit
-        @dropped += 1
-        return
-      end
-
-      data = @handler.serialize_event event
-      @connection.send_data data
+      return increment :dropped, 1 unless writable?
+      @c.send_data @handler.serialize(event)
+      increment :sent, 1
     rescue => e
       @log.error "Failed to handle event", e
     end

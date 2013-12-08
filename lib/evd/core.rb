@@ -171,8 +171,8 @@ module EVD
 
       return if active.empty?
 
-      active.each do |reporter|
-        reporter.report
+      active.each_with_index do |reporter, i|
+        reporter.report "report ##{i}"
       end
     end
 

@@ -2,6 +2,7 @@ require 'evd/plugin'
 require 'evd/logging'
 require 'evd/zookeeper'
 require 'evd/kafka'
+require 'evd/reporter'
 
 require 'evd/plugin/kafka/zookeeper'
 
@@ -15,6 +16,7 @@ module EVD::Plugin
     class Client
       include EVD::Logging
       include EVD::Plugin::Kafka::Zookeeper
+      include EVD::Reporter
 
       MAPPING = [:host, :ttl, :key, :time, :value, :tags, :attributes]
 
@@ -30,23 +32,15 @@ module EVD::Plugin
         @flush_period = flush_period
         @buffer = []
         @kafka_producer = nil
-        @dropped = 0
       end
 
-      def report?
-        @dropped > 0
-      end
-
-      def report
-        if @dropped > 0
-          log.warning "Dropped #{@dropped} event(s)"
-          @dropped = 0
-        end
+      def id
+        @producer
       end
 
       def start(channel)
         if @zookeeper
-          make_zk_kafka_producer 
+          make_zk_kafka_producer
         else
           make_kafka_producer
         end
@@ -88,11 +82,7 @@ module EVD::Plugin
       end
 
       def flush!
-        unless @kafka_producer
-          @dropped += @buffer.size
-          return
-        end
-
+        return increment :dropped, @buffer.size unless @kafka_producer
         messages = @buffer.map{|event| make_message}
         @kafka_producer.send_messages messages
       rescue => e
@@ -102,12 +92,10 @@ module EVD::Plugin
       end
 
       def handle_event(event)
-        unless @kafka_producer
-          @dropped += 1
-          return
-        end
-
+        return increment :dropped, 1 unless @kafka_producer
         @kafka_producer.send_messages [make_message(event)]
+      rescue => e
+        log.error "Failed to send message", e
       end
 
       def make_message(event)
@@ -115,14 +103,7 @@ module EVD::Plugin
       end
 
       def make_hash(event)
-        o = {}
-
-        MAPPING.map do |key|
-          next if (v = event.send(key)).nil?
-          o[key] = v
-        end
-
-        return o
+        Hash[MAPPING.map{|k| if v = event.send(k); [k, v]; end}]
       end
     end
 
