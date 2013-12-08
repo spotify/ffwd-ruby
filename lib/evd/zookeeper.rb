@@ -2,16 +2,16 @@ require 'zookeeper'
 require 'thread'
 
 module EVD
-  class Request
-    include EM::Deferrable
-  end
-
   # A tiny zookeeper wrapper that delegates requests to the thread-pool of
   # EventMachine.
   class Zookeeper
+    class Request
+      include EM::Deferrable
+    end
+
     def initialize(*args)
       @args = args
-      @client_mutex = Mutex.new
+      @mutex = Mutex.new
     end
 
     def get_children(*args)
@@ -32,10 +32,10 @@ module EVD
     # threads could access it at once.
     # NOTE: It is important that ::Zookeeper is not instantiated on the reactor
     # thread, because it blocks if it is unable to establish a connection.
-    def client
+    def make_client
       raise "Should not be used in the reactor thread" if EM.reactor_thread?
 
-      @client_mutex.synchronize do
+      @mutex.synchronize do
         @client ||= ::Zookeeper.new(*@args)
       end
     end
@@ -45,7 +45,7 @@ module EVD
 
       EM.defer do
         begin
-          result = block.call(client)
+          result = block.call(make_client)
           EM.next_tick{request.succeed(result)}
         rescue => e
           EM.next_tick{request.fail(e)}
