@@ -51,8 +51,7 @@ module EVD::Plugin
 
         @input_buffer << d
       rescue => e
-        log.error "Something went wrong: #{e}"
-        log.error e.backtrace.join("\n")
+        log.error "Failed to receive line", e
       end
     end
 

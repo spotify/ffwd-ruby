@@ -135,8 +135,7 @@ module EVD
 
       @output_channel << event
     rescue => e
-      log.error "Failed to emit event: #{e}"
-      log.error e.backtrace.join("\n")
+      log.error "Failed to emit event", e
     end
 
     private
@@ -166,17 +165,17 @@ module EVD
     # setup hash of datatype functions.
     #
     def setup_datatypes
-      datatypes = {}
+      types = {}
 
       DataType.registry.each do |name, klass|
-        log.info "DataType: #{name}"
-
         datatype = klass.new(@types[name] || {})
         datatype.core = self
-        datatypes[name] = datatype
+        types[name] = datatype
       end
 
-      datatypes
+      raise "No data types loaded" if types.empty?
+      log.info "Loaded data types: #{types.keys.join(', ')}"
+      return types
     end
 
     def setup_reporters(instances)

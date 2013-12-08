@@ -131,8 +131,7 @@ module EVD::TCP
       data = @handler.serialize_events @buffer
       @connection.send_data data
     rescue => e
-      @log.error "Failed to send events: #{e}"
-      @log.error e.backtrace.join("\n")
+      @log.error "Failed to flush events", e
     ensure
       @buffer = []
     end
@@ -150,8 +149,7 @@ module EVD::TCP
       data = @handler.serialize_event event
       @connection.send_data data
     rescue => e
-      @log.error "Failed to send event: #{e}"
-      @log.error e.backtrace.join("\n")
+      @log.error "Failed to handle event", e
     end
 
     def collect_events(buffer)

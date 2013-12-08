@@ -55,6 +55,7 @@ module EVD::Type
 
       # Dropped values.
       @dropped = 0
+
       # Dropped values that would have gone into a bucket.
       @bucket_dropped = 0
 

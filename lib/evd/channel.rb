@@ -12,8 +12,7 @@ module EVD
         begin
           s.call item
         rescue => e
-          @log.error "#{@name}: Subscription failed: #{e}"
-          @log.error e.backtrace.join('\n')
+          @log.error "#{@name}: Subscription failed", e
         end
       end
     end

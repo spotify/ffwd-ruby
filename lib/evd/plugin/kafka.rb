@@ -17,18 +17,30 @@ module EVD::Plugin
       include EVD::Plugin::Kafka::Zookeeper
 
       def initialize(zk_url, producer, topic, flush_period)
-        @zk = EVD::Zookeeper.new(zk_url) unless zk_url.nil?
+        @zookeeper = EVD::Zookeeper.new(zk_url) unless zk_url.nil?
         @kafka = EVD::Kafka.new
         @producer = producer
         @topic = topic
         @flush_period = flush_period
         @buffer = []
         @kafka_producer = nil
+        @dropped = 0
+      end
+
+      def report?
+        @dropped > 0
+      end
+
+      def report
+        if @dropped > 0
+          log.warning "Dropped #{@dropped} event(s)"
+          @dropped = 0
+        end
       end
 
       def start(channel)
-        if @zk
-          req = zk_find_brokers @zk
+        if @zookeeper
+          req = zk_find_brokers log, @zookeeper
 
           req.callback do |brokers|
             if brokers.empty?
@@ -54,12 +66,16 @@ module EVD::Plugin
       end
 
       def flush!
+        unless @kafka_producer
+          @dropped += @buffer.size
+          return
+        end
+
         messages = @buffer.map{|event|
           EVD::Kafka::MessageToSend.new @topic, JSON.dump(make_hash event)}
         @kafka_producer.send_messages messages
       rescue => e
-        log.error "Failed to send messages: #{e}"
-        log.error e.backtrace.join("\n")
+        log.error "Failed to flush messages", e
       ensure
         @buffer = []
       end

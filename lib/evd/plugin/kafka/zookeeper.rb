@@ -6,7 +6,8 @@ module EVD::Plugin
       class FindBrokers
         include EM::Deferrable
 
-        def initialize(zk)
+        def initialize(log, zk)
+          @log = log
           request zk
         end
 
@@ -26,7 +27,7 @@ module EVD::Plugin
             requests = EVD::EMExt::All.new
 
             ids.each do |id|
-              requests << zk.get(:path => "/brokers/ids/0")
+              requests << zk.get(:path => "/brokers/ids/#{id}")
             end
 
             requests.callback do |result_brokers|
@@ -42,6 +43,11 @@ module EVD::Plugin
             end
 
             requests.errback do |errors|
+              errors.each do |e|
+                next unless e
+                @log.error "Failed to request broker information", e
+              end
+
               fail nil
             end
           end
@@ -54,8 +60,8 @@ module EVD::Plugin
         end
       end
 
-      def zk_find_brokers zk
-        FindBrokers.new(zk)
+      def zk_find_brokers(log, zk)
+        FindBrokers.new(log, zk)
       end
     end
   end

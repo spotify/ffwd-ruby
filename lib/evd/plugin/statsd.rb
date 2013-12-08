@@ -68,8 +68,7 @@ module EVD::Plugin
         return if event.nil?
         @buffer << event
       rescue => e
-        log.error "Something went wrong: #{e}"
-        log.error e.backtrace.join("\n")
+        log.error "Failed to receive data", e
       end
     end
 

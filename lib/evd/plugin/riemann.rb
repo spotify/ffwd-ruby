@@ -162,9 +162,7 @@ module EVD::Plugin
 
         send_ok
       rescue => e
-        @log.error "Failed to receive object: #{e}"
-        @log.error e.backtrace.join("\n")
-
+        @log.error "Failed to receive object", e
         send_error e
       end
 

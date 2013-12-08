@@ -39,8 +39,13 @@ module EVD
       EVD.log.info("#{@klass_name}: #{message}", *args)
     end
 
-    def error(message, *args)
+    def error(message, e = nil, *args)
       EVD.log.error("#{@klass_name}: #{message}", *args)
+      return unless e
+      EVD.log.error("#{@klass_name}: Exception: #{e}")
+      e.backtrace.each do |bt|
+        EVD.log.error("  #{bt}")
+      end
     end
 
     def warning(message, *args)
