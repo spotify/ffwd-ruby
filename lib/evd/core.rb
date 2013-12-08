@@ -186,7 +186,7 @@ module EVD
       def emit(m, tags=nil, attributes=nil)
         tags = EVD.merge_sets @tags, tags
         attributes = EVD.merge_hashes @attributes, attributes
-        @core.emit m, new_tags, new_attr
+        @core.emit m, tags, attributes
       end
     end
 

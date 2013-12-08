@@ -14,23 +14,21 @@ module EVD::Processor
 
     def initialize(opts={})
       @cache_limit = opts[:cache_limit] || 10000
-      @_cache = {}
+      @cache = {}
     end
 
     def process(core, m)
       key = m[:key]
       value = m[:value]
 
-      unless (prev_value = @_cache[key]).nil?
-        value = prev_value + value
-      else
-        if @_cache.size >= @cache_limit
-          log.warning "Dropping cache update '#{key}', limit reached"
-          return
-        end
+      if prev = @cache[key]
+        value = prev + value
+      elsif @cache.size >= @cache_limit
+        log.warning "Dropping cache update '#{key}', limit reached"
+        return
       end
 
-      @_cache[key] = value
+      @cache[key] = value
       core.emit :key => key, :value => value, :source => key
     end
   end

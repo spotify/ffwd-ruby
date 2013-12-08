@@ -105,19 +105,17 @@ module EVD::Processor
     def calculate(bucket)
       total = bucket.size
 
-      perc_map = {}
+      map = {}
 
       @percentiles.each do |k, v|
         index = (total * v[:percentage]).ceil - 1
 
-        if (config = perc_map[index]).nil?
+        if (c = map[index]).nil?
           info = "#{v[:info]} percentile"
-          config = {:info => info, :percs => []}
-          perc_map[index] = config
+          c = map[index] = {:info => info, :values => []}
         end
 
-        percs = config[:percs]
-        percs << {:name => k, :value => nil}
+        c[:values] << {:name => k, :value => nil}
       end
 
       max = nil
@@ -130,9 +128,8 @@ module EVD::Processor
         min = t if min.nil? or t < min
         sum += t
 
-        unless (config = perc_map[index]).nil?
-          percs = config[:percs]
-          percs.each{|d| d[:value] = t}
+        unless (c = map[index]).nil?
+          c[:values].each{|d| d[:value] = t}
         end
       end
 
@@ -144,9 +141,8 @@ module EVD::Processor
         sum = sum.round(@precision)
         mean = mean.round(@precision)
 
-        perc_map.each do |index, config|
-          percs = config[:percs]
-          percs.each{|d| d[:value] = d[:value].round(@precision)}
+        map.each do |index, c|
+          c[:values].each{|d| d[:value] = d[:value].round(@precision)}
         end
       end
 
@@ -155,11 +151,9 @@ module EVD::Processor
       yield "sum", "Sum", sum
       yield "mean", "Mean", mean
 
-      perc_map.each do |index, config|
-        info = config[:info]
-        percs = config[:percs]
-        percs.each do |d|
-          yield d[:name], info, d[:value]
+      map.each do |index, c|
+        c[:values].each do |d|
+          yield d[:name], c[:info], d[:value]
         end
       end
     end
