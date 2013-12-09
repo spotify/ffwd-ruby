@@ -3,6 +3,7 @@ require 'evd/logging'
 require 'evd/zookeeper'
 require 'evd/kafka'
 require 'evd/reporter'
+require 'evd/producing_client'
 
 require 'evd/plugin/kafka/zookeeper'
 
@@ -13,14 +14,16 @@ module EVD::Plugin
 
     register_plugin "kafka"
 
-    class Client
+    class Client < EVD::ProducingClient
       include EVD::Logging
       include EVD::Plugin::Kafka::Zookeeper
-      include EVD::Reporter
 
       MAPPING = [:host, :ttl, :key, :time, :value, :tags, :attributes]
 
-      def initialize(zookeeper_url, producer, topic, brokers, flush_period)
+      def initialize(zookeeper_url, producer, topic, brokers,
+                     flush_period, flush_size, buffer_limit)
+        super flush_period, flush_size, buffer_limit
+
         unless zookeeper_url.nil?
           @zookeeper = EVD::Zookeeper.new(zookeeper_url)
         end
@@ -29,28 +32,20 @@ module EVD::Plugin
         @producer = producer
         @topic = topic
         @brokers = brokers
-        @flush_period = flush_period
-        @buffer = []
-        @kafka_producer = nil
       end
 
       def id
         @producer
       end
 
-      def start(channel)
-        if @zookeeper
-          make_zk_kafka_producer
-        else
-          make_kafka_producer
-        end
+      def produce(buffer)
+        messages = buffer.map{|e| make_message e}
+        @kafka_producer.send_messages messages
+      end
 
-        if @flush_period > 0
-          EM::PeriodicTimer.new(@flush_period){flush!}
-          channel.subscribe{|e| @buffer << e}
-        else
-          channel.subscribe{|e| handle_event e}
-        end
+      def setup_producer
+        return make_zk_kafka_producer if @zookeeper
+        make_kafka_producer
       end
 
       private
@@ -60,8 +55,9 @@ module EVD::Plugin
 
         req.callback do |brokers|
           if brokers.empty?
-            log.error "Could not discover any brokers"
+            log.error "Zookeeper: Could not discover any brokers"
           else
+            log.info "Zookeeper: Discovered brokers: #{brokers}"
             brokers = brokers.map{|b| "#{b[:host]}:#{b[:port]}"}
             @kafka_producer = @kafka.producer brokers, @producer
           end
@@ -81,23 +77,6 @@ module EVD::Plugin
         @kafka_producer = @kafka.producer @brokers, @producer
       end
 
-      def flush!
-        return increment :dropped, @buffer.size unless @kafka_producer
-        messages = @buffer.map{|event| make_message}
-        @kafka_producer.send_messages messages
-      rescue => e
-        log.error "Failed to flush messages", e
-      ensure
-        @buffer.clear
-      end
-
-      def handle_event(event)
-        return increment :dropped, 1 unless @kafka_producer
-        @kafka_producer.send_messages [make_message(event)]
-      rescue => e
-        log.error "Failed to send message", e
-      end
-
       def make_message(event)
         ::EVD::Kafka::MessageToSend.new @topic, JSON.dump(make_hash event)
       end
@@ -112,6 +91,8 @@ module EVD::Plugin
     DEFAULT_TOPIC = "test"
     DEFAULT_BROKERS = ["localhost:9092"]
     DEFAULT_FLUSH_PERIOD = 10
+    DEFAULT_BUFFER_LIMIT = 10000
+    DEFAULT_FLUSH_SIZE = 1000
 
     def self.output_setup(opts={})
       zookeeper_url = opts[:zookeeper_url] || DEFAULT_ZOOKEEPER_URL
@@ -119,7 +100,15 @@ module EVD::Plugin
       topic = opts[:topic] || DEFAULT_TOPIC
       brokers = opts[:brokers] || DEFAULT_BROKERS
       flush_period = opts[:flush_period] || DEFAULT_FLUSH_PERIOD
-      Client.new zookeeper_url, producer, topic, brokers, flush_period
+      flush_size = opts[:flush_size] || DEFAULT_FLUSH_SIZE
+      buffer_limit = opts[:buffer_limit] || DEFAULT_BUFFER_LIMIT
+
+      if flush_period <= 0
+        raise "Invalid flush period: #{flush_period}"
+      end
+
+      Client.new zookeeper_url, producer, topic, brokers,
+                 flush_period, flush_size, buffer_limit
     end
   end
 end
