@@ -2,31 +2,17 @@ require 'set'
 require 'json'
 require 'eventmachine'
 
-require 'evd/logging'
-require 'evd/protocol'
-require 'evd/input_channel'
 require 'evd/channel'
-
-require 'evd/processor'
-
 require 'evd/debug'
+require 'evd/event_emitter'
+require 'evd/logging'
+require 'evd/plugin_channel'
+require 'evd/processor'
+require 'evd/protocol'
 require 'evd/statistics'
+require 'evd/utils'
 
 module EVD
-  # Merge two sets
-  def self.merge_sets(a, b)
-    return b if not a
-    r = a.clone
-    r += b if b
-  end
-
-  # Merge two hashes.
-  def self.merge_hashes(a, b)
-    return b if not a
-    r = a.clone
-    r.update(b) if b
-  end
-
   class Core
     include EVD::Logging
 
@@ -182,20 +168,6 @@ module EVD
 
       active.each_with_index do |reporter, i|
         reporter.report "report ##{i}"
-      end
-    end
-
-    class EventEmitter
-      def initialize(core, tags, attributes)
-        @core = core
-        @tags = tags
-        @attributes = attributes
-      end
-
-      def emit(m, tags=nil, attributes=nil)
-        tags = EVD.merge_sets @tags, tags
-        attributes = EVD.merge_hashes @attributes, attributes
-        @core.emit m, tags, attributes
       end
     end
 

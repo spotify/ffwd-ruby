@@ -1,3 +1,5 @@
+# EventMachine extensions.
+
 module EVD::EMExt
   class All
     include EM::Deferrable

@@ -19,7 +19,7 @@ module EVD::Plugin
       include EVD::Logging
 
       def initialize(channel)
-        @metrics = channel.metric
+        @metrics = channel.metrics
       end
 
       def gauge(name, value)

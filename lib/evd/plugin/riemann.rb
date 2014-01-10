@@ -26,7 +26,6 @@ module EVD::Plugin
       [:state, :state, :state=],
       [:description, :description, :description=],
       [:ttl, :ttl, :ttl=],
-      [:time, :time, :time=],
     ]
 
     module RiemannUtils
@@ -62,6 +61,10 @@ module EVD::Plugin
           e.send(writer, v)
         end
 
+        if time = event.send(:time)
+          e.time = time.to_i
+        end
+
         e
       end
 
@@ -85,6 +88,10 @@ module EVD::Plugin
         MAPPING.each do |key, reader, writer|
           next if (v = event.send(reader)).nil?
           input[key] = v
+        end
+
+        if time = event.send(:time)
+          input[:time] = time
         end
 
         input
