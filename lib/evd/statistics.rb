@@ -2,60 +2,56 @@ module EVD
   module Statistics
     INTERNAL_TAGS = Set.new(['evd'])
 
-    OUTPUT = "evd_output"
-    OUTPUT_RATE = "#{OUTPUT}.rate"
-    INPUT = "evd_input"
-    INPUT_RATE = "#{INPUT}.rate"
+    OUT = "evd_output"
+    OUT_RATE = "#{OUT}.rate"
+    IN = "evd_in"
+    IN_RATE = "#{IN}.rate"
 
     class Collector
       def initialize(core, period, precision)
         @core = core
         @period = period
         @precision = precision
-        @input_count = 0
-        @output_count = 0
+        @in_count = 0
+        @out_count = 0
       end
 
-      def input_inc; @input_count += 1; end
-      def output_inc; @output_count += 1; end
+      def input_inc
+        @in_count += 1
+      end
+
+      def output_inc
+        @out_count += 1
+      end
 
       def start
-        @then = Time.now
+        @last = Time.now
 
         EM::PeriodicTimer.new(@period) do
-          generate
+          now = Time.now
+          generate! @last, now
+          @last = now
         end
       end
 
-      def generate
-        now = Time.now
-        diff = now - @then
+      def generate! last, now
+        diff = now - last
 
-        input_rate = (@input_count.to_f / diff)
-        output_rate = (@output_count.to_f / diff)
+        in_rate = (@in_count.to_f / diff)
+        out_rate = (@out_count.to_f / diff)
 
-        @input_count = 0
-        @output_count = 0
+        @in_count = @out_count = 0
 
-        input = EVD.event(
-          :key => INPUT_RATE, :source => INPUT,
-          :value => input_rate, :tags => INTERNAL_TAGS)
-
-        output = EVD.event(
-          :key => OUTPUT_RATE, :source => INPUT,
-          :value => output_rate, :tags => INTERNAL_TAGS)
-
-        @core.emit input
-        @core.emit output
-
-        @then = now
+        @core.emit(:key => IN_RATE, :source => IN,
+                   :value => in_rate, :tags => INTERNAL_TAGS)
+        @core.emit(:key => OUT_RATE, :source => OUT,
+                   :value => out_rate, :tags => INTERNAL_TAGS)
       end
     end
 
     def self.setup(core, opts)
       period = opts[:period] || 1
       precision = opts[:precision] || 3
-
       Collector.new(core, period, precision)
     end
   end

@@ -13,17 +13,15 @@ describe EVD::Processor::GaugeProcessor do
 
   it "should preserve the original message" do
     core = double
-    gauge.core = core
     core.should_receive(:emit).with m1.merge(:source => m1[:key])
-    gauge.process m1
+    gauge.process core, m1
   end
 
   it "should make sure that there is a default value" do
     core = double
-    gauge.core = core
     core.should_receive(:emit).with m2.merge(
       :value => EVD::Processor::GaugeProcessor::DEFAULT_MISSING,
       :source => m2[:key])
-    gauge.process m2
+    gauge.process core, m2
   end
 end
