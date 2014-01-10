@@ -4,6 +4,7 @@ require 'eventmachine'
 
 require 'evd/logging'
 require 'evd/protocol'
+require 'evd/input_channel'
 require 'evd/channel'
 
 require 'evd/processor'
@@ -37,8 +38,11 @@ module EVD
     def initialize(opts={})
       @report_interval = opts[:report_interval] || DEFAULT_REPORT_INTERVAL
 
-      @input_channel = EVD::Channel.new(log, 'input')
+      @metrics = EVD::Channel.new(log, 'metrics')
+      @events = EVD::Channel.new(log, 'events')
       @output_channel = EVD::Channel.new(log, 'output')
+
+      @plugin_channel = EVD::PluginChannel.new @metrics, @events
 
       @metadata_limit = opts[:metadata_limit] || 10000
       @tags = Set.new(opts[:tags] || [])
@@ -60,6 +64,9 @@ module EVD
       # Registered extensible data types.
       @processors = {}
       @reporters = []
+
+      @host = opts[:host]
+      @ttl = opts[:ttl]
     end
 
     #
@@ -80,7 +87,7 @@ module EVD
       log.info "Registered #{@reporters.size} reporter(s)"
 
       EM.run do
-        input_plugins.each {|p| p.start @input_channel}
+        input_plugins.each {|p| p.start @plugin_channel}
         output_plugins.each {|p| p.start @output_channel}
 
         @processors.each do |name, processor|
@@ -101,8 +108,12 @@ module EVD
           end
         end
 
-        @input_channel.subscribe do |event|
-          process_input event
+        @metrics.subscribe do |m|
+          process_metrics m
+        end
+
+        @events.subscribe do |e|
+          process_events e
         end
       end
     end
@@ -114,14 +125,13 @@ module EVD
       event = EVD.event event
       event.tags = EVD.merge_sets @tags, tags
       event.attributes = EVD.merge_hashes @attributes, attributes
-      event.time ||= Time.new.to_i
+      event.time ||= Time.now
+      event.host ||= @host if @host
+      event.ttl ||= @ttl if @ttl
 
-      unless @debug.nil?
-        emit_debug event
-      end
+      emit_debug event unless @debug.nil?
 
       @statistics.output_inc unless @statistics.nil?
-
       @output_channel << event
     rescue => e
       log.error "Failed to emit event", e
@@ -189,11 +199,11 @@ module EVD
       end
     end
 
-    def process_input(m)
+    def process_metrics(m)
       @statistics.input_inc unless @statistics.nil?
 
-      return if (type = m[:type]).nil?
-      return if (processor = @processors[type]).nil?
+      return if (processor = m[:processor]).nil?
+      return if (processor = @processors[processor]).nil?
 
       core = if m[:tags] or m[:attributes]
         EventEmitter.new self, m[:tags], m[:attributes]
@@ -201,8 +211,15 @@ module EVD
         self
       end
 
-      m[:time] = Time.now unless m[:time]
+      m[:time] ||= Time.now
       processor.process core, m
+    end
+
+    def process_events(e)
+      @statistics.input_inc unless @statistics.nil?
+
+      e[:time] ||= Time.now
+      emit e
     end
   end
 end

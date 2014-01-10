@@ -146,8 +146,8 @@ module EVD::Processor
         end
       end
 
-      yield "max", "Max time", max
-      yield "min", "Min time", min
+      yield "max", "Max", max
+      yield "min", "Min", min
       yield "sum", "Sum", sum
       yield "mean", "Mean", mean
 

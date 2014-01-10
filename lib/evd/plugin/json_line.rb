@@ -16,8 +16,7 @@ module EVD::Plugin
       include EVD::Logging
       include EM::Protocols::LineText2
 
-      FIELDS = [
-        ["type", :type],
+      EVENT_FIELDS = [
         ["key", :key],
         ["value", :value],
         ["host", :host],
@@ -29,34 +28,62 @@ module EVD::Plugin
         ["attributes", :attributes],
       ]
 
-      def initialize(input_buffer, buffer_limit)
-        @input_buffer = input_buffer
+      METRIC_FIELDS = [
+        ["processor", :processor],
+        ["key", :key],
+        ["value", :value],
+        ["time", :time],
+        ["tags", :tags],
+        ["attributes", :attributes]
+      ]
+
+      def initialize(channel, buffer_limit)
+        @events = channel.events
+        @metrics = channel.metrics
         @buffer_limit = buffer_limit
       end
 
       def receive_line(data)
-        if @input_buffer.size > @buffer_limit
-          log.warning "Buffer limit reached, dropping event"
+        data = JSON.load(data)
+
+        unless type = data["type"]
+          log.error "Type missing from data"
           return
         end
 
-        data = JSON.load(data)
+        receive_metric data if type == "metric"
+        receive_event data if type == "event"
 
-        d = Hash.new
-
-        FIELDS.each do |from, to|
-          next if (v = data[from]).nil?
-          d[to] = v
-        end
-
-        unless (tags = d["tags"]).nil?
-          d["tags"] = tags.to_set
-        end
-
-        @input_buffer << d
+        log.error "No such type: #{type}"
       rescue => e
         log.error "Failed to receive line", e
       end
+    end
+
+    def receive_metric data
+      d = Hash[METRIC_FIELDS.each do |from, to|
+        next if (v = data[from]).nil?
+        d[to] = v
+      end]
+
+      unless tags = d[:tags]
+        d[:tags] = tags.to_set
+      end
+
+      @metrics << d
+    end
+
+    def receive_event data
+      d = Hash[EVENT_FIELDS.each do |from, to|
+        next if (v = data[from]).nil?
+        d[to] = v
+      end]
+
+      unless tags = d[:tags]
+        d[:tags] = tags.to_set
+      end
+
+      @events << d
     end
 
     DEFAULT_HOST = "localhost"

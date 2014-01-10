@@ -66,7 +66,7 @@ module EVD::Plugin
       end
 
       def read_event(event)
-        input = {:type => 'event'}
+        input = {}
 
         unless event.attributes.nil?
           attributes = {}
@@ -165,7 +165,7 @@ module EVD::Plugin
       end
 
       def initialize(channel, log)
-        @channel = channel
+        @events = channel.events
         @log = log
       end
 
@@ -175,7 +175,7 @@ module EVD::Plugin
 
       def receive_object(m)
         m.events.each do |e|
-          @channel << read_event(e)
+          @events << read_event(e)
         end
 
         send_ok

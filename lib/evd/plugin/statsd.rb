@@ -18,20 +18,20 @@ module EVD::Plugin
     class Connection < EM::Connection
       include EVD::Logging
 
-      def initialize(buffer)
-        @buffer = buffer
+      def initialize(channel)
+        @metrics = channel.metric
       end
 
       def gauge(name, value)
-        {:type => GAUGE, :key => name, :value => value}
+        {:processor => GAUGE, :key => name, :value => value}
       end
 
       def count(name, value)
-        {:type => COUNT, :key => name, :value => value}
+        {:processor => COUNT, :key => name, :value => value}
       end
 
       def timing(name, value)
-        {:type => HISTOGRAM, :key => name, :value => value}
+        {:processor => HISTOGRAM, :key => name, :value => value}
       end
 
       def parse(line)
@@ -64,9 +64,9 @@ module EVD::Plugin
       end
 
       def receive_data(data)
-        event = parse(data)
-        return if event.nil?
-        @buffer << event
+        metric = parse(data)
+        return if metric.nil?
+        @metrics << metric
       rescue => e
         log.error "Failed to receive data", e
       end
