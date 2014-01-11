@@ -91,7 +91,7 @@ module EVD::Plugin
         end
 
         if time = event.send(:time)
-          input[:time] = time
+          input[:time] = Time.at(time)
         end
 
         input

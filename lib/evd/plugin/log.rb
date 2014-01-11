@@ -1,3 +1,4 @@
+require 'evd/event'
 require 'evd/plugin'
 require 'evd/logging'
 
@@ -12,18 +13,22 @@ module EVD::Plugin
       include EVD::Logging
 
       def initialize(prefix)
-        @prefix = prefix
+        @p = if prefix
+          "#{prefix} "
+        else
+          ""
+        end
       end
 
       def start(channel)
-        channel.subscribe do |event|
-          log.info "(#{@prefix}) Output: #{event.inspect}"
+        channel.subscribe do |e|
+          log.info "#{@p}#{EVD.event_s e}"
         end
       end
     end
 
     def self.output_setup(opts={})
-      prefix = opts[:prefix] || "no prefix"
+      prefix = opts[:prefix]
       Writer.new prefix
     end
   end
