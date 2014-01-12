@@ -1,4 +1,4 @@
-require 'evd/em_ext'
+require 'em/all'
 
 module EVD::Plugin
   module Kafka
@@ -24,7 +24,7 @@ module EVD::Plugin
               return
             end
 
-            requests = EVD::EMExt::All.new
+            requests = EM::All.new
 
             ids.each do |id|
               requests << zk.get(:path => "/brokers/ids/#{id}")

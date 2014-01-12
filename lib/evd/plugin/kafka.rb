@@ -1,11 +1,11 @@
-require 'evd/plugin'
-require 'evd/logging'
-require 'evd/zookeeper'
-require 'evd/kafka'
-require 'evd/reporter'
-require 'evd/producing_client'
+require_relative '../kafka'
+require_relative '../logging'
+require_relative '../plugin'
+require_relative '../producing_client'
+require_relative '../reporter'
+require_relative '../zookeeper'
 
-require 'evd/plugin/kafka/zookeeper'
+require_relative 'kafka/zookeeper'
 
 module EVD::Plugin
   module Kafka
@@ -20,32 +20,41 @@ module EVD::Plugin
 
       MAPPING = [:host, :ttl, :key, :time, :value, :tags, :attributes]
 
-      def initialize(zookeeper_url, producer, topic, brokers,
-                     flush_period, flush_size, buffer_limit)
-        super flush_period, flush_size, buffer_limit
+      def initialize(zookeeper_url, producer, event_topic, metric_topic,
+                     brokers, flush_period, flush_size, event_limit, metric_limit)
+
+        super flush_period, flush_size, event_limit, metric_limit
 
         unless zookeeper_url.nil?
           @zookeeper = EVD::Zookeeper.new(zookeeper_url)
         end
 
-        @kafka = EVD::Kafka.new
         @producer = producer
-        @topic = topic
+        @event_topic = event_topic
+        @metric_topic = metric_topic
         @brokers = brokers
+        @producer_instance = nil
       end
 
       def id
         @producer
       end
 
-      def produce(buffer)
-        messages = buffer.map{|e| make_message e}
-        @kafka_producer.send_messages messages
+      def produce events, metrics
+        return nil unless @producer_instance
+        messages = (events.map{|e| make_event_message e} +
+                    metrics.map{|e| make_metric_message e})
+        @producer_instance.send_messages messages
       end
 
-      def setup_producer
-        return make_zk_kafka_producer if @zookeeper
-        make_kafka_producer
+      def start *args
+        if @zookeeper
+          make_zk_kafka_producer
+        else
+          @producer = make_kafka_producer
+        end
+
+        super(*args)
       end
 
       private
@@ -59,7 +68,7 @@ module EVD::Plugin
           else
             log.info "Zookeeper: Discovered brokers: #{brokers}"
             brokers = brokers.map{|b| "#{b[:host]}:#{b[:port]}"}
-            @kafka_producer = @kafka.producer brokers, @producer
+            @producer_instance = EVD::Kafka::Producer.new brokers, @producer
           end
         end
 
@@ -74,15 +83,15 @@ module EVD::Plugin
           return
         end
 
-        @kafka_producer = @kafka.producer @brokers, @producer
+        @producer_instance = EVD::Kafka::Producer.new @brokers, @producer
       end
 
-      def make_message(event)
-        ::EVD::Kafka::MessageToSend.new @topic, JSON.dump(make_hash event)
+      def make_event_message(e)
+        ::EVD::Kafka::MessageToSend.new @event_topic, JSON.dump(EVD.event_to_h e)
       end
 
-      def make_hash(event)
-        Hash[MAPPING.map{|k| if v = event.send(k); [k, v]; end}]
+      def make_metric_message(m)
+        ::EVD::Kafka::MessageToSend.new @metric_topic, JSON.dump(EVD.metric_to_h m)
       end
     end
 
@@ -91,24 +100,27 @@ module EVD::Plugin
     DEFAULT_TOPIC = "test"
     DEFAULT_BROKERS = ["localhost:9092"]
     DEFAULT_FLUSH_PERIOD = 10
-    DEFAULT_BUFFER_LIMIT = 10000
+    DEFAULT_EVENT_LIMIT = 10000
+    DEFAULT_METRIC_LIMIT = 10000
     DEFAULT_FLUSH_SIZE = 1000
 
     def self.output_setup(opts={})
       zookeeper_url = opts[:zookeeper_url] || DEFAULT_ZOOKEEPER_URL
       producer = opts[:producer] || DEFAULT_PRODUCER
-      topic = opts[:topic] || DEFAULT_TOPIC
+      event_topic = opts[:event_topic] || DEFAULT_TOPIC
+      metric_topic = opts[:metric_topic] || DEFAULT_TOPIC
       brokers = opts[:brokers] || DEFAULT_BROKERS
       flush_period = opts[:flush_period] || DEFAULT_FLUSH_PERIOD
       flush_size = opts[:flush_size] || DEFAULT_FLUSH_SIZE
-      buffer_limit = opts[:buffer_limit] || DEFAULT_BUFFER_LIMIT
+      event_limit = opts[:event_limit] || DEFAULT_EVENT_LIMIT
+      metric_limit = opts[:metric_limit] || DEFAULT_METRIC_LIMIT
 
       if flush_period <= 0
         raise "Invalid flush period: #{flush_period}"
       end
 
-      Client.new zookeeper_url, producer, topic, brokers,
-                 flush_period, flush_size, buffer_limit
+      Client.new zookeeper_url, producer, event_topic, metric_topic,
+                 brokers, flush_period, flush_size, event_limit, metric_limit
     end
   end
 end

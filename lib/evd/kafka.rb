@@ -2,9 +2,11 @@ require 'thread'
 require 'poseidon'
 
 module EVD
-  class Kafka
+  module Kafka
     MessageToSend = Poseidon::MessageToSend
 
+    # A Kafka producer proxy for Poseidon (a kafka library) that delegates all
+    # blocking work to the EventMachine thread pool.
     class Producer
       class Request
         include EM::Deferrable
@@ -24,14 +26,22 @@ module EVD
       private
 
       def make_producer
-        raise "Should not be used in the reactor thread" if EM.reactor_thread?
+        if EM.reactor_thread?
+          raise "Should not be called in the reactor thread"
+        end
 
         @mutex.synchronize do
           @producer ||= Poseidon::Producer.new(*@args)
         end
       end
 
-      def execute(&block)
+      # Execute the provided block on a dedicated thread.
+      # The sole provided argument is an instance of Poseidon::Producer.
+      def execute &block
+        unless block_given?
+          raise "Expected block"
+        end
+
         request = Request.new
 
         EM.defer do
@@ -43,16 +53,8 @@ module EVD
           end
         end
 
-        return request
+        request
       end
-    end
-
-    def initialize
-      @client_mutex = Mutex.new
-    end
-
-    def producer(*args)
-      Producer.new(*args)
     end
   end
 end

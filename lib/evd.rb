@@ -1,11 +1,10 @@
 require 'yaml'
 require 'optparse'
 
-require 'evd/core'
-require 'evd/logging'
-require 'evd/plugin_loader'
-
-require 'evd/plugin'
+require_relative 'evd/core'
+require_relative 'evd/logging'
+require_relative 'evd/plugin_loader'
+require_relative 'evd/plugin'
 
 module EVD
   class CommandLine

@@ -1,13 +1,16 @@
+require 'json'
 require 'eventmachine'
 
-require 'evd/logging'
+require_relative 'logging'
+require_relative 'event'
+require_relative 'metric'
 
 module EVD
   module Debug
     class Connection < EM::Connection
       include EVD::Logging
 
-      def initialize(clients)
+      def initialize clients
         @clients = clients
         @peer = nil
         @ip = nil
@@ -31,14 +34,15 @@ module EVD
         log.info "#{@ip}:#{@port}: disconnected"
       end
 
-      def receive_data(data); end
+      def receive_data(data)
+      end
     end
 
     class TCP
       include EVD::Logging
 
-      def initialize(clients, host, port)
-        @clients = clients
+      def initialize host, port
+        @clients = {}
         @host = host
         @port = port
         @peer = "#{@host}:#{@port}"
@@ -48,6 +52,36 @@ module EVD
         log.info "Listening on tcp://#{@peer}"
         EM.start_server(@host, @port, Connection, @clients)
       end
+
+      def handle_event name, event
+        return if @clients.empty?
+
+        begin
+          d = JSON.dump(:type => :event, :data => event_to_h(event))
+        rescue => e
+          log.error "Failed to serialize event", e
+          return
+        end
+
+        @clients.each do |peer, c|
+          c.send_data "#{d}\n"
+        end
+      end
+
+      def handle_metric name, metric
+        return if @clients.empty?
+
+        begin
+          d = JSON.dump(:type => :metric, :data => EVD.metric_to_h(metric))
+        rescue => e
+          log.error "Failed to serialize metric", e
+          return
+        end
+
+        @clients.each do |peer, c|
+          c.send_data "#{d}\n"
+        end
+      end
     end
 
     def self.setup(clients, opts={})
@@ -55,7 +89,9 @@ module EVD
       port = opts[:port] || 9999
       proto = EVD.parse_protocol(opts[:protocol] || "tcp")
 
-      return TCP.new clients, host, port if proto == EVD::TCP
+      if proto == EVD::TCP
+        return TCP.new host, port
+      end
 
       throw Exception.new("Unsupported protocol '#{proto}'")
     end

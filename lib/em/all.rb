@@ -1,6 +1,7 @@
-# EventMachine extensions.
+# EventMachine extension to create a deferrable that correctly manages multiple
+# deferred objects in parallel.
 
-module EVD::EMExt
+module EM
   class All
     include EM::Deferrable
 

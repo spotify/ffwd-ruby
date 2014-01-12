@@ -36,9 +36,11 @@ module EVD::TCP
 
       @peer = "#{host}:#{port}"
       @closing = false
-      @buffer = []
       @reconnect_timer = nil
       @reconnect_timeout = INITIAL_TIMEOUT
+
+      @event_buffer = []
+      @metric_buffer = []
 
       @open = false
       @c = nil
@@ -91,13 +93,19 @@ module EVD::TCP
       EM.add_shutdown_hook{close}
 
       if @flush_period == 0
-        channel.subscribe{|e| handle_event e}
+        channel.event_subscribe{|e| handle_event e}
+        channel.metric_subscribe{|e| handle_event e}
         return
       end
 
       @log.info "Flushing every #{@flush_period}s"
-      EM::PeriodicTimer.new(@flush_period){flush!}
-      channel.subscribe{|e| @buffer << e}
+
+      EM::PeriodicTimer.new(@flush_period){
+        flush!
+      }
+
+      channel.event_subscribe{|e| @event_buffer << e}
+      channel.metric_subscribe{|e| @metric_buffer << e}
     end
 
     def close
@@ -116,24 +124,42 @@ module EVD::TCP
       connected? and @c.get_outbound_data_size < @outbound_limit
     end
 
-    # Flush buffered events (if any).
     def flush!
-      return if @buffer.empty?
-      return increment :dropped, @buffer.size unless writable?
-      @c.send_data @handler.serialize_all(@buffer)
-      increment :sent, @buffer.size
+      if @event_buffer.empty? and @metric_buffer.empty?
+        return
+      end
+
+      unless writable?
+        increment :dropped_events, @event_buffer.size
+        increment :dropped_metrics, @metric_buffer.size
+        return
+      end
+
+      @c.send_data @handler.serialize_all(@event_buffer, @metric_buffer)
+
+      increment :sent_events, @event_buffer.size
+      increment :sent_metrics, @metric_buffer.size
     rescue => e
-      @log.error "Failed to flush events", e
+      @log.error "Failed to flush", e
     ensure
-      @buffer = []
+      @event_buffer = []
+      @metric_buffer = []
     end
 
-    def handle_event(event)
-      return increment :dropped, 1 unless writable?
-      @c.send_data @handler.serialize(event)
-      increment :sent, 1
+    def handle_event event
+      return increment :dropped_events, 1 unless writable?
+      @c.send_data @handler.serialize_event(event)
+      increment :sent_events, 1
     rescue => e
       @log.error "Failed to handle event", e
+    end
+
+    def handle_metric metric
+      return increment :dropped_metrics, 1 unless writable?
+      @c.send_data @handler.serialize_metric(metric)
+      increment :sent_metrics, 1
+    rescue => e
+      @log.error "Failed to handle metric", e
     end
   end
 

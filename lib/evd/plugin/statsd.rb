@@ -1,8 +1,9 @@
-require 'evd/protocol'
-require 'evd/plugin'
-require 'evd/logging'
-
 require 'eventmachine'
+
+require_relative '../protocol'
+require_relative '../plugin'
+require_relative '../logging'
+
 
 module EVD::Plugin
   module Statsd
@@ -19,19 +20,19 @@ module EVD::Plugin
       include EVD::Logging
 
       def initialize(channel)
-        @metrics = channel.metrics
+        @channel = channel
       end
 
       def gauge(name, value)
-        {:processor => GAUGE, :key => name, :value => value}
+        {:proc => nil, :key => name, :value => value}
       end
 
       def count(name, value)
-        {:processor => COUNT, :key => name, :value => value}
+        {:proc => COUNT, :key => name, :value => value}
       end
 
       def timing(name, value)
-        {:processor => HISTOGRAM, :key => name, :value => value}
+        {:proc => HISTOGRAM, :key => name, :value => value}
       end
 
       def parse(line)
@@ -66,7 +67,7 @@ module EVD::Plugin
       def receive_data(data)
         metric = parse(data)
         return if metric.nil?
-        @metrics << metric
+        @channel.meric metric
       rescue => e
         log.error "Failed to receive data", e
       end

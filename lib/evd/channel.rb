@@ -12,7 +12,7 @@ module EVD
         begin
           s.call item
         rescue => e
-          @log.error "#{@name}: Subscription failed", e
+          @log.error "#{@name}: Forward to subscription failed", e
         end
       end
     end

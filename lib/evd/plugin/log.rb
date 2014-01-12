@@ -1,6 +1,7 @@
-require 'evd/event'
-require 'evd/plugin'
-require 'evd/logging'
+require_relative '../event'
+require_relative '../metric'
+require_relative '../plugin'
+require_relative '../logging'
 
 module EVD::Plugin
   module Log
@@ -21,8 +22,12 @@ module EVD::Plugin
       end
 
       def start(channel)
-        channel.subscribe do |e|
-          log.info "#{@p}#{EVD.event_s e}"
+        channel.event_subscribe do |e|
+          log.info "Event: #{@p}#{EVD.event_to_h e}"
+        end
+
+        channel.metric_subscribe do |m|
+          log.info "Metric: #{@p}#{EVD.metric_to_h m}"
         end
       end
     end

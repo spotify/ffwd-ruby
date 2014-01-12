@@ -1,9 +1,9 @@
-require 'evd/protocol'
-require 'evd/plugin'
-require 'evd/logging'
-
 require 'eventmachine'
 require 'set'
+
+require_relative '../protocol'
+require_relative '../plugin'
+require_relative '../logging'
 
 module EVD::Plugin
   module JsonLine
@@ -29,7 +29,7 @@ module EVD::Plugin
       ]
 
       METRIC_FIELDS = [
-        ["processor", :processor],
+        ["proc", :proc],
         ["key", :key],
         ["value", :value],
         ["time", :time],

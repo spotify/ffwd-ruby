@@ -1,10 +1,8 @@
 require 'eventmachine'
 
-require 'evd/logging'
-require 'evd/plugin'
-require 'evd/protocol'
-
-require 'socket'
+require_relative '../logging'
+require_relative '../plugin'
+require_relative '../protocol'
 
 module EVD::Plugin
   module Syslog

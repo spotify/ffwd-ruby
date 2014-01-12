@@ -1,7 +1,7 @@
-require 'evd/protocol/udp'
-require 'evd/protocol/tcp'
-require 'evd/protocol/unix_udp'
-require 'evd/protocol/unix_tcp'
+require_relative 'protocol/udp'
+require_relative 'protocol/tcp'
+require_relative 'protocol/unix_udp'
+require_relative 'protocol/unix_tcp'
 
 module EVD
   def self.parse_protocol(original)
