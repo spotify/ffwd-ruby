@@ -1,3 +1,5 @@
+require_relative '../reporter'
+
 module EVD::UDP
   class Connect
     include EVD::Reporter

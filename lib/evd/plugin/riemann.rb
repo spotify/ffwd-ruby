@@ -124,7 +124,7 @@ module EVD::Plugin::Riemann
     protocol.connect log, opts, instance
   end
 
-  def self.listen opts={}
+  def self.bind opts={}
     opts[:host] ||= DEFAULT_HOST
     opts[:port] ||= DEFAULT_PORT
     protocol = EVD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
@@ -133,6 +133,6 @@ module EVD::Plugin::Riemann
       raise "No connection for protocol family: #{protocol.family}"
     end
 
-    protocol.listen log, opts, connection, log
+    protocol.bind log, opts, connection, log
   end
 end

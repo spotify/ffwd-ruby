@@ -48,7 +48,7 @@ module EVD::Debug
     end
 
     def start
-      log.info "Listening on tcp://#{@peer}"
+      log.info "Binding on tcp://#{@peer}"
       EM.start_server(@host, @port, Connection, @clients)
     end
 
