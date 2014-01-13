@@ -6,10 +6,10 @@ if __FILE__ == $0
 end
 
 begin
-    require 'evd'
+    require 'evc'
 rescue LoadError
     require 'rubygems'
-    require 'evd'
+    require 'evc'
 end
 
-exit EVD::main(ARGV || [])
+exit EVC::main(ARGV || [])

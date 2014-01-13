@@ -21,21 +21,29 @@ module EVD
     DEFAULT_BUFFER_LIMIT = 5000
     DEFAULT_REPORT_INTERVAL = 600
 
-    def initialize(opts={})
+    def initialize opts={}
+      @input_plugins = EVD::Plugin.load_plugins log, "Input", opts[:input], :input_setup
+      @output_plugins = EVD::Plugin.load_plugins log, "Output", opts[:output], :output_setup
+
       @report_interval = opts[:report_interval] || DEFAULT_REPORT_INTERVAL
 
-      @output = EVD::PluginChannel.new 'output'
-      @input = EVD::PluginChannel.new 'input'
-
+      @host = opts[:host] || Socket.gethostname
       @metadata_limit = opts[:metadata_limit] || 10000
       @tags = Set.new(opts[:tags] || [])
       @attributes = opts[:attributes] || {}
-
-      @debug_opts = opts[:debug]
-      @debug = nil
+      @ttl = opts[:ttl]
 
       # Configuration for a specific type.
       @processor_opts = opts[:processor_opts] || {}
+
+      unless (config = opts[:debug]).nil?
+        @debug = EVD::Debug.setup(config)
+      else
+        @debug = nil
+      end
+
+      @output = EVD::PluginChannel.new 'output'
+      @input = EVD::PluginChannel.new 'input'
 
       # Configuration for statistics module.
       unless (config = opts[:statistics]).nil?
@@ -47,9 +55,6 @@ module EVD
       # Registered extensible data types.
       @processors = {}
       @reporters = []
-
-      @host = opts[:host]
-      @ttl = opts[:ttl]
     end
 
     #
@@ -57,21 +62,18 @@ module EVD
     #
     # Starts an EventMachine and runs the given set of plugins.
     #
-    def run(plugins)
+    def run
       @processors = setup_processors
 
-      input_plugins = plugins[:input]
-      output_plugins = plugins[:output]
-
       @reporters = []
-      @reporters += setup_reporters(@processors.values)
-      @reporters += setup_reporters(output_plugins)
+      @reporters += setup_reporters @processors.values
+      @reporters += setup_reporters @output_plugins
 
       log.info "Registered #{@reporters.size} reporter(s)"
 
       EM.run do
-        input_plugins.each {|p| p.start @input}
-        output_plugins.each {|p| p.start @output}
+        @input_plugins.each {|p| p.start @input}
+        @output_plugins.each {|p| p.start @output}
 
         @processors.each do |name, processor|
           next unless processor.respond_to?(:start)
@@ -82,8 +84,7 @@ module EVD
           @statistics.start
         end
 
-        unless @debug_opts.nil?
-          @debug = EVD::Debug.setup @debug_opts
+        unless @debug.nil?
           @debug.start
         end
 
@@ -98,9 +99,7 @@ module EVD
       end
     end
 
-    #
     # Emit an event.
-    #
     def emit_event e, tags=nil, attributes=nil
       event = EVD.event e
 
@@ -119,6 +118,7 @@ module EVD
       log.error "Failed to emit event", e
     end
 
+    # Emit a metric.
     def emit_metric m, tags=nil, attributes=nil
       metric = EVD.metric m
 

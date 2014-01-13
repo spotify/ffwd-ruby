@@ -77,8 +77,10 @@ module EVD::Plugin::Riemann
     end
 
     def receive_object(m)
-      m.events.each do |e|
-        @channel.event read_event(e)
+      unless m.events.nil? or m.events.empty?
+        m.events.each do |e|
+          @channel.event read_event(e)
+        end
       end
 
       send_ok

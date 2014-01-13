@@ -2,7 +2,7 @@ require 'logger'
 
 module EVD
   def self.log
-    @log ||= Logger.new(log_config[:stream]).tap do |l|
+    @log ||= ::Logger.new(log_config[:stream]).tap do |l|
       l.level = log_config[:level]
     end
   end
@@ -79,7 +79,7 @@ module EVD
       if EVD.log_disabled?
         klass.log = FakeLogger.new
       else
-        klass.log = ClassLogger.new(klass)
+        klass.log = ClassLogger.new klass
       end
     end
   end

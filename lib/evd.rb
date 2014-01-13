@@ -7,73 +7,25 @@ require_relative 'evd/plugin_loader'
 require_relative 'evd/plugin'
 
 module EVD
-  class CommandLine
-    include EVD::Logging
-
-    def load_plugins(config, plugin_type, setup_method)
-      (config[plugin_type] || []).each_with_index do |plugin_config, index|
-        d = "#{plugin_type} plugin ##{index}"
-
-        if (type = plugin_config[:type]).nil?
-          log.error "#{d}: Missing :type attribute for '#{plugin_type}'"
-        end
-
-        if (plugin = Plugin.registry[type]).nil?
-          log.error "#{d}: Not an available plugin '#{type}'"
-          next
-        end
-
-        unless plugin.respond_to? setup_method
-          log.error "#{d}: Not an #{plugin_type} plugin '#{type}'"
-          next
-        end
-
-        yield plugin.send(setup_method, plugin_config)
-      end
+  def self.load_config(path)
+    if path.nil?
+      puts "Configuration path not specified"
+      puts ""
+      puts EVD.parser.help
+      return nil
     end
 
-    def load_config(path)
-      if path.nil?
-        log.info "Configuration path not specified"
-        puts EVD.parser.help
-        return nil
-      end
-
-      unless File.file? path
-        log.info "Configuration path does not exist: #{path}"
-        puts EVD.parser.help
-        return nil
-      end
-
-      config = YAML.load_file(path)
-
-      plugins = {:input => [], :output => []}
-
-      load_plugins(config, :output, :output_setup) do |output|
-        plugins[:output] << output
-      end
-
-      load_plugins(config, :input, :input_setup) do |input|
-        plugins[:input] << input
-      end
-
-      return plugins, config
+    unless File.file? path
+      puts "Configuration path does not exist: #{path}"
+      puts ""
+      puts EVD.parser.help
+      return nil
     end
 
-    def main(opts)
-      PluginLoader.load 'processor'
-      PluginLoader.load 'plugin'
-
-      result = load_config opts[:config]
-
-      return 1 if result.nil?
-
-      plugins, opts = result
-
-      core = EVD::Core.new(opts)
-
-      core.run(plugins)
-    end
+    return YAML.load_file path
+  rescue
+    EVD.log.error "Failed to load config: #{path}", e
+    return nil
   end
 
   def self.opts
@@ -94,17 +46,34 @@ module EVD
     end
   end
 
-  def self.parse_options(args)
+  def self.parse_options args
     parser.parse args
   end
 
-  def self.main(args)
-    parse_options(args)
+  def self.main args
+    parse_options args
 
     EVD.log_setup(
       :level => opts[:debug] ? Logger::DEBUG : Logger::INFO
     )
 
-    CommandLine.new.main(opts)
+    PluginLoader.load 'processor'
+    PluginLoader.load 'plugin'
+
+    config = load_config opts[:config]
+
+    if config.nil?
+      return 1
+    end
+
+    core = EVD::Core.new config
+
+    begin
+      core.run
+    rescue
+      return 1
+    end
+
+    return 0
   end
 end

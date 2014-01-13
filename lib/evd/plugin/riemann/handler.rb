@@ -10,10 +10,10 @@ module EVD::Plugin::Riemann::Handler
   end
 
   def serialize_all events, metrics
-    events = []
-    events += events.map{|e| make_event e} unless events.empty?
-    events += metrics.map{|m| make_metric m} unless events.empty?
-    m = make_message :events => events
+    all_events = []
+    all_events += events.map{|e| make_event e} unless events.empty?
+    all_events += metrics.map{|m| make_metric m} unless metrics.empty?
+    m = make_message :events => all_events
     encode m
   end
 

@@ -18,8 +18,8 @@
 :input:
   - :type: "json_line"
     :protocol: "tcp"
-  - :type: "riemann"
-    :protocol: "tcp"
+#  - :type: "riemann"
+#    :protocol: "tcp"
   - :type: "statsd"
     :protocol: "udp"
   - :type: "syslog"
@@ -30,9 +30,9 @@
   - :type: "riemann"
     :protocol: "tcp"
     :flush_period: 5
-  - :type: "log"
-    :prefix: "0xdeadbeef"
-  - :type: "kafka"
+#  - :type: "log"
+#    :prefix: "0xdeadbeef"
+#  - :type: "kafka"
 
 :types:
   event:
