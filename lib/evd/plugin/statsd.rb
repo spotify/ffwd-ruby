@@ -67,7 +67,7 @@ module EVD::Plugin
       def receive_data(data)
         metric = parse(data)
         return if metric.nil?
-        @channel.meric metric
+        @channel.metric metric
       rescue => e
         log.error "Failed to receive data", e
       end

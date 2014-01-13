@@ -97,7 +97,8 @@ module EVD::Processor
         if diff > 0 and valid and aged
           rate = ((value - prev_value) / diff)
           rate = rate.round(@precision) unless @precision.nil?
-          core.emit :key => "#{key}.rate", :source => key, :value => rate
+          core.emit_metric(
+            :key => "#{key}.rate", :source => key, :value => rate)
         end
       else
         if @cache.size >= @limit

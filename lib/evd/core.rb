@@ -184,7 +184,11 @@ module EVD
     def process_metric m
       m[:time] ||= Time.now
 
-      unless (p = m[:proc] and p = @processors[p]).nil?
+      unless p = m[:proc]
+        return emit_metric m
+      end
+
+      unless p = @processors[p]
         return emit_metric m
       end
 

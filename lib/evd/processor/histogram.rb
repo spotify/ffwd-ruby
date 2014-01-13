@@ -90,12 +90,15 @@ module EVD::Processor
 
     # Digest the cache.
     def digest!(core)
-      return if @cache.empty?
+      if @cache.empty?
+        return
+      end
 
       @cache.each do |key, bucket|
         calculate(bucket) do |p, info, value|
-          core.emit :key => "#{key}.#{p}", :source => key,
-                    :value => value, :description => "#{info} of #{key}"
+          core.emit_metric(
+            :key => "#{key}.#{p}", :source => key,
+            :value => value, :description => "#{info} of #{key}")
         end
       end
 

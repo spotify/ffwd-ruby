@@ -29,7 +29,8 @@ module EVD::Processor
       end
 
       @cache[key] = value
-      core.emit :key => key, :value => value, :source => key
+      core.emit_metric(
+        :key => key, :value => value, :source => key)
     end
   end
 end
