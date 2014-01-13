@@ -113,10 +113,8 @@ module EVD::Plugin::Riemann
   DEFAULT_PORT = 5555
   DEFAULT_PROTOCOL = 'tcp'
 
-  HANDLERS = {
-    :tcp => HandlerTCP,
-    :udp => HandlerUDP,
-  }
+  HANDLERS = {:tcp => HandlerTCP, :udp => HandlerUDP}
+  CONNECTIONS = {:tcp => ConnectionTCP, :udp => ConnectionUDP}
 
   def self.output_setup(opts={})
     opts[:host] ||= DEFAULT_HOST
@@ -126,7 +124,7 @@ module EVD::Plugin::Riemann
     tags = opts[:tags] || []
     protocol = EVD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
 
-    if (handler = HANDLERS[protocol.family]).nil?
+    unless handler = HANDLERS[protocol.family]
       raise "No handler for protocol family: #{protocol.family}"
     end
 
@@ -139,10 +137,8 @@ module EVD::Plugin::Riemann
     opts[:port] ||= DEFAULT_PORT
     protocol = EVD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
 
-    if protocol.family == :udp
-      connection = ConnectionUDP
-    else
-      connection = ConnectionTCP
+    unless connection = CONNECTIONS[protocol.family]
+      raise "No connection for protocol family: #{protocol.family}"
     end
 
     protocol.listen log, opts, connection, log
