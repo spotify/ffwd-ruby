@@ -15,33 +15,21 @@ module EVD::Plugin::Riemann
 
   module Utils
     def read_attributes e, source
-      return if source.nil?
+      return if source.nil? or source.empty?
 
-      attributes = {}
-
-      source.each do |a|
-        attributes[a.key] = a.value
-      end
-
-      return if attributes.empty?
+      attributes = Hash[source.each do |a|
+        [a.key, a.value]
+      end]
 
       e[:attributes] = attributes
     end
 
     def write_attributes e, source
-      unless source.nil?
-        attributes = @attributes.merge(source)
-      else
-        attributes = @attributes
-      end
+      return if source.nil? or source.empty?
 
-      unless attributes.empty?
-        attributes = attributes.map{|k, v|
-          ::Riemann::Attribute.new(:key => k.dup, :value => v.dup)
-        }
-
-        e.attributes = attributes unless attributes.empty?
-      end
+      e.attributes = source.map{|k, v|
+        ::Riemann::Attribute.new(:key => k.dup, :value => v.dup)
+      }
     end
 
     def read_tags e, source
@@ -50,9 +38,8 @@ module EVD::Plugin::Riemann
     end
 
     def write_tags e, source
-      tags = @tags
-      tags += source unless source.nil?
-      e.tags = tags.map{|v| v.dup}
+      return if source.nil? or source.empty?
+      e.tags = source.map{|v| v.dup}
     end
 
     def read_time e, source
@@ -61,7 +48,7 @@ module EVD::Plugin::Riemann
     end
 
     def write_time e, source
-      return unless source
+      return if source.nil?
       e.time = source.to_i
     end
 

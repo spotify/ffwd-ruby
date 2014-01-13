@@ -25,10 +25,8 @@ module EVD::Plugin::Riemann
     include EVD::Plugin::Riemann::Utils
     include EVD::Plugin::Riemann::Handler
 
-    def initialize tags, attributes
+    def initialize
       setup_handler
-      @tags = Set.new(tags || [])
-      @attributes = attributes || {}
     end
 
     def encode(m)
@@ -41,10 +39,8 @@ module EVD::Plugin::Riemann
     include EVD::Plugin::Riemann::Utils
     include EVD::Plugin::Riemann::Handler
 
-    def initialize tags, attributes
+    def initialize
       setup_handler
-      @tags = Set.new(tags || [])
-      @attributes = attributes || {}
     end
 
     def encode(m)
@@ -120,15 +116,13 @@ module EVD::Plugin::Riemann
     opts[:host] ||= DEFAULT_HOST
     opts[:port] ||= DEFAULT_PORT
 
-    attributes = opts[:attributes] || {}
-    tags = opts[:tags] || []
     protocol = EVD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
 
     unless handler = HANDLERS[protocol.family]
       raise "No handler for protocol family: #{protocol.family}"
     end
 
-    handler_instance = handler.new tags, attributes
+    handler_instance = handler.new
     protocol.connect log, opts, handler_instance
   end
 
