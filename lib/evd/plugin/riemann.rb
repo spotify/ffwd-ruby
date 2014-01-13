@@ -21,7 +21,6 @@ module EVD::Plugin::Riemann
   register_plugin "riemann"
 
   class HandlerTCP
-    include EVD::Logging
     include EVD::Plugin::Riemann::Utils
     include EVD::Plugin::Riemann::Handler
 
@@ -35,7 +34,6 @@ module EVD::Plugin::Riemann
   end
 
   class HandlerUDP
-    include EVD::Logging
     include EVD::Plugin::Riemann::Utils
     include EVD::Plugin::Riemann::Handler
 
@@ -49,7 +47,6 @@ module EVD::Plugin::Riemann
   end
 
   class ConnectionBase < EM::Connection
-    include EVD::Logging
     include EVD::Plugin::Riemann::Utils
     include EM::Protocols::ObjectProtocol
 
@@ -122,8 +119,9 @@ module EVD::Plugin::Riemann
       raise "No handler for protocol family: #{protocol.family}"
     end
 
-    handler_instance = handler.new
-    protocol.connect log, opts, handler_instance
+    instance = handler.new
+
+    protocol.connect log, opts, instance
   end
 
   def self.input_setup(opts={})
