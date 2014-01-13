@@ -22,8 +22,10 @@ module EVD
     DEFAULT_REPORT_INTERVAL = 600
 
     def initialize opts={}
-      @input_plugins = EVD::Plugin.load_plugins log, "Input", opts[:input], :input_setup
-      @output_plugins = EVD::Plugin.load_plugins log, "Output", opts[:output], :output_setup
+      @input_plugins = EVD::Plugin.load_plugins(
+        log, "Input", opts[:input], :input_setup)
+      @output_plugins = EVD::Plugin.load_plugins(
+        log, "Output", opts[:output], :output_setup)
 
       @report_interval = opts[:report_interval] || DEFAULT_REPORT_INTERVAL
 
@@ -51,10 +53,6 @@ module EVD
       else
         @statistics = nil
       end
-
-      # Registered extensible data types.
-      @processors = {}
-      @reporters = []
     end
 
     #
@@ -63,19 +61,24 @@ module EVD
     # Starts an EventMachine and runs the given set of plugins.
     #
     def run
-      @processors = setup_processors
+      processors = setup_processors
 
-      @reporters = []
-      @reporters += setup_reporters @processors.values
-      @reporters += setup_reporters @output_plugins
+      reporters = []
+      reporters += setup_reporters processors.values
+      reporters += setup_reporters @output_plugins
 
-      log.info "Registered #{@reporters.size} reporter(s)"
+      log.info "Registered #{reporters.size} reporter(s)"
 
       EM.run do
-        @input_plugins.each {|p| p.start @input}
-        @output_plugins.each {|p| p.start @output}
+        @input_plugins.each do |p|
+          p.start @input
+        end
 
-        @processors.each do |name, processor|
+        @output_plugins.each do |p|
+          p.start @output
+        end
+
+        processors.each do |name, processor|
           next unless processor.respond_to?(:start)
           processor.start self
         end
@@ -88,14 +91,19 @@ module EVD
           @debug.start
         end
 
-        unless @reporters.empty?
+        unless reporters.empty?
           EM::PeriodicTimer.new(@report_interval) do
-            process_reporters
+            process_reporters reporters
           end
         end
 
-        @input.metric_subscribe{|m| process_metric m}
-        @input.event_subscribe{|e| process_event e}
+        @input.metric_subscribe do |m|
+          process_metric processors, m
+        end
+
+        @input.event_subscribe do |e|
+          process_event e
+        end
       end
     end
 
@@ -167,10 +175,10 @@ module EVD
       reporters
     end
 
-    def process_reporters
+    def process_reporters reporters
       active = []
 
-      @reporters.each do |reporter|
+      reporters.each do |reporter|
         active << reporter if reporter.report?
       end
 
@@ -181,14 +189,14 @@ module EVD
       end
     end
 
-    def process_metric m
+    def process_metric processors, m
       m[:time] ||= Time.now
 
       unless p = m[:proc]
         return emit_metric m
       end
 
-      unless p = @processors[p]
+      unless p = processors[p]
         return emit_metric m
       end
 

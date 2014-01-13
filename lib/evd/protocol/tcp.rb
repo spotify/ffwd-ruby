@@ -170,7 +170,6 @@ module EVD::TCP
       @port = port
       @handler = handler
       @args = args
-
       @peer = "#{host}:#{port}"
     end
 

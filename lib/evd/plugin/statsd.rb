@@ -79,9 +79,8 @@ module EVD::Plugin
     def self.input_setup(opts={})
       opts[:host] ||= DEFAULT_HOST
       opts[:port] ||= DEFAULT_PORT
-      proto = EVD.parse_protocol(opts[:protocol] || "tcp")
-
-      proto.listen log, opts, Connection
+      protocol = EVD.parse_protocol(opts[:protocol] || "tcp")
+      protocol.listen log, opts, Connection
     end
   end
 end
