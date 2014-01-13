@@ -16,11 +16,11 @@ module EVD::Plugin::JsonLine
   DEFAULT_HOST = "localhost"
   DEFAULT_PORT = 3000
 
-  def self.input_setup(opts={})
+  def self.bind opts={}
     opts[:host] ||= DEFAULT_HOST
     opts[:port] ||= DEFAULT_PORT
     buffer_limit = opts["buffer_limit"] || 1000
     protocol = EVD.parse_protocol(opts[:protocol] || "tcp")
-    protocol.listen log, opts, Connection, buffer_limit
+    protocol.bind log, opts, Connection, buffer_limit
   end
 end

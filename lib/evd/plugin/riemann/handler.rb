@@ -23,8 +23,8 @@ module EVD::Plugin::Riemann::Handler
     encode m
   end
 
-  def serialize_metric m
-    e = make_event m
+  def serialize_metric metric
+    e = make_metric metric
     m = make_message :events => [e]
     encode m
   end

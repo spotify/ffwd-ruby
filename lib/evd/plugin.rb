@@ -40,7 +40,7 @@ module EVD
           next
         end
 
-        result << plugin.send(setup_method, plugin_config)
+        result << [plugin, plugin_config]
       end
 
       return result

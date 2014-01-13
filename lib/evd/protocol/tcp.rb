@@ -19,7 +19,7 @@ module EVD::TCP
     end
   end
 
-  class Client
+  class Connect
     attr_reader :log
 
     INITIAL_TIMEOUT = 2
@@ -94,7 +94,7 @@ module EVD::TCP
 
       if @flush_period == 0
         channel.event_subscribe{|e| handle_event e}
-        channel.metric_subscribe{|e| handle_event e}
+        channel.metric_subscribe{|e| handle_metric e}
         return
       end
 
@@ -163,8 +163,8 @@ module EVD::TCP
     end
   end
 
-  class Server
-    def initialize(log, host, port, handler, *args)
+  class Bind
+    def initialize log, host, port, handler, *args
       @log = log
       @host = host
       @port = port
@@ -173,8 +173,8 @@ module EVD::TCP
       @peer = "#{host}:#{port}"
     end
 
-    def start(channel)
-      @log.info "Listening on tcp://#{@peer}"
+    def start channel
+      @log.info "Binding to tcp://#{@peer}"
       EM.start_server @host, @port, @handler, channel, *@args
     end
   end
@@ -184,17 +184,17 @@ module EVD::TCP
   DEFAULT_FLUSH_PERIOD = 10
   DEFAULT_OUTBOUND_LIMIT = 2 ** 20
 
-  def self.connect(log, opts, handler)
+  def self.connect log, opts, handler
     raise "Missing required key :host" if (host = opts[:host]).nil?
     raise "Missing required key :port" if (port = opts[:port]).nil?
     flush_period = opts[:flush_period] || DEFAULT_FLUSH_PERIOD
     outbound_limit = opts[:outbound_limit] || DEFAULT_OUTBOUND_LIMIT
-    Client.new log, host, port, handler, flush_period, outbound_limit
+    Connect.new log, host, port, handler, flush_period, outbound_limit
   end
 
-  def self.listen(log, opts, handler, *args)
+  def self.bind log, opts, handler, *args
     raise "Missing required key :host" if (host = opts[:host]).nil?
     raise "Missing required key :port" if (port = opts[:port]).nil?
-    Server.new log, host, port, handler, *args
+    Bind.new log, host, port, handler, *args
   end
 end

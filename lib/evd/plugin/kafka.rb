@@ -104,7 +104,7 @@ module EVD::Plugin
     DEFAULT_METRIC_LIMIT = 10000
     DEFAULT_FLUSH_SIZE = 1000
 
-    def self.output_setup(opts={})
+    def self.connect opts={}
       zookeeper_url = opts[:zookeeper_url] || DEFAULT_ZOOKEEPER_URL
       producer = opts[:producer] || DEFAULT_PRODUCER
       event_topic = opts[:event_topic] || DEFAULT_TOPIC

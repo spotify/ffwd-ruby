@@ -22,10 +22,11 @@ module EVD
     DEFAULT_REPORT_INTERVAL = 600
 
     def initialize opts={}
-      @input_plugins = EVD::Plugin.load_plugins(
-        log, "Input", opts[:input], :input_setup)
-      @output_plugins = EVD::Plugin.load_plugins(
-        log, "Output", opts[:output], :output_setup)
+      @bind_plugins = EVD::Plugin.load_plugins(
+        log, "Input", opts[:bind], :bind)
+
+      @connect_plugins = EVD::Plugin.load_plugins(
+        log, "Output", opts[:connect], :connect)
 
       @report_interval = opts[:report_interval] || DEFAULT_REPORT_INTERVAL
 
@@ -63,18 +64,21 @@ module EVD
     def run
       processors = setup_processors
 
+      bind_instances = @bind_plugins.map{|p, c| p.bind c}
+      connect_instances = @connect_plugins.map{|p, c| p.connect c}
+
       reporters = []
       reporters += setup_reporters processors.values
-      reporters += setup_reporters @output_plugins
+      reporters += setup_reporters connect_instances
 
       log.info "Registered #{reporters.size} reporter(s)"
 
       EM.run do
-        @input_plugins.each do |p|
+        bind_instances.each do |p|
           p.start @input
         end
 
-        @output_plugins.each do |p|
+        connect_instances.each do |p|
           p.start @output
         end
 

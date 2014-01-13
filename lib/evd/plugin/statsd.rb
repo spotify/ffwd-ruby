@@ -76,7 +76,7 @@ module EVD::Plugin
     DEFAULT_HOST = "localhost"
     DEFAULT_PORT = 8125
 
-    def self.input_setup(opts={})
+    def self.listen(opts={})
       opts[:host] ||= DEFAULT_HOST
       opts[:port] ||= DEFAULT_PORT
       protocol = EVD.parse_protocol(opts[:protocol] || "tcp")

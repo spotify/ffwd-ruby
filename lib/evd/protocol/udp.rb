@@ -1,6 +1,8 @@
 module EVD::UDP
-  class Client
-    def initialize(log, host, port, handler)
+  class Connect
+    include EVD::Reporter
+
+    def initialize log, host, port, handler
       @log = log
       @host = host
       @port = port
@@ -11,7 +13,7 @@ module EVD::UDP
       @connection = nil
     end
 
-    def start(buffer)
+    def start channel
       @host_ip = resolve_host_ip @host
 
       if @host_ip.nil?
@@ -23,24 +25,37 @@ module EVD::UDP
 
       EM.open_datagram_socket(@bind_host, nil) do |connection|
         @connection = connection
-        collect_events buffer
       end
+
+      channel.event_subscribe{|e| handle_event e}
+      channel.metric_subscribe{|m| handle_metric m}
     end
 
     private
 
-    def handle_event(event)
+    def handle_event event
+      unless @connection
+        increment :dropped_events, 1
+        return
+      end
+
       data = @handler.serialize_event event
       @connection.send_datagram data, @host_ip, @port
+      increment :sent_events, 1
     end
 
-    def collect_events(buffer)
-      buffer.subscribe do |event|
-        handle_event event
+    def handle_metric metric
+      unless @connection
+        increment :dropped_metrics, 1
+        return
       end
+
+      data = @handler.serialize_metric metric
+      @connection.send_datagram data, @host_ip, @port
+      increment :sent_metrics, 1
     end
 
-    def resolve_host_ip(host)
+    def resolve_host_ip host
       Socket.getaddrinfo(@host, nil, nil, :DGRAM).each do |item|
         next if item[0] != "AF_INET"
         return item[3]
@@ -50,8 +65,8 @@ module EVD::UDP
     end
   end
 
-  class Server
-    def initialize(log, host, port, handler, *args)
+  class Bind
+    def initialize log, host, port, handler, *args
       @host = host
       @port = port
       @handler = handler
@@ -60,24 +75,24 @@ module EVD::UDP
       @peer = "#{@host}:#{@port}"
     end
 
-    def start(b)
-      @log.info "Listening on udp://#{@peer}"
-      EM.open_datagram_socket(@host, @port, @handler, b, *@args)
+    def start channel
+      @log.info "Binding to udp://#{@peer}"
+      EM.open_datagram_socket(@host, @port, @handler, channel, *@args)
     end
   end
 
   def self.family; :udp; end
 
-  def self.connect(log, opts, handler)
+  def self.connect log, opts, handler
     raise "Missing required key :host" if (host = opts[:host]).nil?
     raise "Missing required key :port" if (port = opts[:port]).nil?
-    Client.new log, host, port, handler
+    Connect.new log, host, port, handler
   end
 
-  def self.listen(log, opts, handler, *args)
+  def self.bind log, opts, handler, *args
     raise "Missing required key :host" if (host = opts[:host]).nil?
     raise "Missing required key :port" if (port = opts[:port]).nil?
-    Server.new log, host, port, handler, *args
+    Bind.new log, host, port, handler, *args
   end
 end
 

@@ -23,7 +23,7 @@ module EVD::Plugin
       end
     end
 
-    def self.input_setup(opts={})
+    def self.listen(opts={})
       protocol = EVD.parse_protocol(opts[:protocol] || "tcp")
       protocol.listen log, opts, Connection
     end

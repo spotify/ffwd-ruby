@@ -1,5 +1,5 @@
 module EVD::UnixTCP
-  class Listen
+  class Bind
     def initialize(log, path, handler, *args)
       @log = log
       @path = path
@@ -7,8 +7,8 @@ module EVD::UnixTCP
       @args = args
     end
 
-    def start(buffer)
-      @log.info "Listening on unix+udp://#{@path}"
+    def start buffer
+      @log.info "Binding to unix+udp://#{@path}"
 
       File.unlink @path if File.exists? @path
 
@@ -21,8 +21,8 @@ module EVD::UnixTCP
 
   def self.family; :tcp; end
 
-  def self.listen(log, opts, handler, *args)
+  def self.bind log, opts, handler, *args
     raise "Missing configuration ':path'" if (path = opts[:path]).nil?
-    Listen.new log, path, handler, *args
+    Bind.new log, path, handler, *args
   end
 end
