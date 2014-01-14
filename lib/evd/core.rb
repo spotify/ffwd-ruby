@@ -51,11 +51,10 @@ module EVD
     #
     def run
       tunnels = @tunnel_plugins.map do |p, c|
-        p.tunnel c
+        p.tunnel self, c
       end
 
       processors = load_processors @processor_opts
-
       core = CoreInterface.new tunnels, processors, @core_opts
 
       emitter = CoreEmitter.new @output, @core_opts

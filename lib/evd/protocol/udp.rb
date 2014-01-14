@@ -1,4 +1,5 @@
 require_relative '../reporter'
+require_relative '../tunnel'
 
 module EVD::UDP
   class Connect
@@ -83,7 +84,9 @@ module EVD::UDP
     end
   end
 
-  def self.family; :udp; end
+  def self.family
+    :udp
+  end
 
   def self.connect log, opts, handler
     raise "Missing required key :host" if (host = opts[:host]).nil?
@@ -95,6 +98,11 @@ module EVD::UDP
     raise "Missing required key :host" if (host = opts[:host]).nil?
     raise "Missing required key :port" if (port = opts[:port]).nil?
     Bind.new log, host, port, handler, *args
+  end
+
+  def self.tunnel log, opts, handler, *args
+    raise "Missing required key :port" if (port = opts[:port]).nil?
+    EVD::Tunnel.new log, self.family, port, handler, args
   end
 end
 

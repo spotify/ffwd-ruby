@@ -136,7 +136,7 @@ module EVD::Plugin::Riemann
     protocol.bind log, opts, connection, log
   end
 
-  def self.tunnel opts={}
+  def self.tunnel core, opts={}
     opts[:port] ||= DEFAULT_PORT
     protocol = EVD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
 

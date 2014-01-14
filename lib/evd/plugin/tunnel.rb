@@ -27,12 +27,14 @@ module EVD::Plugin::Tunnel
       @subs = {}
     end
 
-    def subscribe port, &block
-      if @subs[port]
+    def subscribe protocol, port, &block
+      id = [protocol.to_s, port]
+
+      if @subs[id]
         raise "Only one plugin at a time can tunnel port '#{port}'"
       end
 
-      @subs[port] = block
+      @subs[id] = block
     end
 
     def read_metadata data
@@ -66,7 +68,9 @@ module EVD::Plugin::Tunnel
           t.start input, @output, self
         end
 
-        response = JSON.dump({:ports => @subs.keys})
+        response = JSON.dump({:bind => @subs.keys.map do |protocol, port|
+          {:protocol => protocol, :port => port}
+        end})
 
         send_data "#{response}\n"
 
@@ -77,7 +81,7 @@ module EVD::Plugin::Tunnel
         return
       end
 
-      port, data = line.split(' ', 2)
+      protocol, port, data = line.split(' ', 3)
 
       begin
         port = port.to_i
@@ -87,7 +91,9 @@ module EVD::Plugin::Tunnel
         return
       end
 
-      if s = @subs[port]
+      id = [protocol, port]
+
+      if s = @subs[id]
         s.call data
       else
         @log.error "Nothing listening on port '#{port}'"

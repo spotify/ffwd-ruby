@@ -1,4 +1,5 @@
-require 'evd/reporter'
+require_relative '../reporter'
+require_relative '../tunnel'
 
 module EVD::TCP
   class Connection < EM::Connection
@@ -179,27 +180,9 @@ module EVD::TCP
     end
   end
 
-  class Tunnel
-    def initialize log, port, handler, args
-      @log = log
-      @port = port
-      @handler = handler
-      @args = args
-      @peer = "?:#{port}"
-    end
-
-    def start input, output, tunnel_connection
-      handler_instance = @handler.new(nil, input, output, *@args)
-
-      @log.info "Tunneling to tcp://#{@peer}"
-
-      tunnel_connection.subscribe @port do |data|
-        handler_instance.receive_data data
-      end
-    end
+  def self.family
+    :tcp
   end
-
-  def self.family; :tcp; end
 
   DEFAULT_FLUSH_PERIOD = 10
   DEFAULT_OUTBOUND_LIMIT = 2 ** 20
@@ -220,6 +203,6 @@ module EVD::TCP
 
   def self.tunnel log, opts, handler, *args
     raise "Missing required key :port" if (port = opts[:port]).nil?
-    Tunnel.new log, port, handler, args
+    EVD::Tunnel.new log, self.family, port, handler, args
   end
 end

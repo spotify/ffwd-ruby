@@ -61,9 +61,9 @@ The object has the following structure.
 
 **datastream** Is a uni-directional stream of messages going from the client to
 the agent of the following structure.
-*&lt;payload&gt;* Is the data being tunneled, endoded in *base 64*.
+*&lt;base64-payload&gt;* Is the data being tunneled, encoded in *base 64*.
 
-```<protocol> ' ' <port> ' ' <payload>```
+```<protocol> ' ' <port> ' ' <base64-payload>```
 
 ## Terminology
 
