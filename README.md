@@ -38,8 +38,7 @@ nc localhost 9000 < docs/tunnel.txt
 EVD has prototype support for tunneling traffic for multitenant system using
 the *tunnel* plugin.
 
-The tunneling protocol is described here briefly (*This should not be
-considered the final product and is subject to change*)
+*The tunneling protocol is experimental and will be subject to change*
 
 ```
 *Client* -> metadata   -> *Server*
@@ -53,11 +52,13 @@ All messages are sent as plaintext in a line-delimited manner (\n).
 data about the tenant.
 The read keys are *tags*, *attributes* and *host*.
 
-**config** Is a JSON Object that describes which protocol and port combinations
-the tunneling client should listen to.
-The object has the following structure.
+```{"tags": ["env::production", ...], "attributes": {"site": "sto"}, "host": "tenant-1"}```
 
-```{"bind": [["tcp", 5555], ...]}```.
+**config** Is a JSON Object that describes which *protocol and port* combinations
+the tunneling client should bind to and tunnel traffic from.
+The read keys are *bind* which should be an array of bind configurations.
+
+```{"bind": [{"protocol": "tcp", "port": 5555}, ...]}```.
 
 **datastream** Is a uni-directional stream of messages going from the client to
 the agent of the following structure.
