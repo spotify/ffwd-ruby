@@ -64,3 +64,7 @@ the agent of the following structure.
 *&lt;payload&gt;* Is the data being tunneled, endoded in *base 64*.
 
 ```<protocol> ' ' <port> ' ' <payload>```
+
+## Terminology
+
+**Channel** The one way to do message passing between components in EVD.
