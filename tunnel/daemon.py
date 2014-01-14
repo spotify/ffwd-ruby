@@ -2,6 +2,7 @@
 A tunneling proxy for EVD.
 """
 
+import json
 import time
 import asyncore
 import sys
@@ -23,7 +24,8 @@ def set_timeout(t, task):
 class ReconnectingDispatcher(asyncore.dispatcher):
     MAX_RECV = 8192
 
-    def __init__(self, client_impl, host, port, reconnect_timeout=10.0):
+    def __init__(self, client_impl, host='127.0.0.1', port=5000,
+                 reconnect_timeout=10.0, args=[]):
         asyncore.dispatcher.__init__(self)
         self._client_impl = client_impl
         self.peer = (host, port)
@@ -32,6 +34,7 @@ class ReconnectingDispatcher(asyncore.dispatcher):
         self._running = False
         self._reconnect = reconnect_timeout
         self._client = None
+        self._args = args
 
     def _connect(self):
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -52,7 +55,11 @@ class ReconnectingDispatcher(asyncore.dispatcher):
         self._connect()
 
     def handle_connect(self):
-        self._client = self._client_impl(self)
+        try:
+            self._client = self._client_impl(self, *self._args)
+        except:
+            log.error("failed to make client", exc_info=sys.exc_info())
+            self.handle_error()
 
     def handle_error(self):
         exc_info = sys.exc_info()
@@ -117,22 +124,70 @@ def run_tasks():
     return timeout
 
 
-class TunnelClient(object):
-    """
-    Implement the tunneling protocol.
-    """
+class LineReceiver(object):
     def __init__(self, dispatcher):
+        self._buffer = list()
         self.dispatcher = dispatcher
 
     def receive_data(self, data):
         """
         Implement to receive data.
         """
-        print data
+
+        while data:
+            i = 0
+
+            for i, c in enumerate(data):
+                if c != '\n':
+                    continue
+
+                line = "".join(self._buffer) + data[:i]
+
+                try:
+                    self.receive_line(line)
+                except:
+                    log.error("receive line failed", exc_info=sys.exc_info())
+
+                self._buffer = []
+                data = data[i + 1:]
+                break
+
+            if i == len(data):
+                self._buffer.append(data)
+                break
+
+    def receive_line(self, line):
+        pass
+
+    def send_line(self, line):
+        self.dispatcher.send_data(line + "\n")
+
+
+class TunnelClient(LineReceiver):
+    """
+    Implement the tunneling protocol.
+    """
+    def __init__(self, dispatcher, metadata):
+        LineReceiver.__init__(self, dispatcher)
+        self.metadata = metadata
+        self.send_line(json.dumps(self.metadata))
+        self.config = None
+
+    def receive_line(self, line):
+        """
+        Implement to receive data.
+        """
+
+        if self.config is None:
+            self.config = json.loads(line)
+            return
+
+        print repr(line)
 
 
 def main(args):
-    client = ReconnectingDispatcher(TunnelClient, '127.0.0.1', 5000)
+    metadata = dict(host="hello")
+    client = ReconnectingDispatcher(TunnelClient, args=[metadata])
     client.start()
 
     logging.basicConfig(level=logging.INFO)
@@ -141,6 +196,9 @@ def main(args):
         timeout = run_tasks()
 
         if not asyncore.socket_map:
+            if timeout is None:
+                raise Exception("Nothing to do, this is a bug")
+
             time.sleep(timeout)
             continue
 
