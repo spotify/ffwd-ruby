@@ -83,18 +83,18 @@ module EVD::TCP
       end
     end
 
-    def receive_data(data)
+    def receive_data data
       @handler.receive_data data
     end
 
-    def start(channel)
+    def start output
       @c = EM.connect(@host, @port, Connection, self)
 
       EM.add_shutdown_hook{close}
 
       if @flush_period == 0
-        channel.event_subscribe{|e| handle_event e}
-        channel.metric_subscribe{|e| handle_metric e}
+        output.event_subscribe{|e| handle_event e}
+        output.metric_subscribe{|e| handle_metric e}
         return
       end
 
@@ -104,8 +104,8 @@ module EVD::TCP
         flush!
       }
 
-      channel.event_subscribe{|e| @event_buffer << e}
-      channel.metric_subscribe{|e| @metric_buffer << e}
+      output.event_subscribe{|e| @event_buffer << e}
+      output.metric_subscribe{|e| @metric_buffer << e}
     end
 
     def close
@@ -164,7 +164,7 @@ module EVD::TCP
   end
 
   class Bind
-    def initialize log, host, port, handler, *args
+    def initialize log, host, port, handler, args
       @log = log
       @host = host
       @port = port
@@ -173,9 +173,29 @@ module EVD::TCP
       @peer = "#{host}:#{port}"
     end
 
-    def start channel
+    def start input, output
       @log.info "Binding to tcp://#{@peer}"
-      EM.start_server @host, @port, @handler, channel, *@args
+      EM.start_server @host, @port, @handler, input, output, *@args
+    end
+  end
+
+  class Tunnel
+    def initialize log, port, handler, args
+      @log = log
+      @port = port
+      @handler = handler
+      @args = args
+      @peer = "?:#{port}"
+    end
+
+    def start input, output, tunnel_connection
+      handler_instance = @handler.new(nil, input, output, *@args)
+
+      @log.info "Tunneling to tcp://#{@peer}"
+
+      tunnel_connection.subscribe @port do |data|
+        handler_instance.receive_data data
+      end
     end
   end
 
@@ -195,6 +215,11 @@ module EVD::TCP
   def self.bind log, opts, handler, *args
     raise "Missing required key :host" if (host = opts[:host]).nil?
     raise "Missing required key :port" if (port = opts[:port]).nil?
-    Bind.new log, host, port, handler, *args
+    Bind.new log, host, port, handler, args
+  end
+
+  def self.tunnel log, opts, handler, *args
+    raise "Missing required key :port" if (port = opts[:port]).nil?
+    Tunnel.new log, port, handler, args
   end
 end

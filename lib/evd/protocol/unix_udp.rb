@@ -7,7 +7,7 @@ module EVD::UnixUDP
       @args = args
     end
 
-    def start buffer
+    def start input, output
       @log.info "Binding to unix+tcp://#{@path}"
 
       File.unlink @path if File.exists? @path
@@ -15,7 +15,7 @@ module EVD::UnixUDP
       s = Socket.new(Socket::AF_UNIX, Socket::SOCK_DGRAM, 0)
       s.bind(Socket.pack_sockaddr_un(@path))
 
-      EM.attach(s, @handler, buffer, *@args)
+      EM.attach(s, @handler, input, output, *@args)
     end
   end
 

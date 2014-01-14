@@ -14,18 +14,18 @@ module EVD::Plugin
     class Connection < EM::Connection
       include EM::Protocols::LineText2
 
-      def initialize(buffer)
-        @buffer = buffer
+      def initialize input, output
+        @input = input
       end
 
-      def receive_line(data)
+      def receive_line data
         log.info "received: #{data}"
       end
     end
 
-    def self.listen(opts={})
+    def self.bind core, opts={}
       protocol = EVD.parse_protocol(opts[:protocol] || "tcp")
-      protocol.listen log, opts, Connection
+      protocol.bind log, opts, Connection
     end
   end
 end

@@ -56,7 +56,7 @@ module EVD::Debug
       return if @clients.empty?
 
       begin
-        d = JSON.dump(:type => :event, :data => event_to_h(event))
+        d = JSON.dump(:type => :event, :data => EVD.event_to_h(event))
       rescue => e
         log.error "Failed to serialize event", e
         return

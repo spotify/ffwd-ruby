@@ -3,8 +3,10 @@ require 'json'
 require 'eventmachine'
 
 require_relative 'channel'
+require_relative 'core_emitter'
+require_relative 'core_interface'
+require_relative 'core_processor'
 require_relative 'debug'
-require_relative 'event_emitter'
 require_relative 'logging'
 require_relative 'plugin_channel'
 require_relative 'processor'
@@ -22,6 +24,9 @@ module EVD
     DEFAULT_REPORT_INTERVAL = 600
 
     def initialize opts={}
+      @tunnel_plugins = EVD::Plugin.load_plugins(
+        log, "Tunnel", opts[:tunnel], :tunnel)
+
       @bind_plugins = EVD::Plugin.load_plugins(
         log, "Input", opts[:bind], :bind)
 
@@ -30,30 +35,16 @@ module EVD
 
       @report_interval = opts[:report_interval] || DEFAULT_REPORT_INTERVAL
 
-      @host = opts[:host] || Socket.gethostname
-      @metadata_limit = opts[:metadata_limit] || 10000
-      @tags = Set.new(opts[:tags] || [])
-      @attributes = opts[:attributes] || {}
-      @ttl = opts[:ttl]
-
-      # Configuration for a specific type.
-      @processor_opts = opts[:processor_opts] || {}
-
-      unless (config = opts[:debug]).nil?
-        @debug = EVD::Debug.setup(config)
-      else
-        @debug = nil
-      end
+      @statistics_opts = opts[:statistics]
+      @debug_opts = opts[:debug]
+      @core_opts = opts[:core] || {}
 
       @output = EVD::PluginChannel.new 'output'
       @input = EVD::PluginChannel.new 'input'
 
-      # Configuration for statistics module.
-      unless (config = opts[:statistics]).nil?
-        @statistics = EVD::Statistics.setup(self, [@output, @input], config)
-      else
-        @statistics = nil
-      end
+      @tunnels = @tunnel_plugins.map{|p, c| p.tunnel c}
+
+      @processors = load_processors(opts[:processor_opts] || {})
     end
 
     #
@@ -62,90 +53,73 @@ module EVD
     # Starts an EventMachine and runs the given set of plugins.
     #
     def run
-      processors = setup_processors
+      core = CoreInterface.new @tunnels, @processors
 
-      bind_instances = @bind_plugins.map{|p, c| p.bind c}
-      connect_instances = @connect_plugins.map{|p, c| p.connect c}
+      bind_instances = @bind_plugins.map{|p, c| p.bind core, c}
+      connect_instances = @connect_plugins.map{|p, c| p.connect core, c}
 
-      reporters = []
-      reporters += setup_reporters processors.values
-      reporters += setup_reporters connect_instances
+      emitter = CoreEmitter.new @output, @core_opts
 
-      log.info "Registered #{reporters.size} reporter(s)"
+      # Configuration for statistics module.
+      statistics = nil
+
+      if config = @statistics_opts
+        statistics = EVD::Statistics.setup(emitter, [@output, @input], config)
+      end
+
+      debug = nil
+
+      if config = @debug_opts
+        debug = EVD::Debug.setup(config)
+      end
 
       EM.run do
+        processor = CoreProcessor.new emitter, @processors
+
+        reporters = []
+        reporters += EVD.setup_reporters connect_instances
+        reporters += processor.reporters
+
+        log.info "Registered #{reporters.size} reporter(s)"
+
         bind_instances.each do |p|
-          p.start @input
+          p.start @input, @output
         end
 
         connect_instances.each do |p|
           p.start @output
         end
 
-        processors.each do |name, processor|
-          next unless processor.respond_to?(:start)
-          processor.start self
+        unless statistics.nil?
+          statistics.start
         end
 
-        unless @statistics.nil?
-          @statistics.start
-        end
+        unless debug.nil?
+          debug.start
 
-        unless @debug.nil?
-          @debug.start
+          @output.metric_subscribe do |metric|
+            debug.handle_metric "emit_metric", metric
+          end
+
+          @output.event_subscribe do |event|
+            debug.handle_event "emit_event", event
+          end
         end
 
         unless reporters.empty?
           EM::PeriodicTimer.new(@report_interval) do
-            process_reporters reporters
+            report! reporters
           end
         end
 
         @input.metric_subscribe do |m|
-          process_metric processors, m
+          processor.process_metric m
         end
 
         @input.event_subscribe do |e|
-          process_event e
+          processor.process_event e
         end
       end
-    end
-
-    # Emit an event.
-    def emit_event e, tags=nil, attributes=nil
-      event = EVD.event e
-
-      event.time ||= Time.now
-      event.host ||= @host if @host
-      event.ttl ||= @ttl if @ttl
-      event.tags = EVD.merge_sets @tags, tags
-      event.attributes = EVD.merge_hashes @attributes, attributes
-
-      unless @debug.nil?
-        @debug.handle_event "emit_event", event
-      end
-
-      @output.event event
-    rescue => e
-      log.error "Failed to emit event", e
-    end
-
-    # Emit a metric.
-    def emit_metric m, tags=nil, attributes=nil
-      metric = EVD.metric m
-
-      metric.time ||= Time.now
-      metric.host ||= @host if @host
-      metric.tags = EVD.merge_sets @tags, tags
-      metric.attributes = EVD.merge_hashes @attributes, attributes
-
-      unless @debug.nil?
-        @debug.handle_metric "emit_metric", metric
-      end
-
-      @output.metric metric
-    rescue => e
-      log.error "Failed to emit metric", e
     end
 
     private
@@ -153,11 +127,12 @@ module EVD
     #
     # setup hash of datatype functions.
     #
-    def setup_processors
+    def load_processors opts
       processors = {}
 
       Processor.registry.each do |name, klass|
-        processors[name] = klass.new(@processor_opts[name] || {})
+        processor_opts = opts[name] || {}
+        processors[name] = lambda{klass.new(processor_opts)}
       end
 
       if processors.empty?
@@ -168,18 +143,7 @@ module EVD
       return processors
     end
 
-    def setup_reporters instances
-      reporters = []
-
-      instances.each do |i|
-        next unless i.respond_to? :report and i.respond_to? :report?
-        reporters << i
-      end
-
-      reporters
-    end
-
-    def process_reporters reporters
+    def report! reporters
       active = []
 
       reporters.each do |reporter|
@@ -191,31 +155,6 @@ module EVD
       active.each_with_index do |reporter, i|
         reporter.report "report ##{i}"
       end
-    end
-
-    def process_metric processors, m
-      m[:time] ||= Time.now
-
-      unless p = m[:proc]
-        return emit_metric m
-      end
-
-      unless p = processors[p]
-        return emit_metric m
-      end
-
-      core = if m[:tags] or m[:attributes]
-        EventEmitter.new self, m[:tags], m[:attributes]
-      else
-        self
-      end
-
-      p.process core, m
-    end
-
-    def process_event e
-      e[:time] ||= Time.now
-      emit_event e
     end
   end
 end

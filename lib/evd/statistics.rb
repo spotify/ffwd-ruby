@@ -3,8 +3,8 @@ module EVD
     INTERNAL_TAGS = Set.new(['evd'])
 
     class Collector
-      def initialize(core, channels, period, precision)
-        @core = core
+      def initialize(emitter, channels, period, precision)
+        @emitter = emitter
         @channels = channels
         @period = period
         @precision = precision
@@ -30,7 +30,7 @@ module EVD
             rate = v.to_f / diff
             source = "#{channel.kind}.#{k.to_s}"
             key = "#{source}.rate"
-            @core.emit_metric(
+            @emitter.emit_metric(
               {:key => key, :source => source, :value => rate},
               INTERNAL_TAGS
             )
@@ -39,10 +39,10 @@ module EVD
       end
     end
 
-    def self.setup(core, channels, opts)
+    def self.setup emitter, channels, opts
       period = opts[:period] || 1
       precision = opts[:precision] || 3
-      Collector.new core, channels, period, precision
+      Collector.new emitter, channels, period, precision
     end
   end
 end

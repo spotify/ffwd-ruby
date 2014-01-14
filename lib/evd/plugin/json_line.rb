@@ -16,7 +16,7 @@ module EVD::Plugin::JsonLine
   DEFAULT_HOST = "localhost"
   DEFAULT_PORT = 3000
 
-  def self.bind opts={}
+  def self.bind core, opts={}
     opts[:host] ||= DEFAULT_HOST
     opts[:port] ||= DEFAULT_PORT
     buffer_limit = opts["buffer_limit"] || 1000

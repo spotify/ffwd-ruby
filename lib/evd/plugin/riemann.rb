@@ -60,8 +60,8 @@ module EVD::Plugin::Riemann
       end
     end
 
-    def initialize(channel, log)
-      @channel = channel
+    def initialize input, output, log
+      @input = input
       @log = log
     end
 
@@ -72,7 +72,7 @@ module EVD::Plugin::Riemann
     def receive_object(m)
       unless m.events.nil? or m.events.empty?
         m.events.each do |e|
-          @channel.event read_event(e)
+          @input.event read_event(e)
         end
       end
 
@@ -109,7 +109,7 @@ module EVD::Plugin::Riemann
   HANDLERS = {:tcp => HandlerTCP, :udp => HandlerUDP}
   CONNECTIONS = {:tcp => ConnectionTCP, :udp => ConnectionUDP}
 
-  def self.connect opts={}
+  def self.connect core, opts={}
     opts[:host] ||= DEFAULT_HOST
     opts[:port] ||= DEFAULT_PORT
 
@@ -124,7 +124,7 @@ module EVD::Plugin::Riemann
     protocol.connect log, opts, instance
   end
 
-  def self.bind opts={}
+  def self.bind core, opts={}
     opts[:host] ||= DEFAULT_HOST
     opts[:port] ||= DEFAULT_PORT
     protocol = EVD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
@@ -134,5 +134,16 @@ module EVD::Plugin::Riemann
     end
 
     protocol.bind log, opts, connection, log
+  end
+
+  def self.tunnel opts={}
+    opts[:port] ||= DEFAULT_PORT
+    protocol = EVD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
+
+    unless connection = CONNECTIONS[protocol.family]
+      raise "No connection for protocol family: #{protocol.family}"
+    end
+
+    protocol.tunnel log, opts, connection, log
   end
 end

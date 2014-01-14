@@ -19,8 +19,8 @@ module EVD::Plugin
     class Connection < EM::Connection
       include EVD::Logging
 
-      def initialize(channel)
-        @channel = channel
+      def initialize input, output
+        @input = input
       end
 
       def gauge(name, value)
@@ -37,7 +37,9 @@ module EVD::Plugin
 
       def parse(line)
         name, value = line.split ':', 2
+        raise "invalid frame" if value.nil?
         value, type = value.split '|', 2
+        raise "invalid frame" if type.nil?
         type, sample_rate = type.split '|@', 2
 
         return nil if type.nil? or type.empty?
@@ -67,7 +69,7 @@ module EVD::Plugin
       def receive_data(data)
         metric = parse(data)
         return if metric.nil?
-        @channel.metric metric
+        @input.metric metric
       rescue => e
         log.error "Failed to receive data", e
       end
@@ -76,11 +78,17 @@ module EVD::Plugin
     DEFAULT_HOST = "localhost"
     DEFAULT_PORT = 8125
 
-    def self.bind(opts={})
+    def self.bind core, opts={}
       opts[:host] ||= DEFAULT_HOST
       opts[:port] ||= DEFAULT_PORT
       protocol = EVD.parse_protocol(opts[:protocol] || "tcp")
       protocol.bind log, opts, Connection
+    end
+
+    def self.tunnel core, opts={}
+      opts[:port] ||= DEFAULT_PORT
+      protocol = EVD.parse_protocol(opts[:protocol] || "tcp")
+      protocol.tunnel log, opts, Connection
     end
   end
 end

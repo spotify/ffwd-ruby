@@ -15,7 +15,7 @@ module EVD::UDP
       @connection = nil
     end
 
-    def start channel
+    def start output
       @host_ip = resolve_host_ip @host
 
       if @host_ip.nil?
@@ -29,8 +29,8 @@ module EVD::UDP
         @connection = connection
       end
 
-      channel.event_subscribe{|e| handle_event e}
-      channel.metric_subscribe{|m| handle_metric m}
+      output.event_subscribe{|e| handle_event e}
+      output.metric_subscribe{|m| handle_metric m}
     end
 
     private
@@ -77,9 +77,9 @@ module EVD::UDP
       @peer = "#{@host}:#{@port}"
     end
 
-    def start channel
+    def start input, output
       @log.info "Binding to udp://#{@peer}"
-      EM.open_datagram_socket(@host, @port, @handler, channel, *@args)
+      EM.open_datagram_socket(@host, @port, @handler, input, output, *@args)
     end
   end
 

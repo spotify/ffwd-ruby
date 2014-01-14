@@ -45,7 +45,7 @@ module EVD::Processor
     # :percentiles - Configuration hash of percentile metrics.
     # Structure:
     #   {:p10 => {:info => "Some description", :percentage => 0.1}, ...}
-    def initialize(opts={})
+    def initialize opts={}
       @window = opts[:window] || 10
       @cache_limit = opts[:cache_limit] || 1000
       @bucket_limit = opts[:bucket_limit] || 10000
@@ -80,7 +80,7 @@ module EVD::Processor
     end
 
     # Setup all EventMachine hooks.
-    def start(core)
+    def start core
       log.info "Digesting on a window of #{@window}s"
 
       EM::PeriodicTimer.new(@window) do
@@ -89,7 +89,7 @@ module EVD::Processor
     end
 
     # Digest the cache.
-    def digest!(core)
+    def digest! core
       if @cache.empty?
         return
       end
@@ -105,7 +105,7 @@ module EVD::Processor
       @cache = {}
     end
 
-    def calculate(bucket)
+    def calculate bucket
       total = bucket.size
 
       map = {}
@@ -161,7 +161,7 @@ module EVD::Processor
       end
     end
 
-    def process(core, m)
+    def process core, m
       key = m[:key]
       value = m[:value] || @missing
 

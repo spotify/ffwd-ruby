@@ -26,8 +26,8 @@ module EVD::Plugin::JsonLine
       ["attributes", :attributes]
     ]
 
-    def initialize channel, buffer_limit
-      @channel = channel
+    def initialize input, output, buffer_limit
+      @input = input
       @buffer_limit = buffer_limit
     end
 
@@ -40,12 +40,12 @@ module EVD::Plugin::JsonLine
       end
 
       if type == "metric"
-        @channel.metric read_metric(data)
+        @input.metric read_metric(data)
         return
       end
 
       if type == "event"
-        @channel.event read_event(data)
+        @input.event read_event(data)
         return
       end
 

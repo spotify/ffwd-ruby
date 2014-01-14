@@ -21,7 +21,7 @@ module EVD::Plugin
         end
       end
 
-      def start(channel)
+      def start channel
         channel.event_subscribe do |e|
           log.info "Event: #{@p}#{EVD.event_to_h e}"
         end
@@ -32,7 +32,7 @@ module EVD::Plugin
       end
     end
 
-    def self.connect opts={}
+    def self.connect core, opts={}
       prefix = opts[:prefix]
       Writer.new prefix
     end

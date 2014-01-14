@@ -67,13 +67,7 @@ module EVD
     end
 
     core = EVD::Core.new config
-
-    begin
-      core.run
-    rescue
-      return 1
-    end
-
+    core.run
     return 0
   end
 end
