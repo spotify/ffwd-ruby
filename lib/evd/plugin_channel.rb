@@ -1,6 +1,11 @@
 require_relative 'logging'
 
 module EVD
+  # A set of channels, one for metrics and one for events.
+  # This is simply a convenience class to group the channel that are available
+  # to a plugin in one direction (usually either input or output).
+  #
+  # 'kind' is available to designate the type of the channel.
   class PluginChannel
     include EVD::Logging
 

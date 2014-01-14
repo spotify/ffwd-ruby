@@ -1,4 +1,5 @@
 module EVD
+  # Some crazy code to load modules from a specific directory structure.
   module PluginLoader
     MODULE_NAME = 'evd'
 

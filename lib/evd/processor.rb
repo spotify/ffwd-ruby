@@ -1,6 +1,28 @@
 module EVD
+  # Module to include for processors.
+  #
+  # Usage:
+  #
+  # class MyProcessor
+  #   include EVD::Processor
+  #
+  #   register_type "my_processor"
+  #
+  #   def initialize opts
+  #     .. read options ..
+  #   end
+  #
+  #   def start emitter
+  #     ... setup EventMachine tasks ...
+  #   end
+  #
+  #   def process emitter, m
+  #     ... process a single metric ...
+  #     emitter.emit_metric ...
+  #   end
+  # end
   module Processor
-    def process(msg)
+    def process m
       raise Exception.new("process: Not Implemented")
     end
 

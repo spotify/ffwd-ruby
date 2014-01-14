@@ -23,7 +23,7 @@ module EVD::Processor
     # :ttl - Allowed age of items in cache in seconds.
     # If this is nil, items will never expire, so old elements will not be
     # expunged until data type is restarted.
-    def initialize(opts={})
+    def initialize opts={}
       @precision = opts[:precision] || 3
       @limit = opts[:cache_limit] || 10000
       @min_age = opts[:min_age] || 0.5
@@ -39,7 +39,7 @@ module EVD::Processor
       @expired = 0
     end
 
-    def start(core)
+    def start emitter
       unless @ttl.nil?
         EM::PeriodicTimer.new(@ttl) do
           expire!
@@ -80,7 +80,7 @@ module EVD::Processor
       end
     end
 
-    def process(core, msg)
+    def process emitter, msg
       key = msg[:key]
       time = msg[:time]
       value = msg[:value] || 0
@@ -97,7 +97,7 @@ module EVD::Processor
         if diff > 0 and valid and aged
           rate = ((value - prev_value) / diff)
           rate = rate.round(@precision) unless @precision.nil?
-          core.emit_metric(
+          emitter.emit_metric(
             :key => "#{key}.rate", :source => key, :value => rate)
         end
       else

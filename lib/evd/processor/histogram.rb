@@ -80,23 +80,23 @@ module EVD::Processor
     end
 
     # Setup all EventMachine hooks.
-    def start core
+    def start emitter
       log.info "Digesting on a window of #{@window}s"
 
       EM::PeriodicTimer.new(@window) do
-        digest! core
+        digest! emitter
       end
     end
 
     # Digest the cache.
-    def digest! core
+    def digest! emitter
       if @cache.empty?
         return
       end
 
       @cache.each do |key, bucket|
         calculate(bucket) do |p, info, value|
-          core.emit_metric(
+          emitter.emit_metric(
             :key => "#{key}.#{p}", :source => key,
             :value => value, :description => "#{info} of #{key}")
         end
@@ -161,7 +161,7 @@ module EVD::Processor
       end
     end
 
-    def process core, m
+    def process emitter, m
       key = m[:key]
       value = m[:value] || @missing
 
