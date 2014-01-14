@@ -14,7 +14,7 @@ The simplest possible use is to install all dependencies and run it using the
 supplied example configuration.
 
 ```
-gem install
+bundle install
 bin/evd -c docs/example.yaml
 ```
 
