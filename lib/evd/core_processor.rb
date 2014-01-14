@@ -15,13 +15,25 @@ module EVD
         [k, p.call]
       end]
 
-      processors.each do |k, p|
+      return processors
+    end
+
+    def start input
+      @processors.each do |k, p|
         next unless p.respond_to?(:start)
         p.start @emitter
       end
 
-      return processors
+      input.metric_subscribe do |m|
+        process_metric m
+      end
+
+      input.event_subscribe do |e|
+        process_event e
+      end
     end
+
+    private
 
     def process_metric m
       m[:time] ||= Time.now

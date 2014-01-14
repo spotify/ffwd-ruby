@@ -3,9 +3,8 @@ require 'set'
 module EVD
   # Merge two sets
   def self.merge_sets(a, b)
-    return a if not b
-    return b if not a
-    return a + b
+    return a + b if a and b
+    a || b || Set.new
   end
 
   # Merge two hashes.

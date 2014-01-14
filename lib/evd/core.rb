@@ -38,13 +38,10 @@ module EVD
       @statistics_opts = opts[:statistics]
       @debug_opts = opts[:debug]
       @core_opts = opts[:core] || {}
+      @processor_opts = opts[:processor_opts] || {}
 
       @output = EVD::PluginChannel.new 'output'
       @input = EVD::PluginChannel.new 'input'
-
-      @tunnels = @tunnel_plugins.map{|p, c| p.tunnel c}
-
-      @processors = load_processors(opts[:processor_opts] || {})
     end
 
     #
@@ -53,12 +50,24 @@ module EVD
     # Starts an EventMachine and runs the given set of plugins.
     #
     def run
-      core = CoreInterface.new @tunnels, @processors
+      tunnels = @tunnel_plugins.map do |p, c|
+        p.tunnel c
+      end
 
-      bind_instances = @bind_plugins.map{|p, c| p.bind core, c}
-      connect_instances = @connect_plugins.map{|p, c| p.connect core, c}
+      processors = load_processors @processor_opts
+
+      core = CoreInterface.new tunnels, processors, @core_opts
 
       emitter = CoreEmitter.new @output, @core_opts
+      processor = CoreProcessor.new emitter, processors
+
+      bind_instances = @bind_plugins.map do |p, c|
+        p.bind core, c
+      end
+
+      connect_instances = @connect_plugins.map do |p, c|
+        p.connect core, c
+      end
 
       # Configuration for statistics module.
       statistics = nil
@@ -74,7 +83,7 @@ module EVD
       end
 
       EM.run do
-        processor = CoreProcessor.new emitter, @processors
+        processor.start @input
 
         reporters = []
         reporters += EVD.setup_reporters connect_instances
@@ -110,14 +119,6 @@ module EVD
           EM::PeriodicTimer.new(@report_interval) do
             report! reporters
           end
-        end
-
-        @input.metric_subscribe do |m|
-          processor.process_metric m
-        end
-
-        @input.event_subscribe do |e|
-          processor.process_event e
         end
       end
     end

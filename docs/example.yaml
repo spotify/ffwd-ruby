@@ -1,13 +1,14 @@
 :debug: {}
 
-:tags:
-  - "evd"
+:core:
+  :host: "evdhost"
+  :tags:
+    - "evd"
+  :attributes:
+    foo: bar
 
-:attributes:
-  foo: bar
-
-:statistics: null
-  :period: 5
+:statistics:
+  :period: 120
 
 :report_interval: 10
 

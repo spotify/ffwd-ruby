@@ -39,12 +39,11 @@ module EVD::Plugin::Tunnel
       d = {}
 
       if tags = data["tags"]
-        d[:tags] = tags.to_set
+        tags = Set.new(tags)
       end
 
-      if attributes = data["attributes"]
-        d[:attributes] = attributes
-      end
+      d[:tags] = EVD.merge_sets @core.tags, tags
+      d[:attributes] = EVD.merge_sets @core.attributes, data["attributes"]
 
       if host = data["host"]
         d[:host] = host
@@ -74,15 +73,7 @@ module EVD::Plugin::Tunnel
         # setup a small core
         emitter = EVD::CoreEmitter.new @output, @metadata
         processor = EVD::CoreProcessor.new emitter, @core.processors
-
-        input.event_subscribe do |e|
-          processor.process_event e
-        end
-
-        input.metric_subscribe do |m|
-          processor.process_metric m
-        end
-
+        processor.start input
         return
       end
 
