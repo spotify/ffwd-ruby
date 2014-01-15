@@ -38,10 +38,14 @@
 
 :tunnel:
   - :type: "riemann"
-    :protocol: "tcp"
+    :protocol: "udp"
   - :type: "statsd"
     :protocol: "udp"
 
 :types:
   event:
     :ttl: 3600
+
+:blacklist:
+  :plugins:
+    - 'kafka'

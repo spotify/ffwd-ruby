@@ -57,10 +57,12 @@ module EVD
       :level => opts[:debug] ? Logger::DEBUG : Logger::INFO
     )
 
-    PluginLoader.load 'processor'
-    PluginLoader.load 'plugin'
-
     config = load_config opts[:config]
+
+    blacklist = config[:blacklist] || {}
+
+    PluginLoader.load 'processor', blacklist[:processors] || []
+    PluginLoader.load 'plugin', blacklist[:plugins] || []
 
     if config.nil?
       return 1
