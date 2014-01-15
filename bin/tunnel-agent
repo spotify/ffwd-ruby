@@ -219,13 +219,13 @@ class _TunnelClient(_BufferedWriter, _LineProtocol, _DispatcherBase):
             port = b['port']
 
             try:
-                self.servers.append(self._bind_one(protocol, port))
+                self._servers.append(self._bind_one(protocol, port))
             except:
                 log.error("failed to bind: %s", repr(b),
                           exc_info=sys.exc_info())
                 continue
 
-        if len(self.servers) != len(bind):
+        if len(self._servers) != len(bind):
             log.error("unable to bind everything: %s", repr(bind))
             self._close()
 
