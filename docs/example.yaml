@@ -25,6 +25,8 @@
   - :type: "syslog"
     :protocol: "unix+udp"
     :path: "/tmp/evd.sock"
+  - :type: "carbon"
+    :protocol: "tcp"
   - :type: "tunnel"
     :protocol: "tcp"
 

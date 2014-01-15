@@ -27,9 +27,9 @@ module EVD::Plugin
         return nil if path.empty? or value.empty? or timestamp.empty?
 
         value = value.to_f unless value.nil?
-		time = Time.at(timestamp.to_i)
-		
-		return {:key => path, :value => value, :time => time}
+        time = Time.at(timestamp.to_i)
+
+        return {:key => path, :value => value, :time => time}
       end
 
       def receive_line(ln)
@@ -43,17 +43,18 @@ module EVD::Plugin
 
     DEFAULT_HOST = "localhost"
     DEFAULT_PORT = 2003
+    DEFAULT_PROTOCOL = "tcp"
 
     def self.bind core, opts={}
       opts[:host] ||= DEFAULT_HOST
       opts[:port] ||= DEFAULT_PORT
-      protocol = EVD.parse_protocol(opts[:protocol] || "tcp")
+      protocol = EVD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
       protocol.bind log, opts, Connection
     end
 
     def self.tunnel core, opts={}
       opts[:port] ||= DEFAULT_PORT
-      protocol = EVD.parse_protocol(opts[:protocol] || "tcp")
+      protocol = EVD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
       protocol.tunnel log, opts, Connection
     end
   end
