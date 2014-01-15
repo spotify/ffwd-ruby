@@ -3,7 +3,7 @@ require 'eventmachine'
 require_relative '../protocol'
 require_relative '../plugin'
 require_relative '../logging'
-
+require_relative '../connection'
 
 module EVD::Plugin
   module Statsd
@@ -16,7 +16,7 @@ module EVD::Plugin
     GAUGE = "gauge"
     HISTOGRAM = "histogram"
 
-    class Connection < EM::Connection
+    class Connection < EVD::Connection
       include EVD::Logging
 
       def initialize input, output

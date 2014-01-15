@@ -3,7 +3,7 @@ require 'eventmachine'
 require_relative '../protocol'
 require_relative '../plugin'
 require_relative '../logging'
-
+require_relative '../connection'
 
 module EVD::Plugin
   module Carbon
@@ -12,7 +12,7 @@ module EVD::Plugin
 
     register_plugin "carbon"
 
-    class Connection < EM::Connection
+    class Connection < EVD::Connection
       include EVD::Logging
       include EM::Protocols::LineText2
 
