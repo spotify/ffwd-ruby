@@ -48,7 +48,6 @@ module EVD::Plugin::Riemann
 
   class ConnectionBase < EM::Connection
     include EVD::Plugin::Riemann::Utils
-    include EM::Protocols::ObjectProtocol
 
     module RiemannSerializer
       def self.dump(m)
@@ -89,6 +88,8 @@ module EVD::Plugin::Riemann
   end
 
   class ConnectionTCP < ConnectionBase
+    include EM::Protocols::ObjectProtocol
+
     def send_ok
       send_object(::Riemann::Message.new(
         :ok => true))
@@ -100,7 +101,11 @@ module EVD::Plugin::Riemann
     end
   end
 
-  class ConnectionUDP < ConnectionBase; end
+  class ConnectionUDP < ConnectionBase
+    def receive_data(data)
+      receive_object serializer.load(data)
+    end
+  end
 
   DEFAULT_HOST = "localhost"
   DEFAULT_PORT = 5555
