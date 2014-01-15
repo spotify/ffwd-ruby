@@ -12,11 +12,11 @@ describe EVD::Processor::CountProcessor do
 
   it "should realize that 10 + 10 = 20" do
     core = double
-    core.should_receive(:emit).with m1.merge(
+    core.should_receive(:emit_metric).with m1.merge(
       :source => m1[:key])
     count.process core, m1
 
-    core.should_receive(:emit).with m1.merge(
+    core.should_receive(:emit_metric).with m1.merge(
       :value => m1[:value] * 2, :source => m1[:key])
     count.process core, m1
   end

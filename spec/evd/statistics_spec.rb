@@ -3,29 +3,31 @@ require 'evd/statistics'
 describe EVD::Statistics::Collector do
   EVD.log_disable
 
-  let(:out) { {:key => EVD::Statistics::OUT_RATE,
-               :source => EVD::Statistics::OUT,
-               :tags => EVD::Statistics::INTERNAL_TAGS} }
+  let(:emitter) {double}
+  let(:c1) {double}
+  let(:c2) {double}
 
-  let(:inp) { {:key => EVD::Statistics::IN_RATE,
-               :source => EVD::Statistics::IN,
-               :tags => EVD::Statistics::INTERNAL_TAGS} }
-
-  let(:core) { double }
   let(:period) { 10 }
   let(:precision) { 3 }
 
   let(:s) do
-    EVD::Statistics::Collector.new core, period, precision
+    EVD::Statistics::Collector.new emitter, [c1, c2], period, precision
   end
 
-  it "should count input and output" do
-    s.input_inc
-    s.output_inc
+  it "should collect and emit statistics from all channels provided" do
+    c1.should_receive(:stats!) { {:foo => 20} }
+    c2.should_receive(:stats!) { {:bar => 30} }
+    c1.should_receive(:kind) {:kind1}
+    c2.should_receive(:kind) {:kind2}
 
-    core.should_receive(:emit).with inp.merge(:value => 1)
-    core.should_receive(:emit).with out.merge(:value => 1)
+    emitter.should_receive(:emit_metric).with({:key=>"kind1.foo.rate", :source=>"kind1.foo", :value=>2.0},
+                                              EVD::Statistics::INTERNAL_TAGS)
+    emitter.should_receive(:emit_metric).with({:key=>"kind2.bar.rate", :source=>"kind2.bar", :value=>3.0},
+                                              EVD::Statistics::INTERNAL_TAGS)
 
-    s.generate! 0, 1
+    last = 0
+    now = 10
+
+    s.generate! last, now
   end
 end
