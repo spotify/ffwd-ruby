@@ -83,7 +83,13 @@ module EVD::Processor
     def start emitter
       log.info "Digesting on a window of #{@window}s"
 
-      EM::PeriodicTimer.new(@window) do
+      timer = EM::PeriodicTimer.new(@window) do
+        digest! emitter
+      end
+
+      stopping do
+        timer.cancel
+        log.info "Shutting down digest window"
         digest! emitter
       end
     end

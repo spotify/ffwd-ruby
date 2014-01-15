@@ -1,4 +1,5 @@
 module EVD
+
   # Module to include for processors.
   #
   # Usage:
@@ -24,6 +25,24 @@ module EVD
   module Processor
     def process m
       raise Exception.new("process: Not Implemented")
+    end
+
+    def stopping_callbacks
+      @stopping_callbacks ||= []
+    end
+
+    def stopping &block
+      stopping_callbacks << block
+    end
+
+    def stop
+      stopping_callbacks.each do |stop|
+        begin
+          stop.call
+        rescue
+          log.error "Failed to invoke stop callback", e
+        end
+      end
     end
 
     def name

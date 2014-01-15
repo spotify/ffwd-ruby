@@ -33,6 +33,12 @@ module EVD
       end
     end
 
+    def stop
+      @processors.each do |k, p|
+        p.stop
+      end
+    end
+
     private
 
     def process_metric m

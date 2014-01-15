@@ -8,6 +8,7 @@ require_relative '../logging'
 require_relative '../plugin'
 require_relative '../plugin_channel'
 require_relative '../protocol'
+require_relative '../connection'
 
 module EVD::Plugin::Tunnel
   include EVD::Plugin
@@ -15,7 +16,7 @@ module EVD::Plugin::Tunnel
 
   register_plugin "tunnel"
 
-  class ConnectionTCP < EM::Connection
+  class ConnectionTCP < EVD::Connection
     include EVD::Logging
     include EM::Protocols::LineText2
 
@@ -25,6 +26,13 @@ module EVD::Plugin::Tunnel
       @log = log
       @core = core
       @subs = {}
+      @processor = nil
+    end
+
+    def unbind
+      log.info "Shutting down tunnel connection"
+      @processor.stop if @processor
+      @processor = nil
     end
 
     def subscribe protocol, port, &block
@@ -82,8 +90,8 @@ module EVD::Plugin::Tunnel
 
         # setup a small core
         emitter = EVD::CoreEmitter.new @output, @metadata
-        processor = EVD::CoreProcessor.new emitter, @core.processors
-        processor.start input
+        @processor = EVD::CoreProcessor.new emitter, @core.processors
+        @processor.start input
         return
       end
 
