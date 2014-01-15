@@ -13,7 +13,7 @@ module EVD::Plugin::Riemann
     [:ttl, :ttl, :ttl=],
   ] + MAPPING
 
-  module Utils
+  module Shared
     def read_attributes e, source
       return if source.nil? or source.empty?
 

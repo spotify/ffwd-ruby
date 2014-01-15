@@ -10,8 +10,10 @@ require 'riemann/message'
 require_relative '../protocol'
 require_relative '../plugin'
 require_relative '../logging'
+require_relative '../connection'
 
-require_relative 'riemann/utils'
+require_relative 'riemann/connection'
+require_relative 'riemann/shared'
 require_relative 'riemann/handler'
 
 module EVD::Plugin::Riemann
@@ -21,7 +23,7 @@ module EVD::Plugin::Riemann
   register_plugin "riemann"
 
   class HandlerTCP
-    include EVD::Plugin::Riemann::Utils
+    include EVD::Plugin::Riemann::Shared
     include EVD::Plugin::Riemann::Handler
 
     def initialize
@@ -34,7 +36,7 @@ module EVD::Plugin::Riemann
   end
 
   class HandlerUDP
-    include EVD::Plugin::Riemann::Utils
+    include EVD::Plugin::Riemann::Shared
     include EVD::Plugin::Riemann::Handler
 
     def initialize
@@ -46,49 +48,10 @@ module EVD::Plugin::Riemann
     end
   end
 
-  class ConnectionBase < EM::Connection
-    include EVD::Plugin::Riemann::Utils
-
-    module RiemannSerializer
-      def self.dump(m)
-        m.encode.to_s
-      end
-
-      def self.load(data)
-        ::Riemann::Message.decode(data)
-      end
-    end
-
-    def initialize input, output, log
-      @input = input
-      @log = log
-    end
-
-    def serializer
-      RiemannSerializer
-    end
-
-    def receive_object(m)
-      unless m.events.nil? or m.events.empty?
-        m.events.each do |e|
-          @input.event read_event(e)
-        end
-      end
-
-      send_ok
-    rescue => e
-      @log.error "Failed to receive object", e
-      send_error e
-    end
-
-    protected
-
-    def send_ok; end
-    def send_error(e); end
-  end
-
-  class ConnectionTCP < ConnectionBase
+  class ConnectionTCP < EVD::Connection
     include EM::Protocols::ObjectProtocol
+    include EVD::Plugin::Riemann::Shared
+    include EVD::Plugin::Riemann::Connection
 
     def send_ok
       send_object(::Riemann::Message.new(
@@ -101,7 +64,10 @@ module EVD::Plugin::Riemann
     end
   end
 
-  class ConnectionUDP < ConnectionBase
+  class ConnectionUDP < EVD::Connection
+    include EVD::Plugin::Riemann::Shared
+    include EVD::Plugin::Riemann::Connection
+
     def receive_data(data)
       receive_object serializer.load(data)
     end

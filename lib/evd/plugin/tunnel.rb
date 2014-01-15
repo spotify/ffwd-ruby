@@ -37,6 +37,12 @@ module EVD::Plugin::Tunnel
       @subs[id] = block
     end
 
+    def dispatch protocol, port, peer, data
+      addr = "#{peer[0]}:#{peer[1]}"
+      data = Base64.encode64(data)
+      send_data "#{protocol} #{port} #{addr} #{data}\n"
+    end
+
     def read_metadata data
       d = {}
 
@@ -81,22 +87,31 @@ module EVD::Plugin::Tunnel
         return
       end
 
-      protocol, port, data = line.split(' ', 3)
+      protocol, port, addr, data = line.split(' ', 4)
 
-      begin
-        port = port.to_i
-        data = Base64.decode64(data)
-      rescue => e
-        log.error "Invalid frame", e
+      unless protocol and port and addr
+        @log.error "Invalid tunneling frame (#{line.size} bytes)"
         return
       end
+
+      begin
+        peer_host, peer_port = addr.split(':', 2)
+        port = port.to_i
+        peer_port = peer_port.to_i
+        data = Base64.decode64(data)
+      rescue => e
+        @log.error "Invalid tunneling frame (#{line.size} bytes, last part not decodable)", e
+        return
+      end
+
+      addr = [peer_host, peer_port]
 
       id = [protocol, port]
 
       if s = @subs[id]
-        s.call data
+        s.call addr, data
       else
-        @log.error "Nothing listening on port '#{port}'"
+        @log.error "Nothing listening on port #{id}'"
       end
     end
   end

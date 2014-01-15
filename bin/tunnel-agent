@@ -11,17 +11,15 @@ import logging
 
 log = logging.getLogger(__name__)
 
+UDP = 'udp'
+TCP = 'tcp'
 
-class _DispatcherBase(asyncore.dispatcher):
-    def __init__(self, protocol):
-        asyncore.dispatcher.__init__(self)
-        self._create_socket(protocol)
 
-    def _create_socket(self, protocol):
-        if protocol == 'tcp':
-            self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
-        else:
-            self.create_socket(socket.AF_INET, socket.SOCK_DGRAM)
+def setup_socket(client, protocol):
+    if protocol == TCP:
+        client.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+    else:
+        client.create_socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 
 class _TunnelBindConnection(asyncore.dispatcher_with_send):
@@ -35,7 +33,7 @@ class _TunnelBindConnection(asyncore.dispatcher_with_send):
     def handle_close(self):
         """implement asyncore.dispatcher_with_send#handle_close."""
         log.info("%s: closed", repr(self.addr), exc_info=sys.exc_info())
-        self.stunnel.remove_client(self.addr)
+        self.tunnel.remove_client(self.addr)
         self.close()
 
     def handle_error(self):
@@ -47,33 +45,36 @@ class _TunnelBindConnection(asyncore.dispatcher_with_send):
     def handle_read(self):
         """implement asyncore.dispatcher#handle_read."""
         data = self.recv(self.RECV_MAX)
-        self.tunnel.receive_client_data(data)
+        self.tunnel.receive_client_data(self.addr, data)
 
 
-class _TunnelBind(_DispatcherBase):
+class _TunnelBind(asyncore.dispatcher):
     RECV_MAX = 8192
 
     def __init__(self, tunnel, protocol, port):
-        _DispatcherBase.__init__(self, protocol)
+        asyncore.dispatcher.__init__(self)
+        setup_socket(self, protocol)
+
         self._tunnel = tunnel
         self._protocol = protocol
         self._port = port
         self._clients = dict()
 
     def handle_read(self):
-        """Receive data for UDP sockets."""
-        data, _ = self.recvfrom(self.RECV_MAX)
-        self._tunnel.receive_client_data(self._protocol, self._port, data)
+        """Receive data from UDP sockets."""
+        data, addr = self.recvfrom(self.RECV_MAX)
+        self._tunnel.receive_client_data(self._protocol, self._port, addr, data)
 
-    def receive_client_data(self, data):
+    def receive_client_data(self, addr, data):
         """Receive data from TCP connections."""
-        self._tunnel.receive_client_data(self._protocol, self._port, data)
+        self._tunnel.receive_client_data(self._protocol, self._port, addr, data)
 
     def handle_close(self):
         """implement asyncore.dispatcher#handle_close."""
         for client in self._clients.values():
             client.close()
 
+        self._clients = {}
         self.close()
 
     def handle_accept(self):
@@ -89,7 +90,20 @@ class _TunnelBind(_DispatcherBase):
         try:
             del self._clients[addr]
         except KeyError:
-            pass
+            return
+
+    def send_data_to_client(self, addr, data):
+        if self._protocol == UDP:
+            self.sendto(data, addr)
+            return
+
+        try:
+            client = self._clients[addr]
+        except KeyError:
+            log.error("no such client: %s", addr)
+            return
+
+        client.send(data)
 
 
 class _LineProtocol(object):
@@ -111,7 +125,7 @@ class _LineProtocol(object):
                 if c == self.delimiter:
                     yield "".join(self._in_buffer) + data[:i]
                     self._in_buffer = []
-                    data = data[i + 1:]
+                    data = data[i + 2:]
                     break
 
             if i == len(data):
@@ -131,47 +145,18 @@ class _LineProtocol(object):
 
     def send_line(self, line):
         """Send a line of data using the specified delimiter."""
-        self.send_data(line + self.delimiter)
+        self.send(line + self.delimiter)
 
 
-class _BufferedWriter(object):
-    def __init__(self):
-        self._out_buffer = []
-        self._out_size = 0
-        self._out_connected = False
-
-    def writable(self):
-        """implement asyncore.dispatcher#writable."""
-        return self._out_size > 0
-
-    def handle_write(self):
-        """implement asyncore.dispatcher#handle_write."""
-        if self._out_size <= 0:
-            return
-
-        buf = "".join(self._out_buffer)
-        sent = self.send(buf)
-        new_buf = buf[sent:]
-        self._out_buffer = [new_buf]
-        self._out_size = len(new_buf)
-
-    def send_data(self, data):
-        """Send data by adding it to an output buffer."""
-        self._out_buffer.append(data)
-        self._out_size += len(data)
-
-
-class _TunnelClient(_BufferedWriter, _LineProtocol, _DispatcherBase):
-    def __init__(self, metadata, protocol='tcp'):
-        _DispatcherBase.__init__(self, protocol)
+class _TunnelClient(_LineProtocol, asyncore.dispatcher_with_send):
+    def __init__(self, metadata, protocol=TCP):
+        asyncore.dispatcher_with_send.__init__(self)
         _LineProtocol.__init__(self)
-        _BufferedWriter.__init__(self)
+        setup_socket(self, protocol)
 
         self._metadata = metadata
         self._config = None
-        self._servers = list()
-
-        self.send_line(json.dumps(self._metadata))
+        self._servers = dict()
 
     def handle_error(self):
         """implement asyncore.dispatcher#handle_error."""
@@ -185,28 +170,53 @@ class _TunnelClient(_BufferedWriter, _LineProtocol, _DispatcherBase):
         self._close()
 
     def _close(self):
-        for server in self._servers:
+        for server in self._servers.values():
             server.close()
 
-        self._servers = []
+        self._servers = dict()
         self._config = None
 
         self.close()
 
-    def receive_client_data(self, protocol, port, data):
+    def receive_client_data(self, protocol, port, addr, data):
         """Handle data received by a connected client."""
         data = base64.b64encode(data)
-        self.send_line("%s %s %s" % (protocol, port, data))
+        peer = "%s:%d" % (addr[0], addr[1])
+        self.send_line("%s %s %s %s" % (protocol, port, peer, data))
 
     def handle_connect(self):
         """implement asyncore.dispatcher#handle_connect."""
         log.info("connected")
+        self.send_line(json.dumps(self._metadata))
 
     def receive_line(self, line):
         """implement _LineProtocol#receive_line."""
         if self._config is None:
             self._config = json.loads(line)
             self._bind_all()
+            return
+
+        protocol, port, addr, data = line.split(' ', 4)
+
+        try:
+            port = int(port)
+            data = base64.b64decode(data)
+            peer_host, peer_port = addr.split(':', 2)
+            peer_port = int(peer_port)
+        except:
+            log.error("received invalid frame")
+            return
+
+        server_id = (protocol, port)
+
+        try:
+            server = self._servers[server_id]
+        except KeyError:
+            log.error("no such server: %s", server_id)
+            return
+
+        peer = (peer_host, peer_port)
+        server.send_data_to_client(peer, data)
 
     def _bind_all(self):
         """Bind all protocol/port combinations from configuration."""
@@ -218,8 +228,14 @@ class _TunnelClient(_BufferedWriter, _LineProtocol, _DispatcherBase):
             protocol = b['protocol']
             port = b['port']
 
+            server_id = (protocol, port)
+
+            if self._servers.get(server_id) is not None:
+                log.error("already bound: %s", repr(server_id))
+                continue
+
             try:
-                self._servers.append(self._bind_one(protocol, port))
+                self._servers[server_id] = self._bind_one(protocol, port)
             except:
                 log.error("failed to bind: %s", repr(b),
                           exc_info=sys.exc_info())
@@ -236,10 +252,10 @@ class _TunnelClient(_BufferedWriter, _LineProtocol, _DispatcherBase):
 
         """
         server = _TunnelBind(self, protocol, port)
-        server.bind(('127.0.0.1', port))
         server.set_reuse_addr()
+        server.bind(('127.0.0.1', port))
 
-        if protocol == "tcp":
+        if protocol == TCP:
             server.listen(5)
 
         return server
@@ -256,12 +272,14 @@ def _main(args):
 
     addr = ('127.0.0.1', 9000)
 
-    reconnect_timeout = 10.0
+    reconnect_timeout = 1.0
 
     while True:
         client = _TunnelClient(metadata)
         client.connect(addr)
+
         asyncore.loop()
+
         log.info("reconnecting in %ds", reconnect_timeout)
         time.sleep(reconnect_timeout)
 

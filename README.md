@@ -44,6 +44,7 @@ the *tunnel* plugin.
 *Client* -> metadata   -> *Server*
          <- config     <-
          -> datastream ->
+         <- datastream <-
 ```
 
 All messages are sent as plaintext in a line-delimited manner (\n).
@@ -60,11 +61,19 @@ The read keys are *bind* which should be an array of bind configurations.
 
 ```{"bind": [{"protocol": "tcp", "port": 5555}, ...]}```.
 
-**datastream** Is a uni-directional stream of messages going from the client to
+**datastream** Is a bi-directional stream of messages going from the client to
 the agent of the following structure.
 *&lt;base64-payload&gt;* Is the data being tunneled, encoded in *base 64*.
 
-```<protocol> ' ' <port> ' ' <base64-payload>```
+```<protocol> ' ' <port> ' ' <addr> ':' <port> <base64-payload>```
+
+**protocol** is the protocol of the data stream (tcp or udp).
+
+**port** is the port that was bound.
+
+**addr** is the remote ip of the connected peer.
+
+**port** is the remote port of the connected peer.
 
 ## Terminology
 

@@ -39,6 +39,8 @@
 :tunnel:
   - :type: "riemann"
     :protocol: "udp"
+  - :type: "riemann"
+    :protocol: "tcp"
   - :type: "statsd"
     :protocol: "udp"
 
