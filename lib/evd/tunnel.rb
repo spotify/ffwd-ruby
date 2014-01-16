@@ -45,16 +45,17 @@ module EVD
     def handle_tcp input, output, tunnel
       tunnel.subscribe @protocol, @port do |peer, data|
         unless instance = @instances[peer]
-          @log.info "New connection: #{peer} (#{@connection})"
+          @log.debug "New connection: #{peer} (#{@connection})"
           handler = TunnelTCP.new @log, @protocol, @port, peer, tunnel
           instance = @instances[peer] = @connection.new(nil, input, output, *@args)
           instance.datasink = handler
         end
 
-        if data == ""
-          @log.info "Close connection: #{peer}"
+        if data.nil? or data.empty?
+          @log.debug "Close connection: #{peer}"
           instance.unbind
           @instances.delete peer
+          next
         end
 
         instance.receive_data data

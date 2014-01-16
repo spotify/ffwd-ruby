@@ -48,4 +48,4 @@ def statsd
 end
 
 riemann
-#statsd
+statsd
