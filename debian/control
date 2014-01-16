@@ -1,0 +1,16 @@
+Source: rbenv-app-evd
+Section: net
+Priority: extra
+Maintainer: Hero Squad <hero@spotify.com>
+Build-Depends:
+ debhelper (>= 8),
+ dh-rbenv
+Standards-Version: 3.9.1
+X-Python-Version: >= 2.6
+
+Package: rbenv-app-evd
+Architecture: all
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends}
+Description: A completely self-contained evd installation.
