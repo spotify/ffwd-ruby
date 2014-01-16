@@ -23,15 +23,10 @@ module EVD
     DEFAULT_BUFFER_LIMIT = 5000
     DEFAULT_REPORT_INTERVAL = 600
 
-    def initialize opts={}
-      @tunnel_plugins = EVD::Plugin.load_plugins(
-        log, "Tunnel", opts[:tunnel], :tunnel)
-
-      @bind_plugins = EVD::Plugin.load_plugins(
-        log, "Input", opts[:bind], :bind)
-
-      @connect_plugins = EVD::Plugin.load_plugins(
-        log, "Output", opts[:connect], :connect)
+    def initialize plugins, opts={}
+      @tunnel_plugins = plugins[:tunnel] || []
+      @bind_plugins = plugins[:bind] || []
+      @connect_plugins = plugins[:connect] || []
 
       @report_interval = opts[:report_interval] || DEFAULT_REPORT_INTERVAL
 
@@ -50,8 +45,8 @@ module EVD
     # Starts an EventMachine and runs the given set of plugins.
     #
     def run
-      tunnels = @tunnel_plugins.map do |p, c|
-        p.tunnel self, c
+      tunnels = @tunnel_plugins.map do |plugin|
+        plugin.setup self
       end
 
       processors = load_processors @processor_opts
@@ -60,12 +55,12 @@ module EVD
       emitter = CoreEmitter.new @output, @core_opts
       processor = CoreProcessor.new emitter, processors
 
-      bind_instances = @bind_plugins.map do |p, c|
-        p.bind core, c
+      bind_instances = @bind_plugins.map do |plugin|
+        plugin.setup core
       end
 
-      connect_instances = @connect_plugins.map do |p, c|
-        p.connect core, c
+      connect_instances = @connect_plugins.map do |plugin|
+        plugin.setup core
       end
 
       # Configuration for statistics module.
