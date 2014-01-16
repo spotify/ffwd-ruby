@@ -31,7 +31,7 @@ class _TunnelBindUDP(asyncore.dispatcher):
         data, addr = self.recvfrom(RECV_MAX)
         self._tunnel.receive_client_data(UDP, self._port, addr, data)
 
-    def send_data_to_client(self, addr, data):
+    def tunnel_send_data(self, addr, data):
         self.sendto(data, addr)
 
 
@@ -44,16 +44,15 @@ class _TunnelBindTCP(asyncore.dispatcher):
 
         def handle_close(self):
             """implement asyncore.dispatcher_with_send#handle_close."""
-            self.tunnel.close_client(self.addr)
+            self.tunnel.connection_close(self.addr)
 
         def handle_error(self):
             """implement asyncore.dispatcher_with_send#handle_error."""
-            self.tunnel.close_client(self.addr)
+            self.tunnel.connection_close(self.addr)
 
         def handle_read(self):
             """implement asyncore.dispatcher#handle_read."""
-            data = self.recv(RECV_MAX)
-            self.tunnel.client_receive_data(self.addr, data)
+            self.tunnel.client_receive_data(self.addr, self.recv(RECV_MAX))
 
     def __init__(self, tunnel, port):
         asyncore.dispatcher.__init__(self)
@@ -64,11 +63,12 @@ class _TunnelBindTCP(asyncore.dispatcher):
 
         self._tunnel = tunnel
         self._port = port
-        self._clients = dict()
+        self._connections = dict()
 
     def client_receive_data(self, addr, data):
         """Receive data from TCP connections."""
-        self._tunnel.receive_client_data(TCP, self._port, addr, data)
+        if len(data) > 0:
+            self._tunnel.receive_client_data(TCP, self._port, addr, data)
 
     def handle_close(self):
         """implement asyncore.dispatcher#handle_close."""
@@ -80,65 +80,58 @@ class _TunnelBindTCP(asyncore.dispatcher):
 
         if pair is not None:
             sock, addr = pair
-            self._clients[addr] = self.Connection(self, sock, addr)
+            self._connections[addr] = self.Connection(self, sock, addr)
 
-    def close_client(self, addr):
+    def connection_close(self, addr):
         """Remove the client connection associated with addr."""
-        client = self._clients[addr]
+        client = self._connections[addr]
         client.close()
-        del self._clients[addr]
+        del self._connections[addr]
 
-    def send_data_to_client(self, addr, data):
+    def close(self):
+        for client in self._connections.values():
+            client.close()
+
+        self._connections = {}
+        asyncore.dispatcher.close(self)
+
+    def tunnel_send_data(self, addr, data):
         try:
-            client = self._clients[addr]
+            client = self._connections[addr]
         except KeyError:
             log.error("no such client: %s", addr)
             return
 
         client.send(data)
 
-    def close(self):
-        for client in self._clients.values():
-            client.close()
-
-        self._clients = {}
-        asyncore.dispatcher.close(self)
-
 
 class _LineProtocol(object):
     delimiter = '\n'
 
     def __init__(self):
-        self._in_buffer = list()
-
-    def _parse_lines(self, data):
-        if not data:
-            return
-
-        while data:
-            i = 0
-
-            for i, c in enumerate(data):
-                if c == self.delimiter:
-                    yield "".join(self._in_buffer) + data[:i]
-                    self._in_buffer = []
-                    data = data[i + 2:]
-                    break
-
-            if i == len(data):
-                self._in_buffer.append(data)
-                break
+        self._in_buffer = ""
 
     def handle_read(self):
         """implement asyncore.dispatcher#handle_read."""
 
         data = self.recv(RECV_MAX)
 
-        for line in self._parse_lines(data):
+        while True:
             try:
-                self.receive_line(line)
+                i = data.index(self.delimiter)
+            except ValueError:
+                break
+
+            try:
+                self.receive_line(self._in_buffer + data[:i])
             except:
                 log.error("receive_line failed", exc_info=sys.exc_info())
+
+            self._in_buffer = ""
+            data = data[i + 2:]
+
+        if len(data) > 0:
+            self._in_buffer += data
 
     def send_line(self, line):
         """Send a line of data using the specified delimiter."""
@@ -203,6 +196,9 @@ class _TunnelClient(_LineProtocol, asyncore.dispatcher_with_send):
             self._bind_all()
             return
 
+        self._outbound_traffic(line)
+
+    def _outbound_traffic(self, line):
         protocol, port, addr, data = line.split(' ', 4)
 
         try:
@@ -223,7 +219,7 @@ class _TunnelClient(_LineProtocol, asyncore.dispatcher_with_send):
             return
 
         peer = (peer_host, peer_port)
-        server.send_data_to_client(peer, data)
+        server.tunnel_send_data(peer, data)
 
     def _bind_all(self):
         """Bind all protocol/port combinations from configuration."""
