@@ -31,8 +31,8 @@ module EVD
             source = "#{channel.kind}.#{k.to_s}"
             key = "#{source}.rate"
             @emitter.emit_metric(
-              {:key => key, :source => source, :value => rate},
-              INTERNAL_TAGS
+              :key => key, :source => source, :value => rate,
+              :tags => INTERNAL_TAGS
             )
           end
         end
