@@ -143,7 +143,7 @@ module EVD::Plugin::Tunnel
 
   CONNECTIONS = {:tcp => ConnectionTCP}
 
-  def self.bind core, opts={}
+  def self.setup_input core, opts={}
     opts[:host] ||= DEFAULT_HOST
     opts[:port] ||= DEFAULT_PORT
     protocol = EVD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
