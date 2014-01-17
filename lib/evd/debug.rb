@@ -11,11 +11,19 @@ require_relative 'debug/monitor_session'
 module EVD::Debug
   module Input
     def self.serialize_event event
-      event
+      event = Hash[event]
+
+      if tags = event[:tags]
+        event[:tags] = tags.to_a
+      end
     end
 
     def self.serialize_metric metric
-      metric
+      metric = Hash[metric]
+
+      if tags = metric[:tags]
+        metric[:tags] = tags.to_a
+      end
     end
   end
 
