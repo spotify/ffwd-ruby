@@ -1,19 +1,19 @@
 module EVD
   module Statistics
-    INTERNAL_TAGS = Set.new(['evd'])
-
     class Collector
-      def initialize(emitter, channels, period, precision)
+      def initialize emitter, channels, opts={}
         @emitter = emitter
         @channels = channels
-        @period = period
-        @precision = precision
+        @period = opts[:period] || 1
+        @precision = opts[:precision] || 3
+        @tags = Set.new(opts[:tags] || [])
+        @attributes = opts[:attributes] || {}
       end
 
       def start
         @last = Time.now
 
-        EM::PeriodicTimer.new(@period) do
+        EM::PeriodicTimer.new @period do
           now = Time.now
           generate! @last, now
           @last = now
@@ -32,17 +32,15 @@ module EVD
             key = "#{source}.rate"
             @emitter.emit_metric(
               :key => key, :source => source, :value => rate,
-              :tags => INTERNAL_TAGS
+              :tags => @tags, :attributes => @attributes
             )
           end
         end
       end
     end
 
-    def self.setup emitter, channels, opts
-      period = opts[:period] || 1
-      precision = opts[:precision] || 3
-      Collector.new emitter, channels, period, precision
+    def self.setup emitter, channels, opts={}
+      Collector.new emitter, channels, opts
     end
   end
 end
