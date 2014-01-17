@@ -9,6 +9,7 @@ require_relative '../plugin'
 require_relative '../plugin_channel'
 require_relative '../protocol'
 require_relative '../connection'
+require_relative '../debug'
 
 module EVD::Plugin::Tunnel
   include EVD::Plugin
@@ -27,12 +28,21 @@ module EVD::Plugin::Tunnel
       @core = core
       @subs = {}
       @processor = nil
+      @debug_id = nil
+    end
+
+    def get_peer
+      peer = get_peername
+      port, ip = Socket.unpack_sockaddr_in(peer)
+      "#{ip}:#{port}"
     end
 
     def unbind
       log.info "Shutting down tunnel connection"
       @processor.stop if @processor
       @processor = nil
+      @core.debug.unmonitor @debug_id if @debug_id
+      @debug_id = nil
     end
 
     def subscribe protocol, port, &block
@@ -92,6 +102,9 @@ module EVD::Plugin::Tunnel
         emitter = EVD::CoreEmitter.new @output, @metadata
         @processor = EVD::CoreProcessor.new emitter, @core.processors
         @processor.start input
+
+        @debug_id = "tunnel.input/#{get_peer}"
+        @core.debug.monitor @debug_id, input, EVD::Debug::Input
         return
       end
 
