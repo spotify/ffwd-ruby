@@ -145,9 +145,9 @@ The read keys are *tags*, *attributes* and *host*.
 
 **config** Is a JSON Object that describes which *protocol and port* combinations
 the tunneling client should bind to and tunnel traffic from.
-The read keys are *bind* which should be an array of bind configurations.
+The read keys are *input* which should be an array of input configurations.
 
-```{"bind": [{"protocol": "tcp", "port": 5555}, ...]}```.
+```{"input": [{"protocol": "tcp", "port": 5555}, ...]}```.
 
 **datastream** Is a bi-directional stream of messages going from the client to
 the agent of the following structure.
