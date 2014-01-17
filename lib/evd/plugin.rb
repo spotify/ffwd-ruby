@@ -13,25 +13,19 @@ module EVD
         @setup_tunnel_method = load_method @mod, options[:setup_tunnel_method_name]
       end
 
-      def caps
-        caps = []
+      def capabilities
+        capabilities = []
 
-        if @setup_input_method.nil?
-          caps << "-input"
-        else
-          caps << "+input"
+        if not @setup_input_method.nil?
+          capabilities << "input"
         end
 
-        if @setup_output_method.nil?
-          caps << "-output"
-        else
-          caps << "+output"
+        if not @setup_output_method.nil?
+          capabilities << "output"
         end
 
-        if @setup_tunnel_method.nil?
-          caps << "-tunnel"
-        else
-          caps << "+tunnel"
+        if not @setup_tunnel_method.nil?
+          capabilities << "tunnel"
         end
       end
 

@@ -105,7 +105,7 @@ module EVD
 
       EVD::Plugin.loaded.each do |name, plugin|
         puts "Plugin #{name}"
-        puts "  #{plugin.caps.join(' ')}"
+        puts "  #{plugin.capabilities.join(' ')}"
       end
     end
 
