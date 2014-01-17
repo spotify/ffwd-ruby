@@ -3,35 +3,35 @@ require_relative 'logging'
 module EVD
   module Plugin
     class LoadedPlugin
-      attr_reader :name, :options, :bind, :connect, :tunnel
+      attr_reader :name
 
       def initialize name, options
         @name = name
-        @mod = options[:self]
-        @bind = load_method @mod, options[:bind]
-        @connect = load_method @mod, options[:connect]
-        @tunnel = load_method @mod, options[:tunnel]
+        @mod = options[:mod]
+        @setup_input_method = load_method @mod, options[:setup_input_method_name]
+        @setup_output_method = load_method @mod, options[:setup_output_method_name]
+        @setup_tunnel_method = load_method @mod, options[:setup_tunnel_method_name]
       end
 
       def caps
         caps = []
 
-        if @bind.nil?
-          caps << "+input"
-        else
+        if @setup_input_method.nil?
           caps << "-input"
+        else
+          caps << "+input"
         end
 
-        if @connect.nil?
-          caps << "+output"
-        else
+        if @setup_output_method.nil?
           caps << "-output"
+        else
+          caps << "+output"
         end
 
-        if @tunnel.nil?
-          caps << "+tunnel"
-        else
+        if @setup_tunnel_method.nil?
           caps << "-tunnel"
+        else
+          caps << "+tunnel"
         end
       end
 
@@ -40,9 +40,9 @@ module EVD
       end
 
       def get(kind)
-        return @bind if kind == :bind
-        return @connect if kind == :connect
-        return @tunnel if kind == :tunnel
+        return @setup_input_method if kind == :input
+        return @setup_output_method if kind == :output
+        return @setup_tunnel_method if kind == :tunnel
         return nil
       end
 
@@ -55,7 +55,7 @@ module EVD
     end
 
     class SetupPlugin
-      attr_reader :mod, :name, :config
+      attr_reader :name, :config
 
       def initialize name, setup, config
         @name = name
@@ -77,19 +77,14 @@ module EVD
     end
 
     module ClassMethods
-      def map_plugin plugin, opts, method_name, kind
-        n = (opts[method_name] || kind)
-        plugin[kind] = n
-      end
-
       def register_plugin(name, opts={})
-        plugin = {:self => self}
+        options = {:mod => self}
 
-        plugin[:bind] = (opts[:bind_method] || :bind)
-        plugin[:connect] = (opts[:connect_method] || :connect)
-        plugin[:tunnel] = (opts[:tunnel_method] || :tunnel)
+        options[:setup_input_method_name] = (opts[:setup_input_method] || :setup_input)
+        options[:setup_output_method_name] = (opts[:setup_output_method] || :setup_output)
+        options[:setup_tunnel_method_name] = (opts[:setup_tunnel_method] || :setup_tunnel)
 
-        Plugin.discovered[name] = plugin
+        EVD::Plugin.discovered[name] = options
       end
     end
 
@@ -97,13 +92,9 @@ module EVD
       mod.extend ClassMethods
     end
 
-    def self.load_plugin name, options
-      LoadedPlugin.new name, options
-    end
-
     def self.init
       EVD::Plugin.discovered.each do |name, options|
-        EVD::Plugin.loaded[name] = load_plugin(name, options)
+        EVD::Plugin.loaded[name] = LoadedPlugin.new name, options
       end
     end
 

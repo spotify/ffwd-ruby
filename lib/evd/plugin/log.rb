@@ -32,7 +32,7 @@ module EVD::Plugin
       end
     end
 
-    def self.connect core, opts={}
+    def self.setup_output core, opts={}
       prefix = opts[:prefix]
       Writer.new prefix
     end

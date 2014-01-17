@@ -65,11 +65,11 @@ module EVD
     plugins[:tunnel] = EVD::Plugin.load_plugins(
       log, "Tunnel", config[:tunnel], :tunnel)
 
-    plugins[:bind] = EVD::Plugin.load_plugins(
-      log, "Input", config[:bind], :bind)
+    plugins[:input] = EVD::Plugin.load_plugins(
+      log, "Input", config[:input], :input)
 
-    plugins[:connect] = EVD::Plugin.load_plugins(
-      log, "Output", config[:connect], :connect)
+    plugins[:output] = EVD::Plugin.load_plugins(
+      log, "Output", config[:output], :output)
 
     plugins
   end

@@ -25,8 +25,8 @@ module EVD
 
     def initialize plugins, opts={}
       @tunnel_plugins = plugins[:tunnel] || []
-      @bind_plugins = plugins[:bind] || []
-      @connect_plugins = plugins[:connect] || []
+      @input_plugins = plugins[:input] || []
+      @output_plugins = plugins[:output] || []
 
       @report_interval = opts[:report_interval] || DEFAULT_REPORT_INTERVAL
 
@@ -35,8 +35,8 @@ module EVD
       @core_opts = opts[:core] || {}
       @processor_opts = opts[:processor] || {}
 
-      @output = EVD::PluginChannel.new 'output'
-      @input = EVD::PluginChannel.new 'input'
+      @output_channel = EVD::PluginChannel.new 'output'
+      @input_channel = EVD::PluginChannel.new 'input'
 
       @tunnels = @tunnel_plugins.map do |plugin|
         plugin.setup self
@@ -51,14 +51,14 @@ module EVD
       @processors = EVD::Processor.load @processor_opts
       @interface = CoreInterface.new @tunnels, @processors, @debug, @core_opts
 
-      @emitter = CoreEmitter.new @output, @core_opts
+      @emitter = CoreEmitter.new @output_channel, @core_opts
       @processor = CoreProcessor.new @emitter, @processors
 
-      @bind_instances = @bind_plugins.map do |plugin|
+      @input_instances = @input_plugins.map do |plugin|
         plugin.setup @interface
       end
 
-      @connect_instances = @connect_plugins.map do |plugin|
+      @output_instances = @output_plugins.map do |plugin|
         plugin.setup @interface
       end
 
@@ -66,11 +66,11 @@ module EVD
       @statistics = nil
 
       if config = @statistics_opts
-        @statistics = EVD::Statistics.setup @emitter, [@output, @input], config
+        @statistics = EVD::Statistics.setup @emitter, [@output_channel, @input_channel], config
       end
 
       @reporters = []
-      @reporters += EVD.setup_reporters @connect_instances
+      @reporters += EVD.setup_reporters @output_instances
       @reporters += @processor.reporters
     end
 
@@ -83,22 +83,22 @@ module EVD
       log.info "Registered #{@reporters.size} reporter(s)"
 
       EM.run do
-        @processor.start @input
+        @processor.start @input_channel
 
-        @bind_instances.each do |p|
-          p.start @input, @output
+        @input_instances.each do |p|
+          p.start @input_channel, @output_channel
         end
 
-        @connect_instances.each do |p|
-          p.start @output
+        @output_instances.each do |p|
+          p.start @output_channel
         end
 
         @statistics.start unless @statistics.nil?
 
         unless @debug.nil?
           @debug.start
-          @debug.monitor "core.input", @input, EVD::Debug::Input
-          @debug.monitor "core.output", @output, EVD::Debug::Output
+          @debug.monitor "core.input", @input_channel, EVD::Debug::Input
+          @debug.monitor "core.output", @output_channel, EVD::Debug::Output
         end
 
         unless @reporters.empty?

@@ -80,7 +80,7 @@ module EVD::Plugin::Riemann
   HANDLERS = {:tcp => HandlerTCP, :udp => HandlerUDP}
   CONNECTIONS = {:tcp => ConnectionTCP, :udp => ConnectionUDP}
 
-  def self.connect core, opts={}
+  def self.setup_output core, opts={}
     opts[:host] ||= DEFAULT_HOST
     opts[:port] ||= DEFAULT_PORT
 
@@ -95,7 +95,7 @@ module EVD::Plugin::Riemann
     protocol.connect log, opts, instance
   end
 
-  def self.bind core, opts={}
+  def self.setup_input core, opts={}
     opts[:host] ||= DEFAULT_HOST
     opts[:port] ||= DEFAULT_PORT
     protocol = EVD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
@@ -107,7 +107,7 @@ module EVD::Plugin::Riemann
     protocol.bind log, opts, connection, log
   end
 
-  def self.tunnel core, opts={}
+  def self.setup_tunnel core, opts={}
     opts[:port] ||= DEFAULT_PORT
     protocol = EVD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
 
