@@ -33,10 +33,45 @@ module EVD
       @statistics_opts = opts[:statistics]
       @debug_opts = opts[:debug]
       @core_opts = opts[:core] || {}
-      @processor_opts = opts[:processor_opts] || {}
+      @processor_opts = opts[:processor] || {}
 
       @output = EVD::PluginChannel.new 'output'
       @input = EVD::PluginChannel.new 'input'
+
+      @tunnels = @tunnel_plugins.map do |plugin|
+        plugin.setup self
+      end
+
+      @debug = nil
+
+      if @debug_opts
+        @debug = EVD::Debug.setup @debug_opts
+      end
+
+      @processors = EVD::Processor.load @processor_opts
+      @interface = CoreInterface.new @tunnels, @processors, @debug, @core_opts
+
+      @emitter = CoreEmitter.new @output, @core_opts
+      @processor = CoreProcessor.new @emitter, @processors
+
+      @bind_instances = @bind_plugins.map do |plugin|
+        plugin.setup @interface
+      end
+
+      @connect_instances = @connect_plugins.map do |plugin|
+        plugin.setup @interface
+      end
+
+      # Configuration for statistics module.
+      @statistics = nil
+
+      if config = @statistics_opts
+        @statistics = EVD::Statistics.setup @emitter, [@output, @input], config
+      end
+
+      @reporters = []
+      @reporters += EVD.setup_reporters @connect_instances
+      @reporters += @processor.reporters
     end
 
     #
@@ -45,67 +80,30 @@ module EVD
     # Starts an EventMachine and runs the given set of plugins.
     #
     def run
-      tunnels = @tunnel_plugins.map do |plugin|
-        plugin.setup self
-      end
-
-      debug = nil
-
-      if @debug_opts
-        debug = EVD::Debug.setup @debug_opts
-      end
-
-      processors = load_processors @processor_opts
-      core = CoreInterface.new tunnels, processors, debug, @core_opts
-
-      emitter = CoreEmitter.new @output, @core_opts
-      processor = CoreProcessor.new emitter, processors
-
-      bind_instances = @bind_plugins.map do |plugin|
-        plugin.setup core
-      end
-
-      connect_instances = @connect_plugins.map do |plugin|
-        plugin.setup core
-      end
-
-      # Configuration for statistics module.
-      statistics = nil
-
-      if config = @statistics_opts
-        statistics = EVD::Statistics.setup(emitter, [@output, @input], config)
-      end
+      log.info "Registered #{@reporters.size} reporter(s)"
 
       EM.run do
-        processor.start @input
+        @processor.start @input
 
-        reporters = []
-        reporters += EVD.setup_reporters connect_instances
-        reporters += processor.reporters
-
-        log.info "Registered #{reporters.size} reporter(s)"
-
-        bind_instances.each do |p|
+        @bind_instances.each do |p|
           p.start @input, @output
         end
 
-        connect_instances.each do |p|
+        @connect_instances.each do |p|
           p.start @output
         end
 
-        unless statistics.nil?
-          statistics.start
+        @statistics.start unless @statistics.nil?
+
+        unless @debug.nil?
+          @debug.start
+          @debug.monitor "core.input", @input, EVD::Debug::Input
+          @debug.monitor "core.output", @output, EVD::Debug::Output
         end
 
-        unless debug.nil?
-          debug.start
-          debug.monitor "core.input", @input, EVD::Debug::Input
-          debug.monitor "core.output", @output, EVD::Debug::Output
-        end
-
-        unless reporters.empty?
-          EM::PeriodicTimer.new(@report_interval) do
-            report! reporters
+        unless @reporters.empty?
+          EM::PeriodicTimer.new @report_interval do
+            report!
           end
         end
       end
@@ -113,29 +111,10 @@ module EVD
 
     private
 
-    #
-    # setup hash of datatype functions.
-    #
-    def load_processors opts
-      processors = {}
-
-      Processor.registry.each do |name, klass|
-        processor_opts = opts[name] || {}
-        processors[name] = lambda{klass.new(processor_opts)}
-      end
-
-      if processors.empty?
-        raise "No processors loaded"
-      end
-
-      log.info "Loaded processors: #{processors.keys.join(', ')}"
-      return processors
-    end
-
-    def report! reporters
+    def report!
       active = []
 
-      reporters.each do |reporter|
+      @reporters.each do |reporter|
         active << reporter if reporter.report?
       end
 
