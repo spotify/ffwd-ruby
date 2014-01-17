@@ -1,6 +1,7 @@
 require 'ripl'
 require 'optparse'
 require 'eventmachine'
+require 'json'
 
 module EVC
   class TraceConnection < EM::Connection

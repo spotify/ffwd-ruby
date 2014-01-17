@@ -8,10 +8,10 @@ module EVD
       @attributes = attributes
     end
 
-    def emit_event e, tags=nil, attributes=nil
-      tags = EVD.merge_sets tags, @tags
-      attributes = EVD.merge_hashes attributes, @attributes
-      @core.emit_event e, tags, attributes
+    def emit_event e
+      e[:tags] = EVD.merge_sets @tags, e[:tags]
+      e[:attributes] = EVD.merge_hashes @attributes, e[:attributes]
+      @core.emit_event e
     end
 
     def emit_metric m
