@@ -27,6 +27,8 @@ module EVD
         if not @setup_tunnel_method.nil?
           capabilities << "tunnel"
         end
+
+        return capabilities
       end
 
       def can?(kind)
