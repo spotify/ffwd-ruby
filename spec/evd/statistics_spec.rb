@@ -20,10 +20,13 @@ describe EVD::Statistics::Collector do
     c1.should_receive(:kind) {:kind1}
     c2.should_receive(:kind) {:kind2}
 
-    emitter.should_receive(:emit_metric).with({:key=>"kind1.foo.rate", :source=>"kind1.foo", :value=>2.0},
-                                              EVD::Statistics::INTERNAL_TAGS)
-    emitter.should_receive(:emit_metric).with({:key=>"kind2.bar.rate", :source=>"kind2.bar", :value=>3.0},
-                                              EVD::Statistics::INTERNAL_TAGS)
+    emitter.should_receive(:emit_metric).with({
+      :key=>"kind1.foo.rate", :source=>"kind1.foo", :value=>2.0,
+      :tags => EVD::Statistics::INTERNAL_TAGS})
+
+    emitter.should_receive(:emit_metric).with({
+      :key=>"kind2.bar.rate", :source=>"kind2.bar", :value=>3.0,
+      :tags => EVD::Statistics::INTERNAL_TAGS})
 
     last = 0
     now = 10
