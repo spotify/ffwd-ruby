@@ -39,7 +39,7 @@ module EVD
       stopping_callbacks.each do |stop|
         begin
           stop.call
-        rescue
+        rescue => e
           log.error "Failed to invoke stop callback", e
         end
       end

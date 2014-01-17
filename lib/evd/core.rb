@@ -49,8 +49,14 @@ module EVD
         plugin.setup self
       end
 
+      debug = nil
+
+      if @debug_opts
+        debug = EVD::Debug.setup @debug_opts
+      end
+
       processors = load_processors @processor_opts
-      core = CoreInterface.new tunnels, processors, @core_opts
+      core = CoreInterface.new tunnels, processors, debug, @core_opts
 
       emitter = CoreEmitter.new @output, @core_opts
       processor = CoreProcessor.new emitter, processors
@@ -68,12 +74,6 @@ module EVD
 
       if config = @statistics_opts
         statistics = EVD::Statistics.setup(emitter, [@output, @input], config)
-      end
-
-      debug = nil
-
-      if config = @debug_opts
-        debug = EVD::Debug.setup(config)
       end
 
       EM.run do
@@ -99,14 +99,8 @@ module EVD
 
         unless debug.nil?
           debug.start
-
-          @output.metric_subscribe do |metric|
-            debug.handle_metric "emit_metric", metric
-          end
-
-          @output.event_subscribe do |event|
-            debug.handle_event "emit_event", event
-          end
+          debug.monitor "core.input", @input, EVD::Debug::Input
+          debug.monitor "core.output", @output, EVD::Debug::Output
         end
 
         unless reporters.empty?
