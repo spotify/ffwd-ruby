@@ -7,11 +7,11 @@ describe EVD::Statistics::Collector do
   let(:c1) {double}
   let(:c2) {double}
 
-  let(:period) { 10 }
-  let(:precision) { 3 }
+  let(:opts) {{:period => 10, :precision => 3, :tags => ['internal'],
+               :attributes => {:foo => :bar}}}
 
   let(:s) do
-    EVD::Statistics::Collector.new emitter, [c1, c2], period, precision
+    EVD::Statistics::Collector.new emitter, [c1, c2], opts
   end
 
   it "should collect and emit statistics from all channels provided" do
@@ -22,11 +22,11 @@ describe EVD::Statistics::Collector do
 
     emitter.should_receive(:emit_metric).with({
       :key=>"kind1.foo.rate", :source=>"kind1.foo", :value=>2.0,
-      :tags => EVD::Statistics::INTERNAL_TAGS})
+      :tags => Set.new(['internal']), :attributes => {:foo => :bar}})
 
     emitter.should_receive(:emit_metric).with({
       :key=>"kind2.bar.rate", :source=>"kind2.bar", :value=>3.0,
-      :tags => EVD::Statistics::INTERNAL_TAGS})
+      :tags => Set.new(['internal']), :attributes => {:foo => :bar}})
 
     last = 0
     now = 10

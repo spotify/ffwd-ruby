@@ -13,6 +13,21 @@ module EVD
       @tags = Set.new(opts[:tags] || [])
       @attributes = opts[:attributes] || {}
       @ttl = opts[:ttl]
+
+      @metric_tags, @metric_attributes = make_metadata(
+        @tags, @attributes, opts[:metric])
+
+      @event_tags, @event_attributes = make_metadata(
+        @tags, @attributes, opts[:metric])
+    end
+
+    def make_metadata tags, attributes, opts
+      if opts
+        [(tags + (opts[:tags] || [])),
+         (attributes.merge(opts[:attributes] || {}))]
+      else
+        [tags, attributes]
+      end
     end
 
     # Emit an event.
@@ -22,8 +37,8 @@ module EVD
       event.time ||= Time.now
       event.host ||= @host if @host
       event.ttl ||= @ttl if @ttl
-      event.tags = EVD.merge_sets @tags, event[:tags]
-      event.attributes = EVD.merge_hashes @attributes, event[:attributes]
+      event.tags = EVD.merge_sets @metric_tags, event[:tags]
+      event.attributes = EVD.merge_hashes @metric_attributes, event[:attributes]
 
       @output.event event
     rescue => e
@@ -36,8 +51,8 @@ module EVD
 
       metric.time ||= Time.now
       metric.host ||= @host if @host
-      metric.tags = EVD.merge_sets @tags, metric[:tags]
-      metric.attributes = EVD.merge_hashes @attributes, metric[:attributes]
+      metric.tags = EVD.merge_sets @event_tags, metric[:tags]
+      metric.attributes = EVD.merge_hashes @event_attributes, metric[:attributes]
 
       @output.metric metric
     rescue => e
