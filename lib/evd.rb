@@ -7,7 +7,14 @@ require_relative 'evd/plugin_loader'
 require_relative 'evd/plugin'
 
 module EVD
-  def self.load_config(path)
+  def self.load_yaml path
+    return YAML.load_file path
+  rescue
+    log.error "Failed to load config: #{path}"
+    return nil
+  end
+
+  def self.load_config path
     if path.nil?
       puts "Configuration path not specified"
       puts ""
@@ -22,15 +29,55 @@ module EVD
       return nil
     end
 
-    return YAML.load_file path
-  rescue => e
-    EVD.log.error "Failed to load config: #{path}"
-    return nil
+    return load_yaml path
+  end
+
+  def self.load_config_dir_yaml dir
+    Dir.entries(dir).each do |entry|
+      entry_path = File.join dir, entry
+
+      next unless File.file? entry_path
+
+      if entry.start_with? "."
+        log.info "Ignoring: #{entry_path} (hidden file)"
+        next
+      end
+
+      c = load_yaml entry_path
+
+      if c.nil?
+        log.info "Ignoring: #{entry_path} (invalid yaml)"
+        next
+      end
+
+      yield c
+    end
+  end
+
+  def self.join_array config, c, key
+    (c[key] || []).each do |value|
+      (config[key] ||= []) << value
+    end
+  end
+
+  def self.load_config_dir dir, config
+    unless File.directory? dir
+      puts "Configuration directory does not exist: #{dir}"
+      puts ""
+      puts EVD.parser.help
+      return nil
+    end
+
+    load_config_dir_yaml(dir) do |c|
+      join_array config, c, :input
+      join_array config, c, :output
+      join_array config, c, :tunnel
+    end
   end
 
   def self.opts
-    @@opts ||= {:debug => false, :config => nil, :active_plugins => false,
-                :list_plugins => false}
+    @@opts ||= {:debug => false, :config => nil, :config_dir => nil,
+                :active_plugins => false, :list_plugins => false}
   end
 
   def self.parser
@@ -43,6 +90,10 @@ module EVD
 
       o.on "-c", "--config <path>" do |path|
         opts[:config] = path
+      end
+
+      o.on "-d", "--config-dir <path>" do |path|
+        opts[:config_dir] = path
       end
 
       o.on "--list-plugins" do
@@ -87,14 +138,14 @@ module EVD
       return 1
     end
 
+    if config_dir = opts[:config_dir]
+      load_config_dir config_dir, config
+    end
+
     blacklist = config[:blacklist] || {}
 
     PluginLoader.load 'processor', blacklist[:processors] || []
     PluginLoader.load 'plugin', blacklist[:plugins] || []
-
-    if config.nil?
-      return 1
-    end
 
     EVD::Plugin.init
 
