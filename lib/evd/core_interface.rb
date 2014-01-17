@@ -4,10 +4,12 @@ module EVD
     attr_reader :processors
     attr_reader :tags
     attr_reader :attributes
+    attr_reader :debug
 
-    def initialize tunnels, processors, opts
+    def initialize tunnels, processors, debug, opts
       @tunnels = tunnels
       @processors = processors
+      @debug = debug
       @tags = Set.new(opts[:tags] || [])
       @attributes = opts[:attributes] || {}
     end

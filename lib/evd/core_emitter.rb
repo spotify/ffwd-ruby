@@ -1,9 +1,12 @@
 require_relative 'utils'
 require_relative 'metric'
 require_relative 'event'
+require_relative 'logging'
 
 module EVD
   class CoreEmitter
+    include EVD::Logging
+
     def initialize output, opts={}
       @output = output
       @host = opts[:host] || Socket.gethostname
@@ -13,14 +16,14 @@ module EVD
     end
 
     # Emit an event.
-    def emit_event e
-      event = EVD.event e
+    def emit_event event
+      event = EVD.event event
 
       event.time ||= Time.now
       event.host ||= @host if @host
       event.ttl ||= @ttl if @ttl
-      event.tags = EVD.merge_sets @tags, e[:tags]
-      event.attributes = EVD.merge_hashes @attributes, e[:attributes]
+      event.tags = EVD.merge_sets @tags, event[:tags]
+      event.attributes = EVD.merge_hashes @attributes, event[:attributes]
 
       @output.event event
     rescue => e
@@ -28,13 +31,13 @@ module EVD
     end
 
     # Emit a metric.
-    def emit_metric m
-      metric = EVD.metric m
+    def emit_metric metric
+      metric = EVD.metric metric
 
       metric.time ||= Time.now
       metric.host ||= @host if @host
-      metric.tags = EVD.merge_sets @tags, e[:tags]
-      metric.attributes = EVD.merge_hashes @attributes, e[:attributes]
+      metric.tags = EVD.merge_sets @tags, metric[:tags]
+      metric.attributes = EVD.merge_hashes @attributes, metric[:attributes]
 
       @output.metric metric
     rescue => e

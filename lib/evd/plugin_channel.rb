@@ -30,27 +30,35 @@ module EVD
       return d
     end
 
-    def metric m
-      @metrics << m
+    def metric metric
+      @metrics << metric
       @metric_count += 1
     end
 
     def metric_subscribe
-      @metrics.subscribe do |m|
-        yield m
+      @metrics.subscribe do |metric|
+        yield metric
         @metric_count += 1
       end
     end
 
-    def event e
-      @events << e
+    def metric_unsubscribe id
+      @metrics.unsubscribe id
+    end
+
+    def event event
+      @events << event
       @event_count += 1
     end
 
     def event_subscribe
-      @events.subscribe do |e|
-        yield e
+      @events.subscribe do |event|
+        yield event
       end
+    end
+
+    def event_unsubscribe id
+      @events.unsubscribe id
     end
   end
 end

@@ -5,35 +5,27 @@ require_relative 'logging'
 require_relative 'event'
 require_relative 'metric'
 
+require_relative 'debug/connection'
+require_relative 'debug/monitor_session'
+
 module EVD::Debug
-  class Connection < EM::Connection
-    include EVD::Logging
-
-    def initialize clients
-      @clients = clients
-      @peer = nil
-      @ip = nil
-      @port = nil
+  module Input
+    def self.serialize_event event
+      event
     end
 
-    def get_peer
-      peer = get_peername
-      port, ip = Socket.unpack_sockaddr_in(peer)
-      return peer, ip, port
+    def self.serialize_metric metric
+      metric
+    end
+  end
+
+  module Output
+    def self.serialize_event event
+      EVD.event_to_h event
     end
 
-    def post_init
-      @peer, @ip, @port = get_peer
-      @clients[@peer] = self
-      log.info "#{@ip}:#{@port}: connected"
-    end
-
-    def unbind
-      @clients.delete @peer
-      log.info "#{@ip}:#{@port}: disconnected"
-    end
-
-    def receive_data(data)
+    def self.serialize_metric metric
+      EVD.metric_to_h metric
     end
   end
 
@@ -42,6 +34,7 @@ module EVD::Debug
 
     def initialize host, port
       @clients = {}
+      @sessions = {}
       @host = host
       @port = port
       @peer = "#{@host}:#{@port}"
@@ -49,41 +42,51 @@ module EVD::Debug
 
     def start
       log.info "Binding on tcp://#{@peer}"
-      EM.start_server(@host, @port, Connection, @clients)
+      EM.start_server @host, @port, Connection, self
     end
 
-    def handle_event name, event
-      return if @clients.empty?
+    def register_client peer, client
+      @sessions.each do |id, session|
+        session.register peer, client
+      end
 
-      begin
-        d = JSON.dump(:type => :event, :data => EVD.event_to_h(event))
-      rescue => e
-        log.error "Failed to serialize event", e
+      @clients[peer] = client
+    end
+
+    def unregister_client peer, client
+      @sessions.each do |id, session|
+        session.unregister peer, client
+      end
+
+      @clients.delete peer
+    end
+
+    # Setup monitor hooks for the specified input and output channel.
+    def monitor id, channel, type
+      if session = @sessions[id]
+        log.error "Session already monitored: #{id}"
         return
       end
 
-      @clients.each do |peer, c|
-        c.send_data "#{d}\n"
+      session = @sessions[id] = MonitorSession.new id, channel, type
+
+      # provide the session to the already connected clients.
+      @clients.each do |peer, client|
+        session.register peer, client
       end
+
+      session.start
     end
 
-    def handle_metric name, metric
-      return if @clients.empty?
-
-      begin
-        d = JSON.dump(:type => :metric, :data => EVD.metric_to_h(metric))
-      rescue => e
-        log.error "Failed to serialize metric", e
-        return
-      end
-
-      @clients.each do |peer, c|
-        c.send_data "#{d}\n"
+    def unmonitor id
+      if session = @sessions[id]
+        session.stop
+        @sessions.delete id
       end
     end
   end
 
-  def self.setup(clients, opts={})
+  def self.setup opts={}
     host = opts[:host] || "localhost"
     port = opts[:port] || 9999
     proto = EVD.parse_protocol(opts[:protocol] || "tcp")
