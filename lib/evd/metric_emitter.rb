@@ -19,9 +19,7 @@ module EVD
       m[:tags] = EVD.merge_sets @event_tags, m[:tags]
       m[:attributes] = EVD.merge_hashes @event_attributes, m[:attributes]
 
-      metric = EVD.metric m
-
-      @output.metric metric
+      @output.metric EVD.metric(m)
     end
   end
 end
