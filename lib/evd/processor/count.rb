@@ -12,12 +12,13 @@ module EVD::Processor
 
     register_type "count"
 
-    def initialize opts={}
+    def initialize emitter, opts={}
+      @emitter = emitter
       @cache_limit = opts[:cache_limit] || 10000
       @cache = {}
     end
 
-    def process emitter, m
+    def process m
       key = m[:key]
       value = m[:value]
 
@@ -29,7 +30,7 @@ module EVD::Processor
       end
 
       @cache[key] = value
-      emitter.emit_metric(
+      @emitter.emit_metric(
         :key => key, :value => value, :source => key)
     end
   end

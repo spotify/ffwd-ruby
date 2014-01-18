@@ -6,22 +6,13 @@ module EVD
 
     def initialize emitter, processors
       @emitter = emitter
-      @processors = setup_processors processors
+      @processors = Hash[processors.map{|k, p| [k, p.call(@emitter)]}]
       @reporters = EVD.setup_reporters @processors
     end
 
-    def setup_processors processors
-      processors = Hash[processors.map do |k, p|
-        [k, p.call]
-      end]
-
-      return processors
-    end
-
     def start input
-      @processors.each do |k, p|
-        next unless p.respond_to?(:start)
-        p.start @emitter
+      @processors.each do |name, p|
+        p.start
       end
 
       input.metric_subscribe do |m|
@@ -34,7 +25,7 @@ module EVD
     end
 
     def stop
-      @processors.each do |k, p|
+      @processors.each do |name, p|
         p.stop
       end
     end
@@ -52,13 +43,7 @@ module EVD
         return @emitter.emit_metric m
       end
 
-      emitter = if m[:tags] or m[:attributes]
-        EventEmitter.new @emitter, m[:tags], m[:attributes]
-      else
-        @emitter
-      end
-
-      p.process emitter, m
+      p.process m
     end
 
     def process_event e
