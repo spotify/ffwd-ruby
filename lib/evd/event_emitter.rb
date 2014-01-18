@@ -18,9 +18,7 @@ module EVD
       e[:tags] = EVD.merge_sets @tags, e[:tags]
       e[:attributes] = EVD.merge_hashes @attributes, e[:attributes]
 
-      event = EVD.event e
-
-      @output.event event
+      @output.event EVD.event(e)
     end
   end
 end
