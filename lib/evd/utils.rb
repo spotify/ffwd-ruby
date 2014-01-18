@@ -1,10 +1,10 @@
-require 'set'
+require 'socket'
 
 module EVD
   # Merge two sets
   def self.merge_sets(a, b)
     return a + b if a and b
-    a || b || Set.new
+    a || b || []
   end
 
   # Merge two hashes.
@@ -23,5 +23,9 @@ module EVD
     end
 
     reporters
+  end
+
+  def self.current_host
+    Socket.gethostname
   end
 end

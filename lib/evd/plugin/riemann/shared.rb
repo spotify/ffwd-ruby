@@ -34,7 +34,8 @@ module EVD::Plugin::Riemann
 
     def read_tags e, source
       return if source.nil? or source.empty?
-      e[:tags] = Set.new source
+      p source
+      e[:tags] = source.to_a
     end
 
     def write_tags e, source

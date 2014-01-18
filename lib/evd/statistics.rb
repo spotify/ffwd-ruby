@@ -6,7 +6,7 @@ module EVD
         @channels = channels
         @period = opts[:period] || 1
         @precision = opts[:precision] || 3
-        @tags = Set.new(opts[:tags] || [])
+        @tags = opts[:tags] || []
         @attributes = opts[:attributes] || {}
       end
 

@@ -22,7 +22,7 @@ module EVD
         target[key] = merge_configurations target[key], source[key]
       end
 
-      return
+      return target
     end
 
     if target.is_a? Array
@@ -53,12 +53,6 @@ module EVD
       end
 
       yield c
-    end
-  end
-
-  def self.join_array config, c, key
-    (c[key] || []).each do |value|
-      (config[key] ||= []) << value
     end
   end
 

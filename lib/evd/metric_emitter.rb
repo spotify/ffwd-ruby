@@ -1,9 +1,11 @@
 require_relative 'logging'
 require_relative 'utils'
-require_relative 'event'
+require_relative 'metric'
 
 module EVD
-  class EventEmitter
+  class MetricEmitter
+    include EVD::Logging
+
     def initialize output, base, opts
       @output = output
       @host = opts[:host] || base[:host] || EVD.current_host
@@ -11,16 +13,15 @@ module EVD
       @attributes = EVD.merge_hashes base[:attributes], opts[:attributes]
     end
 
-    def emit e
-      e[:time] ||= Time.now
-      e[:host] ||= @host if @host
-      e[:ttl] ||= @ttl if @ttl
-      e[:tags] = EVD.merge_sets @tags, e[:tags]
-      e[:attributes] = EVD.merge_hashes @attributes, e[:attributes]
+    def emit m
+      m[:time] ||= Time.now
+      m[:host] ||= @host if @host
+      m[:tags] = EVD.merge_sets @event_tags, m[:tags]
+      m[:attributes] = EVD.merge_hashes @event_attributes, m[:attributes]
 
-      event = EVD.event e
+      metric = EVD.metric m
 
-      @output.event event
+      @output.metric metric
     end
   end
 end

@@ -1,5 +1,4 @@
 require 'evd/connection'
-require 'eventmachine'
 
 describe EVD::Connection do
   it "should dispatch all send_data to eventmachine" do
