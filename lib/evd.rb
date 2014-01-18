@@ -9,44 +9,46 @@ require_relative 'evd/plugin'
 module EVD
   def self.load_yaml path
     return YAML.load_file path
-  rescue
-    log.error "Failed to load config: #{path}"
+  rescue => e
+    log.error "Failed to load config: #{path} (#{e})"
     return nil
   end
 
-  def self.load_config path
-    if path.nil?
-      puts "Configuration path not specified"
-      puts ""
-      puts EVD.parser.help
-      return nil
+  def self.merge_configurations target, source
+    if target.is_a? Hash
+      raise "source not a Hash: #{source}" unless source.is_a? Hash
+
+      source.each do |key, value|
+        target[key] = merge_configurations target[key], source[key]
+      end
+
+      return
     end
 
-    unless File.file? path
-      puts "Configuration path does not exist: #{path}"
-      puts ""
-      puts EVD.parser.help
-      return nil
+    if target.is_a? Array
+      raise "source not an Array: #{source}" unless source.is_a? Array
+      return target + source
     end
 
-    return load_yaml path
+    # override source
+    return source
   end
 
-  def self.load_config_dir_yaml dir
-    Dir.entries(dir).each do |entry|
+  def self.load_config_dir dir, config
+    Dir.entries(dir).sort.each do |entry|
       entry_path = File.join dir, entry
 
       next unless File.file? entry_path
 
       if entry.start_with? "."
-        log.info "Ignoring: #{entry_path} (hidden file)"
+        log.debug "Ignoring: #{entry_path} (hidden file)"
         next
       end
 
       c = load_yaml entry_path
 
       if c.nil?
-        log.info "Ignoring: #{entry_path} (invalid yaml)"
+        log.warn "Ignoring: #{entry_path} (invalid yaml)"
         next
       end
 
@@ -60,24 +62,10 @@ module EVD
     end
   end
 
-  def self.load_config_dir dir, config
-    unless File.directory? dir
-      puts "Configuration directory does not exist: #{dir}"
-      puts ""
-      puts EVD.parser.help
-      return nil
-    end
-
-    load_config_dir_yaml(dir) do |c|
-      join_array config, c, :input
-      join_array config, c, :output
-      join_array config, c, :tunnel
-    end
-  end
-
   def self.opts
     @@opts ||= {:debug => false, :config => nil, :config_dir => nil,
-                :active_plugins => false, :list_plugins => false}
+                :active_plugins => false, :list_plugins => false,
+                :dump_config => false}
   end
 
   def self.parser
@@ -89,7 +77,7 @@ module EVD
       end
 
       o.on "-c", "--config <path>" do |path|
-        opts[:config] = path
+        opts[:config_path] = path
       end
 
       o.on "-d", "--config-dir <path>" do |path|
@@ -102,6 +90,10 @@ module EVD
 
       o.on "--active-plugins" do
         opts[:active_plugins] = true
+      end
+
+      o.on "--dump-config" do
+        opts[:dump_config] = true
       end
     end
   end
@@ -132,14 +124,34 @@ module EVD
       :level => opts[:debug] ? Logger::DEBUG : Logger::INFO
     )
 
-    config = load_config opts[:config]
+    config = {:debug => {}}
 
-    if config.nil?
-      return 1
+    if config_path = opts[:config_path]
+      unless File.file? config_path
+        puts "Configuration path does not exist: #{path}"
+        puts ""
+        puts parser.help
+        return 1
+      end
+
+      unless source = load_yaml(config_path)
+        return 0
+      end
+
+      merge_configurations config, source
     end
 
     if config_dir = opts[:config_dir]
-      load_config_dir config_dir, config
+      unless File.directory? config_dir
+        puts "Configuration directory does not exist: #{path}"
+        puts ""
+        puts parser.help
+        return 1
+      end
+
+      load_config_dir(config_dir, config) do |c|
+        merge_configurations config, c
+      end
     end
 
     blacklist = config[:blacklist] || {}
@@ -149,7 +161,9 @@ module EVD
 
     EVD::Plugin.init
 
-    stop_early = (opts[:list_plugins] or opts[:active_plugins])
+    stop_early = (opts[:list_plugins] or
+                  opts[:active_plugins] or
+                  opts[:dump_config])
 
     if opts[:list_plugins]
       puts "Available Plugins:"
@@ -171,6 +185,10 @@ module EVD
           puts "  #{p.name}: #{p.config}"
         end
       end
+    end
+
+    if opts[:dump_config]
+      puts config
     end
 
     if stop_early

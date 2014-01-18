@@ -1,3 +1,5 @@
+require 'eventmachine'
+
 module EVD
   class Connection < EM::Connection
     def datasink= sink
