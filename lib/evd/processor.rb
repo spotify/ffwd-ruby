@@ -29,8 +29,15 @@ module EVD::Processor
     raise Exception.new("process: Not Implemented")
   end
 
+  def start
+  end
+
   def stopping_callbacks
     @stopping_callbacks ||= []
+  end
+
+  def stopped?
+    (@stopped ||= false)
   end
 
   def stopping &block
@@ -38,6 +45,8 @@ module EVD::Processor
   end
 
   def stop
+    @stopped = true
+
     stopping_callbacks.each do |stop|
       begin
         stop.call
@@ -77,14 +86,14 @@ module EVD::Processor
 
     registry.each do |name, klass|
       opts = config[name] || {}
-      processors[name] = lambda{klass.new opts}
+      processors[name] = lambda{|emitter| klass.new emitter, opts}
     end
 
     if processors.empty?
       raise "No processors loaded"
     end
 
-    log.info "Loaded processors: #{processors.keys.join(', ')}"
+    log.info "Loaded processors: #{processors.keys.sort.join(', ')}"
     return processors
   end
 end

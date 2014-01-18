@@ -6,18 +6,21 @@ describe EVD::Processor::CountProcessor do
   opts = {}
   m1 = {:key => :foo, :value => 10}
 
+  let(:emitter) do
+    double
+  end
+
   let(:count) do
-    EVD::Processor::CountProcessor.new opts
+    described_class.new emitter, opts
   end
 
   it "should realize that 10 + 10 = 20" do
-    core = double
-    core.should_receive(:emit_metric).with m1.merge(
+    emitter.should_receive(:emit_metric).with m1.merge(
       :source => m1[:key])
-    count.process core, m1
+    count.process m1
 
-    core.should_receive(:emit_metric).with m1.merge(
+    emitter.should_receive(:emit_metric).with m1.merge(
       :value => m1[:value] * 2, :source => m1[:key])
-    count.process core, m1
+    count.process m1
   end
 end

@@ -45,12 +45,13 @@ module EVD::Processor
     # :percentiles - Configuration hash of percentile metrics.
     # Structure:
     #   {:p10 => {:info => "Some description", :percentage => 0.1}, ...}
-    def initialize opts={}
+    def initialize emitter, opts={}
+      @emitter = emitter
+
       @window = opts[:window] || 10
       @cache_limit = opts[:cache_limit] || 1000
       @bucket_limit = opts[:bucket_limit] || 10000
       @precision = opts[:precision] || 3
-
       @missing = opts[:missing] || DEFAULT_MISSING
       @percentiles = opts[:percentiles] || DEFAULT_PERCENTILES
 
@@ -61,6 +62,28 @@ module EVD::Processor
       @bucket_dropped = 0
 
       @cache = {}
+    end
+
+    def check_timer
+      return if @timer
+
+      log.debug "Starting timer"
+
+      @timer = EM::Timer.new(@window) do
+        digest!
+        @timer = nil
+      end 
+    end
+
+    def start
+      log.info "Digesting on a window of #{@window}s"
+
+      stopping do
+        next if @timer
+        @timer.cancel
+        digest!
+        @timer = nil
+      end
     end
 
     def report?
@@ -79,30 +102,15 @@ module EVD::Processor
       end
     end
 
-    # Setup all EventMachine hooks.
-    def start emitter
-      log.info "Digesting on a window of #{@window}s"
-
-      timer = EM::PeriodicTimer.new(@window) do
-        digest! emitter
-      end
-
-      stopping do
-        timer.cancel
-        log.info "Shutting down digest window"
-        digest! emitter
-      end
-    end
-
     # Digest the cache.
-    def digest! emitter
+    def digest!
       if @cache.empty?
         return
       end
 
       @cache.each do |key, bucket|
         calculate(bucket) do |p, info, value|
-          emitter.emit_metric(
+          @emitter.emit_metric(
             :key => "#{key}.#{p}", :source => key,
             :value => value, :description => "#{info} of #{key}")
         end
@@ -167,7 +175,7 @@ module EVD::Processor
       end
     end
 
-    def process emitter, m
+    def process m
       key = m[:key]
       value = m[:value] || @missing
 
@@ -185,7 +193,13 @@ module EVD::Processor
         return
       end
 
+      if stopped?
+        @dropped += 1
+        return
+      end
+
       bucket << value
+      check_timer
     end
   end
 end

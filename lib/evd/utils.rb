@@ -1,7 +1,7 @@
 require 'socket'
 
 module EVD
-  # Merge two sets
+  # Merge two sets (arrays actually)
   def self.merge_sets(a, b)
     return a + b if a and b
     a || b || []
@@ -9,9 +9,8 @@ module EVD
 
   # Merge two hashes.
   def self.merge_hashes(a, b)
-    return b if not a
-    r = a.clone
-    r.update(b) if b
+    return a.merge(b) if a and b
+    b || a || {}
   end
 
   def self.setup_reporters instances
