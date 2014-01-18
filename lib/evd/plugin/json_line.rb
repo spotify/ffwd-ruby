@@ -1,5 +1,4 @@
 require 'eventmachine'
-require 'set'
 
 require_relative '../protocol'
 require_relative '../plugin'

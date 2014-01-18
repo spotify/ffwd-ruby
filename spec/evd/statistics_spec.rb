@@ -22,11 +22,11 @@ describe EVD::Statistics::Collector do
 
     emitter.should_receive(:emit_metric).with({
       :key=>"kind1.foo.rate", :source=>"kind1.foo", :value=>2.0,
-      :tags => Set.new(['internal']), :attributes => {:foo => :bar}})
+      :tags => ['internal'], :attributes => {:foo => :bar}})
 
     emitter.should_receive(:emit_metric).with({
       :key=>"kind2.bar.rate", :source=>"kind2.bar", :value=>3.0,
-      :tags => Set.new(['internal']), :attributes => {:foo => :bar}})
+      :tags => ['internal'], :attributes => {:foo => :bar}})
 
     last = 0
     now = 10

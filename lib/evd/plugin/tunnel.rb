@@ -1,4 +1,3 @@
-require 'set'
 require 'eventmachine'
 require 'base64'
 
@@ -64,11 +63,7 @@ module EVD::Plugin::Tunnel
     def read_metadata data
       d = {}
 
-      if tags = data["tags"]
-        tags = Set.new(tags)
-      end
-
-      d[:tags] = EVD.merge_sets @core.tags, tags
+      d[:tags] = EVD.merge_sets @core.tags, data["tags"]
       d[:attributes] = EVD.merge_sets @core.attributes, data["attributes"]
 
       if host = data["host"]

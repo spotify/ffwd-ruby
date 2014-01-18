@@ -23,6 +23,10 @@ module EVD::Debug
       @event_sub = @channel.event_subscribe do |event|
         data = @type.serialize_event event
 
+        p "type", @type
+        p "data", data
+        p "event", event
+
         begin
           send JSON.dump(:id => @id, :type => :event, :data => data)
         rescue => e

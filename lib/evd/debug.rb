@@ -16,6 +16,8 @@ module EVD::Debug
       if tags = event[:tags]
         event[:tags] = tags.to_a
       end
+
+      event
     end
 
     def self.serialize_metric metric
@@ -24,6 +26,8 @@ module EVD::Debug
       if tags = metric[:tags]
         metric[:tags] = tags.to_a
       end
+
+      metric
     end
   end
 

@@ -10,7 +10,7 @@ module EVD
       @tunnels = tunnels
       @processors = processors
       @debug = debug
-      @tags = Set.new(opts[:tags] || [])
+      @tags = opts[:tags] || []
       @attributes = opts[:attributes] || {}
     end
   end
