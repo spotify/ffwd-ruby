@@ -142,7 +142,7 @@ In EVD, the *host* system runs the EVD agent, and every *guest* runs a small
 The tunneling agent is responsible for doing the following.
 
 * Send metadata (host, tags, attributes) about the *guest*.
-* Proxy level 4 (tcp, udp) connection to the *host* agent.
+* Proxy level 4 (TCP, UDP) connection to the *host* agent.
 * Receive configuration from the *host* agent of what needs proxying and
   reconfigure itself accordingly.
 
@@ -170,7 +170,7 @@ The read keys are *tags*, *attributes* and *host*.
 the tunneling client should bind to and tunnel traffic from.
 The read keys are *input* which should be an array of input configurations.
 
-```{"type": <text/binary>, "bind": [{"protocol": "tcp", "port": 5555}, ...]}```.
+```{"type": <text/binary>, "bind": [{"protocol": 2, "port": 5555}, ...]}```.
 
 Now depending on the value of the **type** field, either the **text** or
 **binary** section applies.
@@ -189,7 +189,7 @@ Every message is a frame with the following fields.
 
 Every numeric field greater then 2 bytes are in network byte order.
 
-**protocol** SOCK_STREAM for *tcp* or SOCK_DGRAM for *udp*.
+**protocol** SOCK_STREAM for *TCP* or SOCK_DGRAM for *UDP*.
 
 **bindport** bind port number for *host* agent encoded in octets.
 
