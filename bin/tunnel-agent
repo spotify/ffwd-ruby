@@ -129,10 +129,12 @@ class _TunnelBindTCP(asyncore.dispatcher):
 
 class _LineProtocol(object):
     delimiter = '\n'
+    buffer_limit = 1048576
 
     def __init__(self):
         self._lp_buffer = ""
         self._lp_size = 0
+        self._lp_limit = self.buffer_limit
 
     def set_mode(self, size):
         self._lp_size = size
@@ -141,6 +143,11 @@ class _LineProtocol(object):
         """implement asyncore.dispatcher#handle_read."""
 
         data = self.recv(RECV_MAX)
+
+        if len(self._lp_buffer) + len(data) > self._lp_limit:
+            log.error("buffer limit reached, closing connection")
+            self.close()
+            return
 
         if self._lp_size == 0:
             self._handle_line(data)
