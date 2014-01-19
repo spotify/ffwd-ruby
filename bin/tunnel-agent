@@ -18,54 +18,20 @@ UDP = 'udp'
 TCP = 'tcp'
 RECV_MAX = 8192
 DEFAULT_PROTOCOL = "text"
-PROTOCOL_IPV4 = 0
-PROTOCOL_IPV6 = 1
-PROTOCOL_TCP = 0
-PROTOCOL_UDP = 1
 PROTOCOL_MAX_DATALEN = 2 ** 16
 
 
-def socket_family(family):
+def protocol_ip(family, ip):
     if family == socket.AF_INET:
-        return PROTOCOL_IPV4
+        return socket.inet_ntop(family, ip[:4])
 
     if family == socket.AF_INET6:
-        return PROTOCOL_IPV6
+        return socket.inet_ntop(family, ip[:16])
 
-    raise Exception("Unsupported socket family: %d" % (family))
-
-
-def socket_protocol(protocol):
-    if protocol == TCP:
-        return PROTOCOL_TCP
-
-    if protocol == UDP:
-        return PROTOCOL_UDP
-
-    raise Exception("Unsupported socket protocol: %s" % (protocol))
+    raise Exception("unsupported family: %s" % (family))
 
 
-def socket_addr(family, addr):
-    if family == PROTOCOL_IPV4:
-        return socket.inet_pton(socket.AF_INET, addr + ("\x00" * 12))
-
-    if family == PROTOCOL_IPV6:
-        return socket.inet_pton(socket.AF_INET, addr)
-
-    raise Exception("Unsupported family: %d" % (family))
-
-
-def protocol_addr(family, addr):
-    if family == PROTOCOL_IPV4:
-        return socket.inet_ntop(socket.AF_INET, addr[:4])
-
-    if family == PROTOCOL_IPV6:
-        return socket.inet_ntop(socket.AF_INET, addr)
-
-    raise Exception("Unsupported family: %d" % (family))
-
-
-def protocol_protocol_type(protocol):
+def protocol_type(protocol):
     if protocol == "text":
         return TEXT
 
@@ -88,8 +54,9 @@ class _TunnelBindUDP(asyncore.dispatcher):
     def handle_read(self):
         """implement asyncore.dispatcher#handle_read"""
         data, addr = self.recvfrom(RECV_MAX)
-        addr = (socket_family(self.family), addr[0], addr[1])
-        self._tunnel.receive_client_data(UDP, self._bindport, addr, data)
+        addr = (self.family, addr[0], addr[1])
+        self._tunnel.receive_client_data(
+            socket.SOCK_DGRAM, self._bindport, addr, data)
 
     def tunnel_send_data(self, addr, data):
         family, addr, port = addr
@@ -131,7 +98,7 @@ class _TunnelBindTCP(asyncore.dispatcher):
 
         if len(data) > 0:
             self._tunnel.receive_client_data(
-                TCP, self._bindport, addr, data)
+                socket.SOCK_STREAM, self._bindport, addr, data)
 
     def handle_close(self):
         """implement asyncore.dispatcher#handle_close."""
@@ -143,7 +110,7 @@ class _TunnelBindTCP(asyncore.dispatcher):
 
         if pair is not None:
             sock, addr = pair
-            addr = (socket_family(sock.family), addr[0], addr[1])
+            addr = (sock.family, addr[0], addr[1])
             self._connections[addr] = self.Connection(self, sock, addr)
 
     def connection_close(self, addr):
@@ -222,8 +189,8 @@ class _LineProtocol(object):
 
 
 BIND_PROTOCOLS = {
-    PROTOCOL_TCP: _TunnelBindTCP,
-    PROTOCOL_UDP: _TunnelBindUDP,
+    socket.SOCK_STREAM: _TunnelBindTCP,
+    socket.SOCK_DGRAM: _TunnelBindUDP,
 }
 
 
@@ -270,41 +237,34 @@ class _TunnelClient(_LineProtocol, asyncore.dispatcher_with_send):
 
         try:
             if self._protocol_type == TEXT:
-                return self._receive_client_data_text(
-                    protocol, bindport, addr, data)
+                return self._receive_text(protocol, bindport, addr, data)
 
             if self._protocol_type == BINARY:
-                return self._receive_client_data_binary(
-                    protocol, bindport, addr, data)
-
-            raise Exception("Self invalid protocol type: %s" % (
-                repr(self._protocol_type)))
+                return self._receive_binary(protocol, bindport, addr, data)
         except:
             log.error("Failed to receive client data", exc_info=sys.exc_info())
 
-    def _receive_client_data_text(self, protocol, bindport, addr, data):
-        protocol = socket_protocol(protocol)
-        peerfamily = addr[0]
-        peeraddr = addr[1]
-        peerport = addr[2]
+    def _receive_text(self, protocol, bindport, addr, data):
+        family = addr[0]
+        ip = addr[1]
+        port = addr[2]
 
         data = base64.b64encode(data)
 
         self.send_line("%d %d %d %s %d %s" % (
-            protocol, bindport, peerfamily, peeraddr, peerport, data))
+            protocol, bindport, family, ip, port, data))
 
-    def _receive_client_data_binary(self, protocol, bindport, addr, data):
-        protocol = socket_protocol(protocol)
-        peerfamily = addr[0]
-        peeraddr = socket_addr(addr[0], addr[1])
-        peerport = addr[2]
-        datalen = len(data)
+    def _receive_binary(self, protocol, bindport, addr, data):
+        family = addr[0]
+        ip = socket.inet_pton(addr[0], addr[1])
+        port = addr[2]
+        datasize = len(data)
 
-        if datalen > PROTOCOL_MAX_DATALEN:
+        if datasize > PROTOCOL_MAX_DATALEN:
             raise Exception("Maximum data length exceeded")
 
         header = self.HEADER.pack(
-            protocol, bindport, peerfamily, peeraddr, peerport, datalen)
+            protocol, bindport, family, ip, port, datasize)
 
         frame = header + data
         self.send(frame)
@@ -320,13 +280,11 @@ class _TunnelClient(_LineProtocol, asyncore.dispatcher_with_send):
             self._config = json.loads(line)
             log.info("CONFIG: %s", repr(self._config))
 
-            self._protocol_type = protocol_protocol_type(
+            self._protocol_type = protocol_type(
                 self._config.get('type', DEFAULT_PROTOCOL))
             self._bind_all()
 
-            if self._protocol_type == TEXT:
-                pass
-            else:
+            if self._protocol_type == BINARY:
                 self.set_mode(self.HEADER.size)
 
             return
@@ -342,11 +300,11 @@ class _TunnelClient(_LineProtocol, asyncore.dispatcher_with_send):
             self.set_mode(self._header[5])
             return
 
-        protocol, bindport, peerfamily, peeraddr, peerport, _ = self._header
-        peeraddr = protocol_addr(peerfamily, peeraddr)
+        protocol, bindport, family, ip, port, _ = self._header
+        ip = protocol_ip(family, ip)
 
         server_id = (protocol, bindport)
-        addr = (peerfamily, peeraddr, peerport)
+        addr = (family, ip, port)
         self._send_frame(server_id, addr, data)
 
         self._header = None
@@ -354,20 +312,20 @@ class _TunnelClient(_LineProtocol, asyncore.dispatcher_with_send):
 
     def _text_protocol_read(self, line):
         parts = line.split(' ', 6)
-        protocol, bindport, peerfamily, peeraddr, peerport, data = parts
+        protocol, bindport, family, ip, port, data = parts
 
         try:
             protocol = int(protocol)
             bindport = int(bindport)
-            peerfamily = int(peerfamily)
-            peerport = int(peerport)
+            family = int(family)
+            port = int(port)
             data = base64.b64decode(data)
         except:
             log.error("received invalid frame")
             return
 
         server_id = (protocol, bindport)
-        addr = (peerfamily, peeraddr, peerport)
+        addr = (family, ip, port)
         self._send_frame(server_id, addr, data)
 
     def _send_frame(self, server_id, addr, data):

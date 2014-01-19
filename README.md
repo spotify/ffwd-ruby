@@ -175,6 +175,35 @@ The read keys are *input* which should be an array of input configurations.
 Now depending on the value of the **type** field, either the **text** or
 **binary** section applies.
 
+#### type: binary
+
+Every message is a frame with the following fields.
+
+```
+        _____________________________________________________
+ field | protocol | bindport | family | ip | port | data     |
+       |-----------------------------------------------------|
+  size | 1        | 2        | 1      | 16 | 2    | 2 + var  |
+       '-----------------------------------------------------'
+```
+
+Every numeric field greater then 2 bytes are in network byte order.
+
+**protocol** SOCK_STREAM for *tcp* or SOCK_DGRAM for *udp*.
+
+**bindport** bind port number for *host* agent encoded in octets.
+
+**family** AF_INET for *IPv4*, AF_INET6 for *IPv6*.
+
+**ip** peer IPv4 or IPv6 address encoded in octets.
+
+Note: IPv4 addresses are padded with zeroes to be 16 octets wide.
+
+**port** peer port encoded in octets.
+
+**data** the transferred blob of data, prefixed with 2 octets describing the
+length of the payload. Maximum size of the payload is 2^16 bytes.
+
 #### type: text
 
 **datastream** Is a bi-directional stream of messages going from the client to
@@ -182,47 +211,11 @@ the agent of the following structure.
 *&lt;base64-data&gt;* Is the data being tunneled, encoded in *base 64*.
 
 ```
-<protocol> ' ' <bindport> ' ' <peerfamily> ' ' <peeraddr> ' ' <peerport> ' ' <base64-data>
+<protocol> ' ' <bindport> ' ' <family> ' ' <ip> ' ' <port> ' ' <base64-data>
 ```
 
-**protocol** is the protocol of the data stream (tcp or udp).
-
-**bindport** is the port of the data stream.
-
-**peerfamily** the family of the socket of the connected peer.
-
-**peeraddr** is the remote address of the connected peer.
-
-**peerport** is the remote port of the connected peer.
-
-**data** base64 data.
-
-#### type: binary
-
-Every message is a frame with the following fields.
-
-```
-        ___________________________________________________________________
- field | protocol | bindport | peerfamily | peeraddr | peerport | data     |
-       |-------------------------------------------------------------------|
-  size | 1        | 2        | 1          | 16       | 2        | 2 + var  |
-       '-------------------------------------------------------------------'
-```
-
-Every numeric field greater then 2 bytes are in network byte order.
-
-**protocol** 0 for *tcp*, 1 for *udp*.
-
-**bindport** bind port number for *host* agent encoded in octets.
-
-**peerfamily** 0 for IPv4, 1 for IPv6.
-
-**peeraddr** peer IPv4 or IPv6 address encoded in octets.
-
-**peerport** peer port encoded in octets.
-
-**data** the transferred blob of data, prefixed with 2 octets describing the
-length of the payload. Maximum size of the payload is therefore 2**16 bytes.
+Fields are the same as for the binary protocol, with the exception of **data**
+which is a base64 encoded blob.
 
 ### Comparison to other tunneling solutions
 

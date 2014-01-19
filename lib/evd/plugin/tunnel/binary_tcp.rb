@@ -14,10 +14,10 @@ module EVD::Plugin::Tunnel
     Header = Struct.new(
       :protocol,
       :bindport,
-      :peerfamily,
-      :peeraddr,
-      :peerport,
-      :datalen,
+      :family,
+      :ip,
+      :port,
+      :datasize,
     )
 
     HEADER_FORMAT = 'CnCa16nn'
@@ -29,21 +29,15 @@ module EVD::Plugin::Tunnel
       set_text_mode HEADER_LENGTH
     end
 
-    def read_protocol b
-      return "tcp" if b == 0
-      return "udp" if b == 1
-      raise "unknown protocol"
-    end
-
     def receive_binary_data data
       unless (@header ||= nil)
         @header = Header.new(*data.unpack(HEADER_FORMAT))
-        set_text_mode @header.datalen
+        set_text_mode @header.datasize
         return
       end
 
       id = [@header.protocol, @header.bindport]
-      addr = [@header.peerfamily, @header.peeraddr, @header.peerport]
+      addr = [@header.family, @header.ip, @header.port]
       send_frame id, addr, data
 
       @header = nil
@@ -52,8 +46,8 @@ module EVD::Plugin::Tunnel
 
     def dispatch id, addr, data
       protocol, bindport = id
-      peerfamily, peeraddr, peerport = addr
-      header = [protocol, bindport, peerfamily, peeraddr, peerport, data.size]
+      family, ip, port = addr
+      header = [protocol, bindport, family, ip, port, data.size]
       header = header.pack HEADER_FORMAT
       frame = header + data
 
