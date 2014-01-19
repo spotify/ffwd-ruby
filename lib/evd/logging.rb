@@ -4,6 +4,7 @@ module EVD
   def self.log
     @log ||= ::Logger.new(log_config[:stream]).tap do |l|
       l.level = log_config[:level]
+      l.progname = "EVD"
     end
   end
 
@@ -18,7 +19,7 @@ module EVD
     }
   end
 
-  def self.log_setup(log_opts={})
+  def self.log_setup log_opts={}
     @log_opts = log_opts
   end
 
@@ -31,37 +32,39 @@ module EVD
   end
 
   class ClassLogger
-    def initialize(klass)
-      @klass_name = klass.name
+    def initialize klass
+      @progname = klass.name
     end
 
-    def info(message, *args)
-      EVD.log.info("#{@klass_name}: #{message}", *args)
+    def debug message
+      EVD.log.debug(@progname){message}
     end
 
-    def error(message, e = nil, *args)
-      EVD.log.error("#{@klass_name}: #{message}", *args)
+    def info message
+      EVD.log.info(@progname){message}
+    end
+
+    def warning message
+      EVD.log.warn(@progname){message}
+    end
+
+    def error message, e=nil
+      EVD.log.error(@progname){message}
 
       return unless e
 
-      bt = e.backtrace.map{|b| "  #{b}"}.join("\n")
-      EVD.log.error("#{@klass_name}: Exception: #{e}\n#{bt}")
-    end
-
-    def warning(message, *args)
-      EVD.log.warn("#{@klass_name}: #{message}", *args)
-    end
-
-    def debug(message, *args)
-      EVD.log.debug("#{@klass_name}: #{message}", *args)
+      EVD.log.error(@progname){"Caused by: #{e}"}
+      e.backtrace.each do |b|
+        EVD.log.error(@progname){"  #{b}"}
+      end
     end
   end
 
   class FakeLogger
-    def info(message, *args); end
-    def error(message, *args); end
-    def warning(message, *args); end
-    def debug(message, *args); end
+    def debug message; end
+    def info message; end
+    def warning message; end
+    def error message, e=nil; end
   end
 
   module Logging
@@ -73,7 +76,7 @@ module EVD
       self.class.log
     end
 
-    def self.included(klass)
+    def self.included klass
       klass.extend ClassMethods
 
       if EVD.log_disabled?
