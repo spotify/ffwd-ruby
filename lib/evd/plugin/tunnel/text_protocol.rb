@@ -2,15 +2,17 @@ require 'eventmachine'
 require 'base64'
 require 'json'
 
-require_relative 'base_tcp'
-
-require_relative '../../connection'
+require_relative 'base_protocol'
 
 module EVD::Plugin::Tunnel
-  class TextTCP < EVD::Connection
-    include EVD::Logging
-    include EM::Protocols::LineText2
-    include BaseTCP
+  class TextProtocol < BaseProtocol
+    def initialize core, output, conn
+      super core, output, conn
+    end
+
+    def self.type
+      :text
+    end
 
     def receive_line line
       if not @metadata
@@ -36,6 +38,10 @@ module EVD::Plugin::Tunnel
       send_frame id, addr, data
     end
 
+    def receive_binary_data data
+      raise "receive binary data unsupported"
+    end
+
     def dispatch id, addr, data
       protocol, bindport = id
       peerfamily, peeraddr, peerport = addr
@@ -43,5 +49,4 @@ module EVD::Plugin::Tunnel
       send_data "#{protocol} #{bindport} #{peerfamily} #{peeraddr} #{peerport} #{data}\n"
     end
   end
-
 end
