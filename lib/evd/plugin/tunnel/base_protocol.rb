@@ -1,14 +1,17 @@
 require_relative '../../utils'
+require_relative '../../logging'
 require_relative '../../plugin_channel'
 require_relative '../../core_emitter'
 require_relative '../../core_processor'
 
 module EVD::Plugin::Tunnel
   class BaseProtocol
-    def initialize core, output, conn
+    include EVD::Logging
+
+    def initialize core, output, connection
       @core = core
       @output = output
-      @conn = conn
+      @connection = connection
       @metadata = nil
       @processor = nil
       @debug_id = nil
@@ -16,14 +19,14 @@ module EVD::Plugin::Tunnel
     end
 
     def send_data data
-      @conn.send_data data
+      @connection.send_data data
     end
 
     def set_text_mode size
-      @conn.set_text_mode size
+      @connection.set_text_mode size
     end
 
-    def send_frame id, addr, data
+    def tunnel_frame id, addr, data
       if s = @subs[id]
         s.call id, addr, data
       else
@@ -98,7 +101,7 @@ module EVD::Plugin::Tunnel
       @processor = EVD::CoreProcessor.new emitter, @core.processors
       @processor.start input
 
-      @debug_id = "tunnel.input/#{@conn.get_peer}"
+      @debug_id = "tunnel.input/#{@connection.get_peer}"
       @core.debug.monitor @debug_id, input, EVD::Debug::Input
     end
 

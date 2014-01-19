@@ -5,8 +5,8 @@ require_relative 'base_protocol'
 
 module EVD::Plugin::Tunnel
   class BinaryProtocol < BaseProtocol
-    def initialize core, output, conn
-      super core, output, conn
+    def initialize core, output, connection
+      super core, output, connection
       @header = nil
     end
 
@@ -41,7 +41,7 @@ module EVD::Plugin::Tunnel
 
       id = [@header.protocol, @header.bindport]
       addr = [@header.family, @header.ip, @header.port]
-      send_frame id, addr, data
+      tunnel_frame id, addr, data
 
       @header = nil
       set_text_mode HEADER_LENGTH
