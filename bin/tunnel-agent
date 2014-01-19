@@ -9,6 +9,8 @@ import sys
 import socket
 import struct
 import logging
+import errno
+import argparse
 
 log = logging.getLogger(__name__)
 
@@ -19,6 +21,7 @@ TCP = 'tcp'
 RECV_MAX = 8192
 DEFAULT_PROTOCOL = "text"
 PROTOCOL_MAX_DATALEN = 2 ** 16
+DEFAULT_PORT = 9000
 
 
 def protocol_ip(family, ip):
@@ -298,18 +301,28 @@ def protocol_type(protocol, conn):
 
 
 class _TunnelClient(_LineProtocol, asyncore.dispatcher_with_send):
-    def __init__(self, metadata):
+    def __init__(self, metadata, addr):
         asyncore.dispatcher_with_send.__init__(self)
         _LineProtocol.__init__(self)
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.connect(addr)
 
         self._metadata = metadata
         self._servers = dict()
         self._protocol = None
+        self._addr = addr
 
     def handle_error(self):
         """implement asyncore.dispatcher#handle_error."""
         exc_info = sys.exc_info()
+        e = exc_info[1]
+
+        if isinstance(e, socket.error):
+            if e.errno == errno.ECONNREFUSED:
+                log.warn("connection refused: %s", self._addr)
+                self.close()
+                return
+
         log.error("error: %s", str(exc_info[1]), exc_info=exc_info)
         self.close()
 
@@ -431,23 +444,54 @@ class _TunnelClient(_LineProtocol, asyncore.dispatcher_with_send):
         log.info("ports bound")
 
 
-def _main(args):
-    logging.basicConfig(level=logging.INFO)
+def hostip(string):
+    if ':' not in string:
+        return (string, DEFAULT_PORT)
 
-    if len(args) > 0:
-        with open(args[0]) as f:
-            metadata = json.load(f)
+    ip, port = string.split(':', 2)
+    return (ip, int(port))
+
+parser = argparse.ArgumentParser(sys.argv[0])
+
+parser.add_argument(
+    "-j", "--json-metadata", dest="json_metadata",
+    help="Load metadata from JSON file.", metavar="<file>")
+
+parser.add_argument(
+    "-d", "--debug", dest="debug", action="store_const", const=True,
+    default=False, help="Enable debugging.")
+
+parser.add_argument(
+    "-c", "--connect", dest="connect", default=('127.0.0.1', DEFAULT_PORT),
+    type=hostip, metavar="<host>[:port]", help="Connect to the specified ")
+
+
+def parse_args(args):
+    ns = parser.parse_args(args)
+
+    log_level = logging.INFO
+
+    if ns.debug:
+        log_level = logging.DEBUG
+
+    logging.basicConfig(level=log_level)
+
+    if ns.json_metadata is not None:
+        with open(ns.json_metadata) as f:
+            ns.metadata = json.load(f)
     else:
-        metadata = dict()
+        ns.metadata = dict()
 
-    addr = ('127.0.0.1', 9000)
+    return ns
+
+
+def _main(args):
+    ns = parse_args(args)
 
     reconnect_timeout = 1.0
 
     while True:
-        client = _TunnelClient(metadata)
-        client.connect(addr)
-
+        _TunnelClient(ns.metadata, ns.connect)
         asyncore.loop()
 
         log.info("reconnecting in %ds", reconnect_timeout)
