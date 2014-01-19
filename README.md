@@ -179,17 +179,23 @@ Now depending on the value of the **type** field, either the **text** or
 
 **datastream** Is a bi-directional stream of messages going from the client to
 the agent of the following structure.
-*&lt;base64-payload&gt;* Is the data being tunneled, encoded in *base 64*.
+*&lt;base64-data&gt;* Is the data being tunneled, encoded in *base 64*.
 
-```<protocol> ' ' <port> ' ' <addr> ':' <port> <base64-payload>```
+```
+<protocol> ' ' <bindport> ' ' <peerfamily> ' ' <peeraddr> ' ' <peerport> ' ' <base64-data>
+```
 
 **protocol** is the protocol of the data stream (tcp or udp).
 
-**port** is the port that was bound.
+**bindport** is the port of the data stream.
 
-**addr** is the remote ip of the connected peer.
+**peerfamily** the family of the socket of the connected peer.
 
-**port** is the remote port of the connected peer.
+**peeraddr** is the remote address of the connected peer.
+
+**peerport** is the remote port of the connected peer.
+
+**data** base64 data.
 
 #### type: binary
 
