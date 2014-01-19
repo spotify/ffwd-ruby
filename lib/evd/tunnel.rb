@@ -2,16 +2,15 @@ module EVD
   class Tunnel
     # The component that pretends to be EventMachine for the various handlers.
     class TunnelTCP
-      def initialize log, protocol, port, peer, tunnel
+      def initialize log, id, addr, tunnel
         @log = log
-        @protocol = protocol
-        @port = port
-        @peer = peer
+        @id = id
+        @addr = addr
         @tunnel = tunnel
       end
 
       def << data
-        @tunnel.dispatch @protocol, @port, @peer, data
+        @tunnel.dispatch @id, @addr, data
       end
     end
 
@@ -26,35 +25,33 @@ module EVD
     end
 
     def start input, output, tunnel
-      if @protocol == 'udp'
-        return handle_udp input, output, tunnel
-      else
-        return handle_tcp input, output, tunnel
-      end
+      return handle_udp input, output, tunnel if @protocol == :udp
+      return handle_tcp input, output, tunnel if @protocol == :tcp
+      raise "Unsupported protocol: #{@protocol}"
     end
 
     def handle_udp input, output, tunnel
       handler_instance = @connection.new(nil, input, output, *@args)
-      @log.info "Tunneling to #{@protocol}://#{@peer}"
+      @log.info "Tunneling to #{@protocol}://#{@addr}"
 
-      tunnel.subscribe @protocol, @port do |peer, data|
+      tunnel.subscribe @protocol, @port do |id, addr, data|
         handler_instance.receive_data data
       end
     end
 
     def handle_tcp input, output, tunnel
-      tunnel.subscribe @protocol, @port do |peer, data|
-        unless instance = @instances[peer]
-          @log.debug "New connection: #{peer} (#{@connection})"
-          handler = TunnelTCP.new @log, @protocol, @port, peer, tunnel
-          instance = @instances[peer] = @connection.new(nil, input, output, *@args)
+      tunnel.subscribe @protocol, @port do |id, addr, data|
+        unless instance = @instances[addr]
+          @log.debug "New connection: #{addr} (#{id}, #{@connection})"
+          handler = TunnelTCP.new @log, id, addr, tunnel
+          instance = @instances[addr] = @connection.new(nil, input, output, *@args)
           instance.datasink = handler
         end
 
         if data.nil? or data.empty?
-          @log.debug "Close connection: #{peer}"
+          @log.debug "Close connection: #{addr}"
           instance.unbind
-          @instances.delete peer
+          @instances.delete addr
           next
         end
 

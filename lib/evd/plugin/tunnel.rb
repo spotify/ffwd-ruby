@@ -20,8 +20,8 @@ module EVD::Plugin::Tunnel
   DEFAULT_TYPE = :text
 
   CONNECTIONS = {:tcp => {
-    :text => TextTCP,
-    :binary => BinaryTCP,
+    "text" => TextTCP,
+    "binary" => BinaryTCP,
   }}
 
   def self.setup_input core, opts={}

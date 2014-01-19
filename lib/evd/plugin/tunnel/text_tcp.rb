@@ -18,26 +18,29 @@ module EVD::Plugin::Tunnel
         return
       end
 
-      protocol, port, addr, data = line.split(' ', 4)
-
-      unless protocol and port and addr
-        log.error "Invalid tunneling frame (#{line.size} bytes)"
-        return
-      end
+      protocol, bindport, peerfamily, peeraddr, peerport, data = line.split(' ', 6)
 
       begin
-        peer_host, peer_port = addr.split(':', 2)
-        port = port.to_i
-        peer_port = peer_port.to_i
+        protocol = protocol.to_i
+        bindport = bindport.to_i
+        peerfamily = peerfamily.to_i
+        peerport = peerport.to_i
         data = Base64.decode64(data)
       rescue => e
         log.error "Invalid tunneling frame (#{line.size} bytes, last part not decodable)", e
         return
       end
 
-      id = [protocol, port]
-      addr = [peer_host, peer_port]
+      id = [protocol, bindport]
+      addr = [peerfamily, peeraddr, peerport]
       send_frame id, addr, data
+    end
+
+    def dispatch id, addr, data
+      protocol, bindport = id
+      peerfamily, peeraddr, peerport = addr
+      data = Base64.encode64(data)
+      send_data "#{protocol} #{bindport} #{peerfamily} #{peeraddr} #{peerport} #{data}\n"
     end
   end
 
