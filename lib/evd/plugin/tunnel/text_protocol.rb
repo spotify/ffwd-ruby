@@ -6,8 +6,8 @@ require_relative 'base_protocol'
 
 module EVD::Plugin::Tunnel
   class TextProtocol < BaseProtocol
-    def initialize core, output, conn
-      super core, output, conn
+    def initialize core, output, connection
+      super core, output, connection
     end
 
     def self.type
@@ -35,7 +35,7 @@ module EVD::Plugin::Tunnel
 
       id = [protocol, bindport]
       addr = [peerfamily, peeraddr, peerport]
-      send_frame id, addr, data
+      tunnel_frame id, addr, data
     end
 
     def receive_binary_data data
