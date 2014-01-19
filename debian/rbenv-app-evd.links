@@ -1,1 +1,2 @@
 opt/rbenv/evd/shims/evd usr/bin/evd
+opt/rbenv/evd/shims/evc usr/bin/evc
