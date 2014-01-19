@@ -3,9 +3,6 @@ require_relative '../../core_processor'
 require_relative '../../plugin_channel'
 
 module EVD::Plugin::Tunnel
-  PROTOCOL_TCP = 0
-  PROTOCOL_UDP = 1
-
   module BaseTCP
     def initialize input, output, protocol_type, core
       @input = input
@@ -32,9 +29,9 @@ module EVD::Plugin::Tunnel
     end
 
     def parse_protocol protocol
-      return PROTOCOL_TCP if protocol == :tcp
-      return PROTOCOL_UDP if protocol == :udp
-      raise "Invalid protocol: #{protocol}"
+      return Socket::SOCK_STREAM if protocol == :tcp
+      return Socket::SOCK_DGRAM if protocol == :udp
+      raise "Unsupported protocol: #{protocol}"
     end
 
     def subscribe protocol, port, &block
