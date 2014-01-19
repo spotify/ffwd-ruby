@@ -1,8 +1,9 @@
 require 'eventmachine'
 require 'base64'
 
-require_relative 'tunnel/text_tcp'
-require_relative 'tunnel/binary_tcp'
+require_relative 'tunnel/connection_tcp'
+require_relative 'tunnel/text_protocol'
+require_relative 'tunnel/binary_protocol'
 
 require_relative '../logging'
 require_relative '../plugin'
@@ -19,10 +20,12 @@ module EVD::Plugin::Tunnel
   DEFAULT_PROTOCOL = 'tcp'
   DEFAULT_TYPE = :text
 
-  CONNECTIONS = {:tcp => {
-    "text" => TextTCP,
-    "binary" => BinaryTCP,
-  }}
+  CONNECTIONS = {:tcp => ConnectionTCP}
+  
+  PROTOCOLS = {
+    "text" => TextProtocol,
+    "binary" => BinaryProtocol,
+  }
 
   def self.setup_input core, opts={}
     opts[:host] ||= DEFAULT_HOST
@@ -30,11 +33,11 @@ module EVD::Plugin::Tunnel
     protocol = EVD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
     protocol_type = opts[:protocol_type] || DEFAULT_TYPE
 
-    unless group = CONNECTIONS[protocol.family]
+    unless connection = CONNECTIONS[protocol.family]
       raise "No connection for protocol family: #{protocol.family}"
     end
 
-    unless connection = group[protocol_type]
+    unless tunnel_protocol = PROTOCOLS[protocol_type]
       raise "No such tunnel protocol: #{protocol_type}"
     end
 
@@ -42,6 +45,6 @@ module EVD::Plugin::Tunnel
       raise "Nothing requires tunneling"
     end
 
-    protocol.bind log, opts, connection, protocol_type, core
+    protocol.bind log, opts, connection, core, tunnel_protocol
   end
 end

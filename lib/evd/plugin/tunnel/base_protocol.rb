@@ -1,41 +1,44 @@
+require_relative '../../utils'
+require_relative '../../plugin_channel'
 require_relative '../../core_emitter'
 require_relative '../../core_processor'
-require_relative '../../plugin_channel'
 
 module EVD::Plugin::Tunnel
-  module BaseTCP
-    def initialize input, output, protocol_type, core
-      @input = input
-      @output = output
-      @protocol_type = protocol_type
+  class BaseProtocol
+    def initialize core, output, conn
       @core = core
+      @output = output
+      @conn = conn
+      @metadata = nil
+      @processor = nil
+      @debug_id = nil
       @subs = {}
-      @processor = nil
-      @debug_id = nil
     end
 
-    def get_peer
-      peer = get_peername
-      port, ip = Socket.unpack_sockaddr_in(peer)
-      "#{ip}:#{port}"
+    def send_data data
+      @conn.send_data data
     end
 
-    def unbind
-      log.info "Shutting down tunnel connection"
-      @processor.stop if @processor
-      @processor = nil
-      @core.debug.unmonitor @debug_id if @debug_id
-      @debug_id = nil
+    def set_text_mode size
+      @conn.set_text_mode size
     end
 
-    def parse_protocol protocol
-      return Socket::SOCK_STREAM if protocol == :tcp
-      return Socket::SOCK_DGRAM if protocol == :udp
-      raise "Unsupported protocol: #{protocol}"
+    def send_frame id, addr, data
+      if s = @subs[id]
+        s.call id, addr, data
+      else
+        log.error "Nothing listening on #{id}'"
+      end
+    end
+
+    def parse_protocol string
+      return Socket::SOCK_STREAM if string == :tcp
+      return Socket::SOCK_DGRAM if string == :udp
+      raise "Unsupported protocol: #{string}"
     end
 
     def subscribe protocol, port, &block
-      protocol = parse_protocol(protocol)
+      protocol = parse_protocol protocol
       id = [protocol, port]
 
       if @subs[id]
@@ -43,6 +46,15 @@ module EVD::Plugin::Tunnel
       end
 
       @subs[id] = block
+    end
+
+    def stop
+      @processor.stop if @processor
+      @core.debug.unmonitor @debug_id if @debug_id
+      @metadata = nil
+      @processor = nil
+      @debug_id = nil
+      @subs = {}
     end
 
     def read_metadata data
@@ -62,10 +74,6 @@ module EVD::Plugin::Tunnel
       d
     end
 
-    def metadata?
-      not @metadata.nil?
-    end
-
     def receive_metadata data
       @metadata = read_metadata data
 
@@ -75,7 +83,7 @@ module EVD::Plugin::Tunnel
         t.start input, @output, self
       end
 
-      response = {:type => @protocol_type}
+      response = {:type => self.class.type}
 
       response[:bind] = @subs.keys.map do |protocol, port|
         {:protocol => protocol, :port => port}
@@ -90,16 +98,9 @@ module EVD::Plugin::Tunnel
       @processor = EVD::CoreProcessor.new emitter, @core.processors
       @processor.start input
 
-      @debug_id = "tunnel.input/#{get_peer}"
+      @debug_id = "tunnel.input/#{@conn.get_peer}"
       @core.debug.monitor @debug_id, input, EVD::Debug::Input
     end
 
-    def send_frame id, addr, data
-      if s = @subs[id]
-        s.call id, addr, data
-      else
-        log.error "Nothing listening on #{id}'"
-      end
-    end
   end
 end

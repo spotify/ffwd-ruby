@@ -1,15 +1,18 @@
 require 'eventmachine'
 require 'json'
 
-require_relative 'base_tcp'
-
-require_relative '../../connection'
+require_relative 'base_protocol'
 
 module EVD::Plugin::Tunnel
-  class BinaryTCP < EVD::Connection
-    include EM::Protocols::LineText2
-    include EVD::Logging
-    include BaseTCP
+  class BinaryProtocol < BaseProtocol
+    def initialize core, output, conn
+      super core, output, conn
+      @header = nil
+    end
+
+    def self.type
+      :binary
+    end
 
     Header = Struct.new(
       :protocol,
@@ -30,7 +33,7 @@ module EVD::Plugin::Tunnel
     end
 
     def receive_binary_data data
-      unless (@header ||= nil)
+      unless @header
         @header = Header.new(*data.unpack(HEADER_FORMAT))
         set_text_mode @header.datasize
         return
@@ -50,7 +53,6 @@ module EVD::Plugin::Tunnel
       header = [protocol, bindport, family, ip, port, data.size]
       header = header.pack HEADER_FORMAT
       frame = header + data
-
       send_data frame
     end
   end
