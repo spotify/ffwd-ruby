@@ -154,6 +154,7 @@ class _TunnelClient(_LineProtocol, asyncore.dispatcher_with_send):
         else:
             self.create_socket(socket.AF_INET, socket.SOCK_DGRAM)
 
+        self._protocol_type = None
         self._metadata = metadata
         self._config = None
         self._servers = dict()
@@ -193,6 +194,14 @@ class _TunnelClient(_LineProtocol, asyncore.dispatcher_with_send):
         """implement _LineProtocol#receive_line."""
         if self._config is None:
             self._config = json.loads(line)
+            self._protocol_type = self._config.get('type', 'text')
+
+            if self._protocol_type == 'text':
+                pass
+            else:
+                self.close()
+                return
+
             self._bind_all()
             return
 
