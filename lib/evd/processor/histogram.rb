@@ -72,14 +72,14 @@ module EVD::Processor
       @timer = EM::Timer.new(@window) do
         digest!
         @timer = nil
-      end 
+      end
     end
 
     def start
       log.info "Digesting on a window of #{@window}s"
 
       stopping do
-        next if @timer
+        next unless @timer
         @timer.cancel
         digest!
         @timer = nil

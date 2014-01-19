@@ -12,6 +12,8 @@ it is capable of rich metadata decoration of the events passing through it.
 * [Events and Metrics](#events-and-metrics)
 * [Debugging](#debugging)
 * [Tunneling and multi-tenancy](#tunneling-and-multi-tenancy)
+  * [Description](#description)
+  * [Comparison to other tunneling solutions](#comparison-to-other-tunneling-solutions)
 * [Terminology](#terminology)
 
 ## Usage
@@ -123,10 +125,31 @@ which channel the traffic was sniffed of.
 
 ## Tunneling and multi-tenancy
 
-EVD has prototype support for tunneling traffic for multitenant system using
-the *tunnel* plugin.
+Multi-tenancy is the act of supporting multiple distinct client services with
+unique metadata (host, tags, attributes) on a single EVD agent.
+
+This is currently achieved with the *tunnel* plugin.
 
 **The tunneling protocol is experimental and will be subject to future change**
+
+### Description
+
+In multi-tenancy we distinguish betweeh the *host* and the *guest* system.
+
+In EVD, the *host* system runs the EVD agent, and every *guest* runs a small
+[*tunneling agent*](bin/tunnel-agent) which connects to the *host*.
+
+The tunneling agent is responsible for doing the following.
+
+* Send metadata (host, tags, attributes) about the *guest*.
+* Proxy level 4 (tcp, udp) connection to the *host* agent.
+* Receive configuration from the *host* agent of what needs proxying and
+  reconfigure itself accordingly.
+
+On the *host* the tunnel is an *input* plugin called *tunnel* which accepts
+connections from its *guests*.
+
+### Protocol
 
 ```
 *Client* -> metadata   -> *Server*
@@ -162,6 +185,46 @@ the agent of the following structure.
 **addr** is the remote ip of the connected peer.
 
 **port** is the remote port of the connected peer.
+
+### Comparison to other tunneling solutions
+
+Since most other protocols are *general purpose*, they are usually unable to do
+the following.
+
+* Collect and forward *metadata* to the *host* system.
+* Having the *guest* proxy being dynamically reconfigured by the *host*.
+
+**SOCKS5**
+
+Has limited remote BIND support, specifically designed for protocols like FTP.
+Connection is in the wrong direction. I.e. *host-to-guest* which would
+complicate both *host* and *guest* agents due to having to manager
+configuration changes on a side-channel.
+*Does support* dynamic proxying.
+
+**manual port forwarding**
+
+One of the better alternatives.
+
+* Does not support dynamic proxying.
+  Supporting more than one *guest* at a time would require port mapping, which
+  is a matter of configuration and change management on the basis of every
+  individual *guest-to-host* combination.
+* EVD would have to be configured to apply metadata to incoming connections
+  *depending on their ip, port* which is possible but complex.
+
+**running the EVD agent in every guest (no tunneling)**
+
+The best alternative!
+
+Keeping EVD normalized, up to date and availble on every guest system might be
+difficult. Immutable container images like with
+[docker](http://www.docker.io/) make things more complicated.
+
+It can be argued that you'd still have to run the *tunneling agent* in side the
+*guest*.
+This agent is a much less complex project than EVD and therefore be subject to
+less change.
 
 ## Terminology
 
