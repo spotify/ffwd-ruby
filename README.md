@@ -170,7 +170,12 @@ The read keys are *tags*, *attributes* and *host*.
 the tunneling client should bind to and tunnel traffic from.
 The read keys are *input* which should be an array of input configurations.
 
-```{"input": [{"protocol": "tcp", "port": 5555}, ...]}```.
+```{"type": <text/binary>, "bind": [{"protocol": "tcp", "port": 5555}, ...]}```.
+
+Now depending on the value of the **type** field, either the **text** or
+**binary** section applies.
+
+#### type: text
 
 **datastream** Is a bi-directional stream of messages going from the client to
 the agent of the following structure.
@@ -185,6 +190,33 @@ the agent of the following structure.
 **addr** is the remote ip of the connected peer.
 
 **port** is the remote port of the connected peer.
+
+#### type: binary
+
+Every message is a frame with the following fields.
+
+```
+        ___________________________________________________________________
+ field | protocol | bindport | peerfamily | peeraddr | peerport | data     |
+       |-------------------------------------------------------------------|
+  size | 1        | 2        | 1          | 16       | 2        | 2 + var  |
+       '-------------------------------------------------------------------'
+```
+
+Every numeric field greater then 2 bytes are in network byte order.
+
+**protocol** 0 for *tcp*, 1 for *udp*.
+
+**bindport** bind port number for *host* agent encoded in octets.
+
+**peerfamily** 0 for IPv4, 1 for IPv6.
+
+**peeraddr** peer IPv4 or IPv6 address encoded in octets.
+
+**peerport** peer port encoded in octets.
+
+**data** the transferred blob of data, prefixed with 2 octets describing the
+length of the payload. Maximum size of the payload is therefore 2**16 bytes.
 
 ### Comparison to other tunneling solutions
 

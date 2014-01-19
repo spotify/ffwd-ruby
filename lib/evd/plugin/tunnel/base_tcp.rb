@@ -3,6 +3,9 @@ require_relative '../../core_processor'
 require_relative '../../plugin_channel'
 
 module EVD::Plugin::Tunnel
+  PROTOCOL_TCP = 0
+  PROTOCOL_UDP = 1
+
   module BaseTCP
     def initialize input, output, protocol_type, core
       @input = input
@@ -28,20 +31,21 @@ module EVD::Plugin::Tunnel
       @debug_id = nil
     end
 
+    def parse_protocol protocol
+      return PROTOCOL_TCP if protocol == :tcp
+      return PROTOCOL_UDP if protocol == :udp
+      raise "Invalid protocol: #{protocol}"
+    end
+
     def subscribe protocol, port, &block
-      id = [protocol.to_s, port]
+      protocol = parse_protocol(protocol)
+      id = [protocol, port]
 
       if @subs[id]
         raise "Only one plugin at a time can tunnel port '#{port}'"
       end
 
       @subs[id] = block
-    end
-
-    def dispatch protocol, port, peer, data
-      addr = "#{peer[0]}:#{peer[1]}"
-      data = Base64.encode64(data)
-      send_data "#{protocol} #{port} #{addr} #{data}\n"
     end
 
     def read_metadata data
@@ -95,11 +99,10 @@ module EVD::Plugin::Tunnel
 
     def send_frame id, addr, data
       if s = @subs[id]
-        s.call addr, data
+        s.call id, addr, data
       else
-        log.error "Nothing listening on port #{id}'"
+        log.error "Nothing listening on #{id}'"
       end
     end
   end
-
 end
