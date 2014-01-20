@@ -2,25 +2,44 @@ require 'logger'
 
 module EVD
   def self.log
-    @log ||= ::Logger.new(log_config[:stream]).tap do |l|
-      l.level = log_config[:level]
-      l.progname = "EVD"
+    @log ||= setup_log
+  end
+
+  def self.log_reload
+    @log = setup_log
+  end
+
+  def self.setup_log
+    if log_config[:file]
+      file = log_config[:file]
+      shift_age = log_config[:shift_age]
+
+      return ::Logger.new(file, shift_age=shift_age).tap do |l|
+        l.level = log_config[:level]
+        l.progname = log_config[:progname]
+      end
     end
+
+    if log_config[:stream]
+      return ::Logger.new(log_config[:stream]).tap do |l|
+        l.level = log_config[:level]
+        l.progname = log_config[:progname]
+      end
+    end
+
+    raise "cannot setup loggin with options: #{log_config}"
   end
 
   def self.log_config
     return @log_config unless @log_config.nil?
 
-    log_opts = @log_opts || {}
-
     @log_config = {
-      :level => log_opts[:level] || Logger::INFO,
-      :stream => log_opts[:stream] || STDOUT,
+      :file => nil,
+      :shift_age => 1,
+      :level => Logger::INFO,
+      :stream => STDOUT,
+      :progname => 'EVD',
     }
-  end
-
-  def self.log_setup log_opts={}
-    @log_opts = log_opts
   end
 
   def self.log_disable
