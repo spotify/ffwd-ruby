@@ -17,9 +17,11 @@ module EVD::Plugin::Riemann
     def read_attributes e, source
       return if source.nil? or source.empty?
 
-      attributes = Hash[source.each do |a|
-        [a.key, a.value]
-      end]
+      attributes = {}
+
+      source.each do |a|
+        attributes[a.key] = a.value
+      end
 
       e[:attributes] = attributes
     end
