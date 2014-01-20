@@ -26,6 +26,7 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "zookeeper"
   spec.add_dependency "poseidon"
+  spec.add_dependency "em-http-request"
 
   spec.add_development_dependency "rspec"
   spec.add_development_dependency "rspec-mocks"
