@@ -114,9 +114,7 @@ module EVD
   def self.main args
     parse_options args
 
-    EVD.log_setup(
-      :level => opts[:debug] ? Logger::DEBUG : Logger::INFO
-    )
+    EVD.log_config[:level] = opts[:debug] ? Logger::DEBUG : Logger::INFO
 
     config = {:debug => {}}
 
@@ -146,6 +144,18 @@ module EVD
       load_config_dir(config_dir, config) do |c|
         merge_configurations config, c
       end
+    end
+
+    if config[:logging]
+      config[:logging].each do |key, value|
+        EVD.log_config[key] = value
+      end
+    end
+
+    EVD.log_reload
+
+    if EVD.log_config[:file]
+      puts "Logging to file: #{EVD.log_config[:file]}"
     end
 
     blacklist = config[:blacklist] || {}
