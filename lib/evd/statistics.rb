@@ -1,3 +1,5 @@
+require_relative 'statistics/system_statistics'
+
 module EVD
   module Statistics
     class Collector
@@ -8,6 +10,13 @@ module EVD
         @precision = opts[:precision] || 3
         @tags = opts[:tags] || []
         @attributes = opts[:attributes] || {}
+        system = SystemStatistics.new(opts[:system] || {})
+
+        if system.check
+          @system = system
+        else
+          @system = nil
+        end
       end
 
       def start
@@ -32,8 +41,15 @@ module EVD
             key = "#{source}.rate"
             @emitter.emit_metric(
               :key => key, :source => source, :value => rate,
-              :tags => @tags, :attributes => @attributes
-            )
+              :tags => @tags, :attributes => @attributes)
+          end
+        end
+
+        if @system
+          @system.collect.each do |key, value|
+            @emitter.emit_metric(
+              :key => key, :value => value,
+              :tags => @tags, :attributes => @attributes)
           end
         end
       end
