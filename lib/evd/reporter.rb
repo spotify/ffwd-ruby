@@ -3,6 +3,10 @@ module EVD::Reporter
     @report_data ||= {:total => 0}
   end
 
+  def id
+    self.class.name
+  end
+
   def increment n, c
     report_data[n] = (report_data[n] || 0) + c
     report_data[:total] += c
