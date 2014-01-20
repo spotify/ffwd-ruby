@@ -96,7 +96,7 @@ module EVD::Plugin::KairosDB
     def check_timer!
       return if @timer
 
-      @log.info "Setting timer to #{@flush_interval}s"
+      @log.debug "Setting timer to #{@flush_interval}s"
 
       @timer = EM::Timer.new(@flush_interval) do
         flush!
