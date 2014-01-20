@@ -16,7 +16,7 @@ Gem::Specification.new do |spec|
   spec.files = Dir.glob('bin/*') +
                Dir.glob('lib/**/*.rb');
 
-  spec.executables = ['evd']
+  spec.executables = ['evd', 'evc']
   spec.test_files = spec.files.grep(%r{^(test|spec|features)/})
 
   spec.require_paths = ["lib"]
