@@ -21,7 +21,6 @@ Gem::Specification.new do |spec|
 
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "ripl"
   spec.add_dependency "eventmachine"
   spec.add_dependency "riemann-client"
 
