@@ -15,14 +15,14 @@ module EVD::Plugin::Tunnel
 
   register_plugin "tunnel"
 
-  DEFAULT_HOST = "localhost"
+  DEFAULT_HOST = 'localhost'
   DEFAULT_PORT = 9000
   DEFAULT_PROTOCOL = 'tcp'
-  DEFAULT_TYPE = :text
+  DEFAULT_PROTOCOL_TYPE = 'text'
 
   CONNECTIONS = {:tcp => ConnectionTCP}
-  
-  PROTOCOLS = {
+
+  PROTOCOL_TYPES = {
     "text" => TextProtocol,
     "binary" => BinaryProtocol,
   }
@@ -31,13 +31,13 @@ module EVD::Plugin::Tunnel
     opts[:host] ||= DEFAULT_HOST
     opts[:port] ||= DEFAULT_PORT
     protocol = EVD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
-    protocol_type = opts[:protocol_type] || DEFAULT_TYPE
+    protocol_type = opts[:protocol_type] || DEFAULT_PROTOCOL_TYPE
 
     unless connection = CONNECTIONS[protocol.family]
       raise "No connection for protocol family: #{protocol.family}"
     end
 
-    unless tunnel_protocol = PROTOCOLS[protocol_type]
+    unless protocol_type = PROTOCOL_TYPES[protocol_type]
       raise "No such tunnel protocol: #{protocol_type}"
     end
 
@@ -45,6 +45,6 @@ module EVD::Plugin::Tunnel
       raise "Nothing requires tunneling"
     end
 
-    protocol.bind log, opts, connection, core, tunnel_protocol
+    protocol.bind log, opts, connection, core, protocol_type
   end
 end
