@@ -22,7 +22,6 @@ module EVD::Plugin::KairosDB
       @url = opts[:url]
       @api_url = "#{@url}/api/v1/datapoints"
       @flush_interval = opts[:flush_interval]
-      @tag_delimiters = opts[:tag_delimiters]
       @buffer_limit = opts[:buffer_limit]
       @buffer = []
       @dropped_metrics = 0
@@ -59,7 +58,7 @@ module EVD::Plugin::KairosDB
 
       @http.errback do
         @log.error "Failed to submit events"
-        @dropped_metrics += @buffer.size
+        @dropped_metrics += count
         @http = nil
       end
     end
@@ -87,13 +86,8 @@ module EVD::Plugin::KairosDB
         tags[key] = value
       end
 
-      @tag_delimiters.each do |delim|
-        metric.tags.each do |tag|
-          if tag.include? delim
-            key, value = tag.split(delim, 2)
-            tags[key] = value
-          end
-        end
+      metric.tags.each do |tag|
+        tags[tag] = ""
       end
 
       return tags
@@ -137,13 +131,11 @@ module EVD::Plugin::KairosDB
 
   DEFAULT_URL = "http://localhost:8080"
   DEFAULT_FLUSH_INTERVAL = 10
-  DEFAULT_TAG_DELIMITERS = ["::"]
   DEFAULT_BUFFER_LIMIT = 100000
 
   def self.setup_output core, opts={}
     opts[:url] ||= DEFAULT_URL
     opts[:flush_interval] ||= DEFAULT_FLUSH_INTERVAL
-    opts[:tag_delimiters] ||= DEFAULT_TAG_DELIMITERS
     opts[:buffer_limit] ||= DEFAULT_BUFFER_LIMIT
     OutputKDB.new log, opts
   end
