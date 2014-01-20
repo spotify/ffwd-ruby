@@ -1,2 +1,2 @@
-bin/tunnel-agent usr/bin/evd-tunnel-agent
+bin/evd-tunnel-agent usr/bin
 debian/rbenv opt
