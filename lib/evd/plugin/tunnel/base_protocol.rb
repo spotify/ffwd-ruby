@@ -14,7 +14,8 @@ module EVD::Plugin::Tunnel
       @connection = connection
       @metadata = nil
       @processor = nil
-      @tunnel_id = nil
+      @channel_id = nil
+      @statistics_id = nil
       @subs = {}
     end
 
@@ -53,11 +54,12 @@ module EVD::Plugin::Tunnel
 
     def stop
       @processor.stop if @processor
-      @core.debug.unmonitor @tunnel_id if @tunnel_id
-      @core.statistics.unregister @tunnel_id if @tunnel_id
+      @core.debug.unmonitor @channel_id if @channel_id
+      @core.statistics.unregister @statistics_id if @statistics_id
       @metadata = nil
       @processor = nil
-      @tunnel_id = nil
+      @channel_id = nil
+      @statistics_id = nil
       @subs = {}
     end
 
@@ -81,7 +83,7 @@ module EVD::Plugin::Tunnel
     def receive_metadata data
       @metadata = read_metadata data
 
-      input = EVD::PluginChannel.new 'tunnel'
+      input = EVD::PluginChannel.new 'tunnel.input'
 
       @core.tunnels.each do |t|
         t.start input, @output, self
@@ -102,16 +104,21 @@ module EVD::Plugin::Tunnel
       @processor = EVD::CoreProcessor.new emitter, @core.processors
       @processor.start input
 
-      @reporter = EVD::CoreReporter.new @processor.reporters
+      reporters = [input]
+      reporters += @processor.reporters
+
+      @reporter = EVD::CoreReporter.new reporters
 
       if host = @metadata[:host]
-        @tunnel_id = "tunnel.input/#{host}"
+        @statistics_id = "tunnel/#{host}"
+        @channel_id = "tunnel.input/#{host}"
       else
-        @tunnel_id = "tunnel.input/#{@connection.get_peer}"
+        @statistics_id = "tunnel/#{@connection.get_peer}"
+        @channel_id = "tunnel.input/#{@connection.get_peer}"
       end
 
-      @core.debug.monitor @tunnel_id, input, EVD::Debug::Input
-      @core.statistics.register @tunnel_id, @reporter
+      @core.debug.monitor @channel_id, input, EVD::Debug::Input
+      @core.statistics.register @statistics_id, @reporter
     end
 
   end

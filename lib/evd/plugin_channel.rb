@@ -19,11 +19,14 @@ module EVD
       @event_count = 0
     end
 
-    # fetch and reset statistics.
-    def stats!
-      d = {:metrics => @metric_count, :events => @event_count}
+    def report?
+      true
+    end
+
+    def report
+      yield "#{self.class.name}(#{@name}) metrics", @metric_count
+      yield "#{self.class.name}(#{@name}) events", @event_count
       @metric_count = @event_count = 0
-      return d
     end
 
     def metric metric
