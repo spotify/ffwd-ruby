@@ -1,17 +1,14 @@
 require_relative 'statistics/system_statistics'
-require_relative 'statistics/channel_statistics'
 
 module EVD
   module Statistics
     class Collector
-      def initialize emitter, channels, opts={}
+      def initialize emitter, opts={}
         @emitter = emitter
         @period = opts[:period] || 1
         @tags = opts[:tags] || []
         @attributes = opts[:attributes] || {}
         @reporters = {}
-
-        @channel = ChannelStatistics.new(channels, opts[:channel] || {})
 
         if (system = SystemStatistics.new(opts[:system] || {})).check
           @system = system
@@ -31,12 +28,6 @@ module EVD
       end
 
       def generate! last, now
-        @channel.collect(last, now) do |key, value|
-          @emitter.emit_metric(
-            :key => key, :value => value,
-            :tags => @tags, :attributes => @attributes)
-        end
-
         if @system
           @system.collect do |key, value|
             @emitter.emit_metric(
@@ -48,7 +39,7 @@ module EVD
         @reporters.each do |id, reporter|
           reporter.collect do |key, value|
             @emitter.emit_metric(
-              :key => "#{id} #{key} count", :value => value,
+              :key => "#{id} #{key}", :value => value,
               :tags => @tags, :attributes => @attributes)
           end
         end
@@ -63,8 +54,8 @@ module EVD
       end
     end
 
-    def self.setup emitter, channels, opts={}
-      Collector.new emitter, channels, opts
+    def self.setup emitter, opts={}
+      Collector.new emitter, opts
     end
   end
 end

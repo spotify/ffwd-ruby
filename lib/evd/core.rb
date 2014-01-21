@@ -23,7 +23,7 @@ module EVD
       @input_plugins = plugins[:input] || []
       @output_plugins = plugins[:output] || []
 
-      @statistics_opts = opts[:statistics]
+      @statistics_opts = opts[:statistics] || {}
       @debug_opts = opts[:debug]
       @core_opts = opts[:core] || {}
       @processor_opts = opts[:processor] || {}
@@ -50,8 +50,7 @@ module EVD
       @statistics = nil
 
       if config = @statistics_opts
-        channels = [@output_channel, @input_channel]
-        @statistics = EVD::Statistics.setup @emitter, channels, config
+        @statistics = EVD::Statistics.setup @emitter, config
       end
 
       @interface = CoreInterface.new(
@@ -65,9 +64,10 @@ module EVD
         plugin.setup @interface
       end
 
-      reporters = []
+      reporters = [@output_channel, @input_channel]
       reporters += @output_instances.select{|i| EVD.is_reporter?(i)}
       reporters += @processor.reporters
+      reporters << @output_channel
 
       @reporter = CoreReporter.new reporters
 
