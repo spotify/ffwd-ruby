@@ -16,8 +16,8 @@ module EVD
     def emit m
       m[:time] ||= Time.now
       m[:host] ||= @host if @host
-      m[:tags] = EVD.merge_sets @event_tags, m[:tags]
-      m[:attributes] = EVD.merge_hashes @event_attributes, m[:attributes]
+      m[:tags] = EVD.merge_sets @tags, m[:tags]
+      m[:attributes] = EVD.merge_hashes @attributes, m[:attributes]
 
       @output.metric EVD.metric(m)
     end

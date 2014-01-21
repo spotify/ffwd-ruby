@@ -63,6 +63,8 @@ module EVD::Plugin::KairosDB
 
       events = JSON.dump(events)
 
+      @log.info "Sending metrics to #{@url}"
+
       @pending = @conn.post(
         :path => API_PATH, :head => HEADER, :body => events)
 
@@ -119,7 +121,7 @@ module EVD::Plugin::KairosDB
     end
 
     def start output
-      @log.info "Sending to #{@url}"
+      @log.info "Will send events to #{@url}"
 
       @conn = EM::HttpRequest.new(@url)
 
