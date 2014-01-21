@@ -64,13 +64,15 @@ module EVD
         plugin.setup @interface
       end
 
-      reporters = [@output_channel, @input_channel]
-      reporters += @output_instances.select{|i| EVD.is_reporter?(i)}
-      reporters += @processor.reporters
+      unless @statistics.nil?
+        reporters = [@output_channel, @input_channel]
+        reporters += @output_instances.select{|i| EVD.is_reporter?(i)}
+        reporters += @processor.reporters
 
-      @reporter = CoreReporter.new reporters
+        @reporter = CoreReporter.new reporters
 
-      @statistics.register "core", @reporter
+        @statistics.register "core", @reporter
+      end
     end
 
     #
@@ -90,7 +92,9 @@ module EVD
           p.start @output_channel
         end
 
-        @statistics.start unless @statistics.nil?
+        unless @statistics.nil?
+          @statistics.start
+        end
 
         unless @debug.nil?
           @debug.start

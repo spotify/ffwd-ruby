@@ -54,8 +54,15 @@ module EVD::Plugin::Tunnel
 
     def stop
       @processor.stop if @processor
-      @core.debug.unmonitor @channel_id if @channel_id
-      @core.statistics.unregister @statistics_id if @statistics_id
+
+      if @core.debug and @channel_id
+        @core.debug.unmonitor @channel_id 
+      end
+
+      if @core.statistics and @statistics_id
+        @core.statistics.unregister @statistics_id
+      end
+
       @metadata = nil
       @processor = nil
       @channel_id = nil
@@ -117,8 +124,13 @@ module EVD::Plugin::Tunnel
         @channel_id = "tunnel.input/#{@connection.get_peer}"
       end
 
-      @core.debug.monitor @channel_id, input, EVD::Debug::Input
-      @core.statistics.register @statistics_id, @reporter
+      if @core.debug
+        @core.debug.monitor @channel_id, input, EVD::Debug::Input
+      end
+
+      if @core.statistics
+        @core.statistics.register @statistics_id, @reporter
+      end
     end
 
   end
