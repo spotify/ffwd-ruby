@@ -67,7 +67,6 @@ module EVD
       reporters = [@output_channel, @input_channel]
       reporters += @output_instances.select{|i| EVD.is_reporter?(i)}
       reporters += @processor.reporters
-      reporters << @output_channel
 
       @reporter = CoreReporter.new reporters
 
