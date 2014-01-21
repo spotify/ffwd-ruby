@@ -76,17 +76,20 @@ module EVD::Statistics
 
     SMAPS_FILE = '/proc/self/smaps'
 
-    def initialize opts={}
+    def initialize system_channel, opts={}
+      @system_channel = system_channel
     end
 
     def collect
-      result = {}
+      memory_use = memory_usage
 
-      memory_usage.each do |key, value|
+      memory_use.each do |key, value|
         yield "statistics-system/#{key}", value
       end
 
-      result
+      if @system_channel
+        @system_channel << memory_use
+      end
     end
 
     def check

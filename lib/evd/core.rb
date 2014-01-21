@@ -30,9 +30,18 @@ module EVD
 
       @output_channel = EVD::PluginChannel.new 'output'
       @input_channel = EVD::PluginChannel.new 'input'
+      @system_channel = Channel.new log, "system_channel"
 
       @tunnels = @tunnel_plugins.map do |plugin|
         plugin.setup self
+      end
+
+      memory_config = (@core_opts[:memory] || {})
+      @memory_limit = (memory_config[:limit] || 1000).to_f.round(3)
+      @memory_limit95 = @memory_limit * 0.95
+
+      if @memory_limit < 0
+        raise "memory limit must be non-negative number"
       end
 
       @debug = nil
@@ -50,7 +59,7 @@ module EVD
       @statistics = nil
 
       if config = @statistics_opts
-        @statistics = EVD::Statistics.setup @emitter, config
+        @statistics = EVD::Statistics.setup @emitter, @system_channel, config
       end
 
       @interface = CoreInterface.new(
@@ -82,6 +91,8 @@ module EVD
     #
     def run
       EM.run do
+        setup_memory_monitor
+
         @processor.start @input_channel
 
         @input_instances.each do |p|
@@ -105,5 +116,36 @@ module EVD
     end
 
     private
+
+    # Sets up a memory monitor based of :core -> :memory -> :limit.
+    # Will warn at least once before shutting down.
+    def setup_memory_monitor
+      if @memory_limit == 0
+        log.warning "WARNING!!! YOU ARE RUNNING EVD WITHOUT A MEMORY LIMIT, THIS COULD DAMAGE YOUR SYSTEM"
+        log.warning "To configure it, set the (:core -> :memory -> :limit) option to a non-zero number!"
+        return
+      end
+
+      log.info "Memory limited to #{@memory_limit} MB (:core -> :memory -> :limit)"
+
+      memory_one_warning = false
+
+      @system_channel.subscribe do |info|
+        rss_mb = (info[:rss].to_f / 1000000).round(3)
+
+        if memory_one_warning and rss_mb > @memory_limit
+          log.error "Memory limit exceeded (#{rss_mb}/#{@memory_limit} MB): SHUTTING DOWN"
+          EM.stop
+          next
+        end
+
+        if rss_mb > @memory_limit95
+          log.warning "Memory limit almost reached (#{rss_mb}/#{@memory_limit} MB)"
+          memory_one_warning = true
+        else
+          memory_one_warning = false
+        end
+      end
+    end
   end
 end
