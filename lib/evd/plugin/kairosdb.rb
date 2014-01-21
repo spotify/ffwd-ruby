@@ -87,11 +87,17 @@ module EVD::Plugin::KairosDB
 
       buffer.each do |metric|
         group = (groups[metric.key] ||= {
-          :name => metric.key, :tags => make_tags(metric),:datapoints => []})
+          :name => make_name(metric.key), :tags => make_tags(metric),
+          :datapoints => []})
         group[:datapoints] << [(metric.time.to_f * 1000).to_i, metric.value]
       end
 
       return groups.values
+    end
+
+    def make_name key
+      key = key.gsub " ", "/"
+      key.gsub ":", "_"
     end
 
     def make_tags metric
