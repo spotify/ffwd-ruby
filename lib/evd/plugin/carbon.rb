@@ -16,6 +16,10 @@ module EVD::Plugin
       include EVD::Logging
       include EM::Protocols::LineText2
 
+      def self.name
+        "carbon"
+      end
+
       def initialize input, output
         @input = input
       end

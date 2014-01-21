@@ -34,7 +34,7 @@ module EVD::Plugin::KairosDB
     end
 
     def id
-      "#{self.class.name}(#{@url})"
+      "kairosdb_http_output-#{@url}"
     end
 
     def flush!

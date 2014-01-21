@@ -50,8 +50,12 @@ module EVD::TCP
       @c = nil
     end
 
+    def name
+      @handler.name
+    end
+
     def id
-      @id ||= "#{@handler.class.name}(#{@peer})"
+      @id ||= "#{@handler.name}/#{@peer}"
     end
 
     def connection_completed

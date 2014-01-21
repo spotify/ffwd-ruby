@@ -74,9 +74,9 @@ module EVD::Processor
     end
 
     def report
-      yield "#{self.class.name} dropped", @dropped
-      yield "#{self.class.name} expired", @expired
-      yield "#{self.class.name} received", @received
+      yield "processor-rate/dropped", @dropped
+      yield "processor-rate/expired", @expired
+      yield "processor-rate/received", @received
 
       @dropped = 0
       @expired = 0

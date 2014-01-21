@@ -88,9 +88,9 @@ module EVD::Processor
     end
 
     def report
-      yield "#{self.class.name} dropped", @dropped
-      yield "#{self.class.name} bucket_dropped", @bucket_dropped
-      yield "#{self.class.name} received", @received
+      yield "processor-histogram/dropped", @dropped
+      yield "processor-histogram/bucket_dropped", @bucket_dropped
+      yield "processor-histogram/received", @received
 
       @dropped = 0
       @bucket_dropped = 0

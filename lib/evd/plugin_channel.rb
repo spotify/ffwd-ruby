@@ -20,8 +20,8 @@ module EVD
     end
 
     def report
-      yield "#{self.class.name}(#{@name}) metrics", @metric_count
-      yield "#{self.class.name}(#{@name}) events", @event_count
+      yield "plugin_channel-#{@name}/metrics", @metric_count
+      yield "plugin_channel-#{@name}/events", @event_count
       @metric_count = @event_count = 0
     end
 
