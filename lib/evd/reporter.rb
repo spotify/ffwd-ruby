@@ -31,10 +31,7 @@ module EVD::Reporter
   def report
     report_data.each do |k, v|
       yield "#{id} #{k}", v
-    end
-
-    report_data.each do |k, v|
-      report_data[k] = v
+      report_data[k] = 0
     end
   end
 end
