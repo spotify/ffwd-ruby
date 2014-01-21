@@ -476,11 +476,13 @@ def parse_args(args):
 
     logging.basicConfig(level=log_level)
 
-    if ns.json_metadata is not None:
+    if ns.json_metadata:
         with open(ns.json_metadata) as f:
             ns.metadata = json.load(f)
     else:
         ns.metadata = dict()
+
+    log.info("Metadata: %s", repr(ns.metadata))
 
     return ns
 

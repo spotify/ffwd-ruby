@@ -5,6 +5,7 @@ require_relative 'channel'
 require_relative 'core_emitter'
 require_relative 'core_interface'
 require_relative 'core_processor'
+require_relative 'core_reporter'
 require_relative 'debug'
 require_relative 'logging'
 require_relative 'plugin_channel'
@@ -17,17 +18,10 @@ module EVD
   class Core
     include EVD::Logging
 
-    # Arbitrary default queue limit.
-    # Having a queue limit is critical to make sure we never run out of memory.
-    DEFAULT_BUFFER_LIMIT = 5000
-    DEFAULT_REPORT_INTERVAL = 600
-
     def initialize plugins, opts={}
       @tunnel_plugins = plugins[:tunnel] || []
       @input_plugins = plugins[:input] || []
       @output_plugins = plugins[:output] || []
-
-      @report_interval = opts[:report_interval] || DEFAULT_REPORT_INTERVAL
 
       @statistics_opts = opts[:statistics]
       @debug_opts = opts[:debug]
@@ -48,10 +42,20 @@ module EVD
       end
 
       @processors = EVD::Processor.load @processor_opts
-      @interface = CoreInterface.new @tunnels, @processors, @debug, @core_opts
 
       @emitter = CoreEmitter.new @output_channel, @core_opts
       @processor = CoreProcessor.new @emitter, @processors
+
+      # Configuration for statistics module.
+      @statistics = nil
+
+      if config = @statistics_opts
+        channels = [@output_channel, @input_channel]
+        @statistics = EVD::Statistics.setup @emitter, channels, config
+      end
+
+      @interface = CoreInterface.new(
+        @tunnels, @processors, @debug, @statistics, @core_opts)
 
       @input_instances = @input_plugins.map do |plugin|
         plugin.setup @interface
@@ -61,16 +65,13 @@ module EVD
         plugin.setup @interface
       end
 
-      # Configuration for statistics module.
-      @statistics = nil
+      reporters = []
+      reporters += @output_instances.select{|i| EVD.is_reporter?(i)}
+      reporters += @processor.reporters
 
-      if config = @statistics_opts
-        @statistics = EVD::Statistics.setup @emitter, [@output_channel, @input_channel], config
-      end
+      @reporter = CoreReporter.new reporters
 
-      @reporters = []
-      @reporters += EVD.setup_reporters @output_instances
-      @reporters += @processor.reporters
+      @statistics.register "core", @reporter
     end
 
     #
@@ -79,8 +80,6 @@ module EVD
     # Starts an EventMachine and runs the given set of plugins.
     #
     def run
-      log.info "Registered #{@reporters.size} reporter(s)"
-
       EM.run do
         @processor.start @input_channel
 
@@ -99,29 +98,9 @@ module EVD
           @debug.monitor "core.input", @input_channel, EVD::Debug::Input
           @debug.monitor "core.output", @output_channel, EVD::Debug::Output
         end
-
-        unless @reporters.empty?
-          EM::PeriodicTimer.new @report_interval do
-            report!
-          end
-        end
       end
     end
 
     private
-
-    def report!
-      active = []
-
-      @reporters.each do |reporter|
-        active << reporter if reporter.report?
-      end
-
-      return if active.empty?
-
-      active.each_with_index do |reporter, i|
-        reporter.report "report ##{i}"
-      end
-    end
   end
 end

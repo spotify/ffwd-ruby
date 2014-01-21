@@ -1,18 +1,19 @@
 require_relative 'statistics/system_statistics'
+require_relative 'statistics/channel_statistics'
 
 module EVD
   module Statistics
     class Collector
       def initialize emitter, channels, opts={}
         @emitter = emitter
-        @channels = channels
         @period = opts[:period] || 1
-        @precision = opts[:precision] || 3
         @tags = opts[:tags] || []
         @attributes = opts[:attributes] || {}
-        system = SystemStatistics.new(opts[:system] || {})
+        @reporters = {}
 
-        if system.check
+        @channel = ChannelStatistics.new(channels, opts[:channel] || {})
+
+        if (system = SystemStatistics.new(opts[:system] || {})).check
           @system = system
         else
           @system = nil
@@ -30,28 +31,35 @@ module EVD
       end
 
       def generate! last, now
-        diff = now - last
-
-        @channels.each do |channel|
-          stats = channel.stats!
-
-          stats.each do |k, v|
-            rate = v.to_f / diff
-            source = "#{channel.kind}.#{k.to_s}"
-            key = "#{source}.rate"
-            @emitter.emit_metric(
-              :key => key, :source => source, :value => rate,
-              :tags => @tags, :attributes => @attributes)
-          end
+        @channel.collect(last, now) do |key, value|
+          @emitter.emit_metric(
+            :key => key, :value => value,
+            :tags => @tags, :attributes => @attributes)
         end
 
         if @system
-          @system.collect.each do |key, value|
+          @system.collect do |key, value|
             @emitter.emit_metric(
               :key => key, :value => value,
               :tags => @tags, :attributes => @attributes)
           end
         end
+
+        @reporters.each do |id, reporter|
+          reporter.collect do |key, value|
+            @emitter.emit_metric(
+              :key => "#{id} #{key} count", :value => value,
+              :tags => @tags, :attributes => @attributes)
+          end
+        end
+      end
+
+      def register id, reporter
+        @reporters[id] = reporter
+      end
+
+      def unregister id
+        @reporters.delete id
       end
     end
 

@@ -1,18 +1,18 @@
 require 'eventmachine'
 require 'em-http'
 
-require_relative '../plugin'
 require_relative '../logging'
+require_relative '../plugin'
 require_relative '../reporter'
 
 module EVD::Plugin::KairosDB
   include EVD::Plugin
+  include EVD::Logging
 
   register_plugin "kairosdb"
 
-  class OutputKDB
+  class Output
     include EVD::Reporter
-    include EVD::Logging
 
     HEADER = {
       "Content-Type" => "application/json"
@@ -20,7 +20,8 @@ module EVD::Plugin::KairosDB
 
     API_PATH = "/api/v1/datapoints"
 
-    def initialize opts={}
+    def initialize log, opts={}
+      @log = log
       @url = opts[:url]
       @flush_interval = opts[:flush_interval]
       @buffer_limit = opts[:buffer_limit]
@@ -30,6 +31,10 @@ module EVD::Plugin::KairosDB
       @conn = nil
     end
 
+    def id
+      "#{self.class.name}(#{@url})"
+    end
+
     def flush!
       if @timer
         @timer.cancel
@@ -37,22 +42,22 @@ module EVD::Plugin::KairosDB
       end
 
       if @pending
-        log.info "Request already in progress, dropping metrics"
+        @log.info "Request already in progress, dropping metrics"
         increment :dropped_metrics, @buffer.size
         @buffer = []
         return
       end
 
       unless @conn
-        log.error "No active connection"
+        @log.error "No active connection"
         increment :dropped_metrics, @buffer.size
         @buffer = []
         return
       end
 
       events = make_events(@buffer)
+      buffer_size = @buffer.size
       @buffer = []
-      count = events.size
 
       events = JSON.dump(events)
 
@@ -60,13 +65,13 @@ module EVD::Plugin::KairosDB
         :path => API_PATH, :head => HEADER, :body => events)
 
       @pending.callback do
-        log.debug "#{count} event(s) successfully submitted"
+        increment :sent_metrics, buffer_size
         @pending = nil
       end
 
       @pending.errback do
-        log.error "Failed to submit events: #{@pending.error.exception}"
-        increment :failed_metrics, count
+        @log.error "Failed to submit events: #{@pending.error.exception}"
+        increment :failed_metrics, buffer_size
         @pending = nil
       end
     end
@@ -104,7 +109,7 @@ module EVD::Plugin::KairosDB
     def check_timer!
       return if @timer
 
-      log.debug "Setting timer to #{@flush_interval}s"
+      @log.debug "Setting timer to #{@flush_interval}s"
 
       @timer = EM::Timer.new(@flush_interval) do
         flush!
@@ -112,7 +117,7 @@ module EVD::Plugin::KairosDB
     end
 
     def start output
-      log.info "Sending to #{@url}"
+      @log.info "Sending to #{@url}"
 
       @conn = EM::HttpRequest.new(@url)
 
@@ -148,6 +153,6 @@ module EVD::Plugin::KairosDB
     opts[:url] ||= DEFAULT_URL
     opts[:flush_interval] ||= DEFAULT_FLUSH_INTERVAL
     opts[:buffer_limit] ||= DEFAULT_BUFFER_LIMIT
-    OutputKDB.new opts
+    Output.new log, opts
   end
 end

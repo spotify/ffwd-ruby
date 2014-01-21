@@ -7,7 +7,7 @@ module EVD
     def initialize emitter, processors
       @emitter = emitter
       @processors = Hash[processors.map{|k, p| [k, p.call(@emitter)]}]
-      @reporters = EVD.setup_reporters @processors
+      @reporters = @processors.select{|k, p| EVD.is_reporter?(p)}.map{|k, p| p}
     end
 
     def start input

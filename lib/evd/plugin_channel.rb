@@ -4,23 +4,19 @@ module EVD
   # A set of channels, one for metrics and one for events.
   # This is simply a convenience class to group the channel that are available
   # to a plugin in one direction (usually either input or output).
-  #
-  # 'kind' is available to designate the type of the channel.
   class PluginChannel
     include EVD::Logging
 
-    def initialize kind
-      @kind = kind
+    attr_reader :name
 
-      @metrics = EVD::Channel.new(log, "#{kind}.metrics")
-      @events = EVD::Channel.new(log, "#{kind}.events")
+    def initialize name
+      @name = name
+
+      @metrics = EVD::Channel.new(log, "#{name}.metrics")
+      @events = EVD::Channel.new(log, "#{name}.events")
 
       @metric_count = 0
       @event_count = 0
-    end
-
-    def kind
-      @kind
     end
 
     # fetch and reset statistics.

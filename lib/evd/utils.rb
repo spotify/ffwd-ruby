@@ -13,15 +13,8 @@ module EVD
     b || a || {}
   end
 
-  def self.setup_reporters instances
-    reporters = []
-
-    instances.each do |i|
-      next unless i.respond_to? :report and i.respond_to? :report?
-      reporters << i
-    end
-
-    reporters
+  def self.is_reporter? var
+    var.respond_to? :report and var.respond_to? :report?
   end
 
   def self.current_host
