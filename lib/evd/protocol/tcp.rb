@@ -21,11 +21,14 @@ module EVD::TCP
   end
 
   class Connect
+    include EVD::Reporter
+
+    set_reporter_keys :dropped_events, :dropped_metrics,
+                      :sent_events, :sent_metrics
+
     attr_reader :log
 
     INITIAL_TIMEOUT = 2
-
-    include EVD::Reporter
 
     def initialize(log, host, port, handler, flush_period, outbound_limit)
       @log = log

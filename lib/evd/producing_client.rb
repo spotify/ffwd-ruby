@@ -1,4 +1,5 @@
 require_relative 'logging'
+
 require_relative 'reporter'
 
 module EVD
@@ -6,6 +7,10 @@ module EVD
   class ProducingClient
     include EVD::Logging
     include EVD::Reporter
+
+    set_reporter_keys :failed_events, :failed_metrics,
+                      :dropped_events, :dropped_metrics,
+                      :sent_events, :sent_metrics
 
     def initialize flush_period, flush_size, event_limit, metric_limit
       @flush_period = flush_period
@@ -23,12 +28,20 @@ module EVD
       @timer = EM::PeriodicTimer.new(@flush_period){flush!}
 
       channel.event_subscribe do |e|
-        return increment :dropped_events, 1 if @events.size >= @event_limit
+        if @events.size >= @event_limit
+          increment :dropped_events, 1
+          return
+        end
+
         @events << e
       end
 
       channel.metric_subscribe do |m|
-        return increment :dropped_metrics, 1 if @metrics.size >= @metric_limit
+        if @metrics.size >= @metric_limit
+          increment :dropped_metrics, 1
+          return
+        end
+
         @metrics << m
       end
     end

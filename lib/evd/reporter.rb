@@ -1,6 +1,22 @@
 module EVD::Reporter
+  module ClassMethods
+    def reporter_keys
+      @keys ||= [:total]
+    end
+
+    def set_reporter_keys *keys
+      @keys = [:total] + keys
+    end
+  end
+
+  def self.included mod
+    mod.extend ClassMethods
+  end
+
   def report_data
-    @report_data ||= {:total => 0}
+    @report_data ||= Hash[self.class.reporter_keys.map do |k|
+      [k, 0]
+    end]
   end
 
   def id
@@ -8,12 +24,8 @@ module EVD::Reporter
   end
 
   def increment n, c
-    report_data[n] = (report_data[n] || 0) + c
+    report_data[n] += c
     report_data[:total] += c
-  end
-
-  def report?
-    not report_data.values.all?(&:zero?)
   end
 
   def report
@@ -21,6 +33,8 @@ module EVD::Reporter
       yield "#{id} #{k}", v
     end
 
-    @report_data = nil
+    report_data.each do |k, v|
+      report_data[k] = v
+    end
   end
 end
