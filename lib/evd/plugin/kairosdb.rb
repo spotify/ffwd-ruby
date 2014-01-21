@@ -95,11 +95,15 @@ module EVD::Plugin::KairosDB
       return groups.values
     end
 
+    # Warning: These are the 'bad' characters I've been able to reverse
+    # engineer so far.
     def make_name key
       key = key.gsub " ", "/"
       key.gsub ":", "_"
     end
 
+    # Warning: KairosDB ignores complete metrics if you use tags which have no
+    # values, therefore I have not figured out a way to transport 'tags'.
     def make_tags metric
       tags = {
         "host" => metric.host
@@ -107,10 +111,6 @@ module EVD::Plugin::KairosDB
 
       metric.attributes.each do |key, value|
         tags[key] = value
-      end
-
-      metric.tags.each do |tag|
-        tags[tag] = ""
       end
 
       return tags
