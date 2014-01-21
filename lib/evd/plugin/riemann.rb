@@ -22,7 +22,7 @@ module EVD::Plugin::Riemann
 
   register_plugin "riemann"
 
-  class HandlerTCP
+  class OutputTCP
     include EVD::Plugin::Riemann::Shared
     include EVD::Plugin::Riemann::Handler
 
@@ -35,7 +35,7 @@ module EVD::Plugin::Riemann
     end
   end
 
-  class HandlerUDP
+  class OutputUDP
     include EVD::Plugin::Riemann::Shared
     include EVD::Plugin::Riemann::Handler
 
@@ -48,7 +48,7 @@ module EVD::Plugin::Riemann
     end
   end
 
-  class ConnectionTCP < EVD::Connection
+  class InputTCP < EVD::Connection
     include EM::Protocols::ObjectProtocol
     include EVD::Plugin::Riemann::Shared
     include EVD::Plugin::Riemann::Connection
@@ -64,7 +64,7 @@ module EVD::Plugin::Riemann
     end
   end
 
-  class ConnectionUDP < EVD::Connection
+  class InputUDP < EVD::Connection
     include EVD::Plugin::Riemann::Shared
     include EVD::Plugin::Riemann::Connection
 
@@ -77,8 +77,8 @@ module EVD::Plugin::Riemann
   DEFAULT_PORT = 5555
   DEFAULT_PROTOCOL = 'tcp'
 
-  HANDLERS = {:tcp => HandlerTCP, :udp => HandlerUDP}
-  CONNECTIONS = {:tcp => ConnectionTCP, :udp => ConnectionUDP}
+  OUTPUTS = {:tcp => OutputTCP, :udp => OutputUDP}
+  INPUTS = {:tcp => InputTCP, :udp => InputUDP}
 
   def self.setup_output core, opts={}
     opts[:host] ||= DEFAULT_HOST
@@ -86,7 +86,7 @@ module EVD::Plugin::Riemann
 
     protocol = EVD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
 
-    unless handler = HANDLERS[protocol.family]
+    unless handler = OUTPUTS[protocol.family]
       raise "No handler for protocol family: #{protocol.family}"
     end
 
@@ -100,7 +100,7 @@ module EVD::Plugin::Riemann
     opts[:port] ||= DEFAULT_PORT
     protocol = EVD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
 
-    unless connection = CONNECTIONS[protocol.family]
+    unless connection = INPUTS[protocol.family]
       raise "No connection for protocol family: #{protocol.family}"
     end
 
@@ -111,7 +111,7 @@ module EVD::Plugin::Riemann
     opts[:port] ||= DEFAULT_PORT
     protocol = EVD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
 
-    unless connection = CONNECTIONS[protocol.family]
+    unless connection = INPUTS[protocol.family]
       raise "No connection for protocol family: #{protocol.family}"
     end
 

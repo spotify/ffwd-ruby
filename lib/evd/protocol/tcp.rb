@@ -48,7 +48,7 @@ module EVD::TCP
     end
 
     def id
-      @peer
+      @id ||= "#{@handler.class.name}(#{@peer})"
     end
 
     def connection_completed
@@ -137,6 +137,8 @@ module EVD::TCP
       end
 
       @c.send_data @handler.serialize_all(@event_buffer, @metric_buffer)
+      increment :sent_events, @event_buffer.size
+      increment :sent_metrics, @metric_buffer.size
     rescue => e
       @log.error "Failed to flush", e
     ensure
@@ -147,6 +149,7 @@ module EVD::TCP
     def handle_event event
       return increment :dropped_events, 1 unless writable?
       @c.send_data @handler.serialize_event(event)
+      increment :sent_events, 1
     rescue => e
       @log.error "Failed to handle event", e
     end
@@ -154,6 +157,7 @@ module EVD::TCP
     def handle_metric metric
       return increment :dropped_metrics, 1 unless writable?
       @c.send_data @handler.serialize_metric(metric)
+      increment :sent_metrics, 1
     rescue => e
       @log.error "Failed to handle metric", e
     end

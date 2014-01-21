@@ -14,6 +14,11 @@ module EVD::UDP
       @bind_host = "0.0.0.0"
       @host_ip = nil
       @connection = nil
+      @peer = "#{host}:#{port}"
+    end
+
+    def id
+      @id ||= "#{@handler.class.name}(#{@peer})"
     end
 
     def start output

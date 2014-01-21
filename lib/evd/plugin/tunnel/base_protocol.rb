@@ -14,7 +14,7 @@ module EVD::Plugin::Tunnel
       @connection = connection
       @metadata = nil
       @processor = nil
-      @debug_id = nil
+      @tunnel_id = nil
       @subs = {}
     end
 
@@ -53,10 +53,11 @@ module EVD::Plugin::Tunnel
 
     def stop
       @processor.stop if @processor
-      @core.debug.unmonitor @debug_id if @debug_id
+      @core.debug.unmonitor @tunnel_id if @tunnel_id
+      @core.statistics.unregister @tunnel_id if @tunnel_id
       @metadata = nil
       @processor = nil
-      @debug_id = nil
+      @tunnel_id = nil
       @subs = {}
     end
 
@@ -101,8 +102,16 @@ module EVD::Plugin::Tunnel
       @processor = EVD::CoreProcessor.new emitter, @core.processors
       @processor.start input
 
-      @debug_id = "tunnel.input/#{@connection.get_peer}"
-      @core.debug.monitor @debug_id, input, EVD::Debug::Input
+      @reporter = EVD::CoreReporter.new @processor.reporters
+
+      if host = @metadata[:host]
+        @tunnel_id = "tunnel.input/#{host}"
+      else
+        @tunnel_id = "tunnel.input/#{@connection.get_peer}"
+      end
+
+      @core.debug.monitor @tunnel_id, input, EVD::Debug::Input
+      @core.statistics.register @tunnel_id, @reporter
     end
 
   end

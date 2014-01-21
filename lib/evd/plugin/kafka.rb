@@ -14,7 +14,7 @@ module EVD::Plugin
 
     register_plugin "kafka"
 
-    class Client < EVD::ProducingClient
+    class Output < EVD::ProducingClient
       include EVD::Logging
       include EVD::Plugin::Kafka::Zookeeper
 
@@ -37,7 +37,7 @@ module EVD::Plugin
       end
 
       def id
-        @producer
+        "#{self.class.name}(#{@producer}, #{@event_topic}, #{@metric_topic})"
       end
 
       def produce events, metrics
@@ -119,7 +119,7 @@ module EVD::Plugin
         raise "Invalid flush period: #{flush_period}"
       end
 
-      Client.new zookeeper_url, producer, event_topic, metric_topic,
+      Output.new zookeeper_url, producer, event_topic, metric_topic,
                  brokers, flush_period, flush_size, event_limit, metric_limit
     end
   end

@@ -16,14 +16,11 @@ module EVD::Reporter
     not report_data.values.all?(&:zero?)
   end
 
-  def report prefix
-    lines = []
+  def report
+    report_data.each do |k, v|
+      yield "#{id} #{k}", v
+    end
 
-    @report_data = Hash[report_data.map do |k, v|
-      lines << "#{k}=#{v}" if v > 0
-      [k, 0]
-    end]
-
-    log.info "##{prefix} '#{id}': #{lines.join(', ')}"
+    @report_data = nil
   end
 end

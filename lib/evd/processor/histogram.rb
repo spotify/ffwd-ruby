@@ -60,6 +60,7 @@ module EVD::Processor
 
       # Dropped values that would have gone into a bucket.
       @bucket_dropped = 0
+      @received = 0
 
       @cache = {}
     end
@@ -87,19 +88,17 @@ module EVD::Processor
     end
 
     def report?
-      @dropped > 0 or @bucket_dropped > 0
+      true
     end
 
     def report
-      if @dropped > 0
-        log.warning "Dropped #{@dropped} event(s)"
-        @dropped = 0
-      end
+      yield "#{self.class.name} dropped", @dropped
+      yield "#{self.class.name} bucket_dropped", @bucket_dropped
+      yield "#{self.class.name} received", @received
 
-      if @bucket_dropped > 0
-        log.warning "Dropped #{@bucket_dropped} bucket value(s)"
-        @bucket_dropped = 0
-      end
+      @dropped = 0
+      @bucket_dropped = 0
+      @received = 0
     end
 
     # Digest the cache.
@@ -198,6 +197,7 @@ module EVD::Processor
         return
       end
 
+      @received += 1
       bucket << value
       check_timer
     end

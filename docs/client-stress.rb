@@ -27,5 +27,5 @@ def statsd
   end
 end
 
-riemann
+#riemann
 statsd

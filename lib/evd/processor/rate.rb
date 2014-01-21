@@ -39,6 +39,7 @@ module EVD::Processor
       # Amount of events dropped, log during 'report'.
       @dropped = 0
       @expired = 0
+      @received = 0
     end
 
     def start
@@ -73,19 +74,17 @@ module EVD::Processor
     end
 
     def report?
-      @dropped > 0 or @expired > 0
+      true
     end
 
     def report
-      if @dropped > 0
-        log.warning "Dropped #{@dropped} event(s)"
-        @dropped = 0
-      end
+      yield "#{self.class.name} dropped", @dropped
+      yield "#{self.class.name} expired", @expired
+      yield "#{self.class.name} received", @received
 
-      if @expired > 0
-        log.warning "Expired #{@expired} event(s)"
-        @expired = 0
-      end
+      @dropped = 0
+      @expired = 0
+      @received = 0
     end
 
     def process msg
@@ -115,6 +114,7 @@ module EVD::Processor
         end
       end
 
+      @received += 1
       @cache[key] = {:key => key, :time => time, :value => value}
     end
   end
