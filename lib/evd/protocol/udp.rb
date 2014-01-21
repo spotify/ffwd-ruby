@@ -21,7 +21,7 @@ module EVD::UDP
     end
 
     def id
-      @id ||= "#{@handler.class.name}(#{@peer})"
+      @id ||= "#{@handler.name}/#{@peer}"
     end
 
     def start output

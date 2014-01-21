@@ -83,7 +83,7 @@ module EVD::Statistics
       result = {}
 
       memory_usage.each do |key, value|
-        yield "#{self.class.name} #{key} value", value
+        yield "system.#{key}", value
       end
 
       result

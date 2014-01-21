@@ -83,7 +83,7 @@ module EVD::Plugin::Tunnel
     def receive_metadata data
       @metadata = read_metadata data
 
-      input = EVD::PluginChannel.new 'tunnel.input'
+      input = EVD::PluginChannel.new 'tunnel_input'
 
       @core.tunnels.each do |t|
         t.start input, @output, self

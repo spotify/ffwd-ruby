@@ -26,6 +26,10 @@ module EVD::Plugin::Riemann
     include EVD::Plugin::Riemann::Shared
     include EVD::Plugin::Riemann::Handler
 
+    def name
+      "riemann_tcp_out"
+    end
+
     def initialize
       setup_handler
     end
@@ -38,6 +42,10 @@ module EVD::Plugin::Riemann
   class OutputUDP
     include EVD::Plugin::Riemann::Shared
     include EVD::Plugin::Riemann::Handler
+
+    def name
+      "riemann_udp_out"
+    end
 
     def initialize
       setup_handler
@@ -53,6 +61,10 @@ module EVD::Plugin::Riemann
     include EVD::Plugin::Riemann::Shared
     include EVD::Plugin::Riemann::Connection
 
+    def self.name
+      "riemann_tcp_in"
+    end
+
     def send_ok
       send_object(::Riemann::Message.new(
         :ok => true))
@@ -67,6 +79,10 @@ module EVD::Plugin::Riemann
   class InputUDP < EVD::Connection
     include EVD::Plugin::Riemann::Shared
     include EVD::Plugin::Riemann::Connection
+
+    def self.name
+      "riemann_udp_in"
+    end
 
     def receive_data(data)
       receive_object serializer.load(data)
