@@ -19,10 +19,6 @@ module EVD
       @event_count = 0
     end
 
-    def report?
-      true
-    end
-
     def report
       yield "#{self.class.name}(#{@name}) metrics", @metric_count
       yield "#{self.class.name}(#{@name}) events", @event_count

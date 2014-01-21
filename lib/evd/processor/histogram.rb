@@ -87,10 +87,6 @@ module EVD::Processor
       end
     end
 
-    def report?
-      true
-    end
-
     def report
       yield "#{self.class.name} dropped", @dropped
       yield "#{self.class.name} bucket_dropped", @bucket_dropped

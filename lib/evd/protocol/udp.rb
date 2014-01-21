@@ -5,6 +5,9 @@ module EVD::UDP
   class Connect
     include EVD::Reporter
 
+    set_reporter_keys :dropped_events, :dropped_metrics,
+                      :sent_events, :sent_metrics
+
     def initialize log, host, port, handler
       @log = log
       @host = host

@@ -14,6 +14,8 @@ module EVD::Plugin::KairosDB
   class Output
     include EVD::Reporter
 
+    set_reporter_keys :dropped_metrics, :sent_metrics, :failed_metrics
+
     HEADER = {
       "Content-Type" => "application/json"
     }
