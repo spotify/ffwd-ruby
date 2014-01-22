@@ -1,14 +1,22 @@
 # evd
 
-A local event and metrics collection daemon prototype.
+A highly flexible, multi-protocol events and metrics forwarder capable
+of merging and decorating events and metrics from a number of sources
+and multiplexing them to number of event and metric consumers.
 
-EVD is an event agent prototype meant to run on a single host and receive
-metrics and events using a set of standard protocols.
+EVD is a deamon meant to run on a single host and receive metrics and events
+using a set of standard protocols.
 
-It acts as an abstraction layer between between a service and monitor system,
-it is capable of rich metadata decoration of the events passing through it.
+
+**TODO (parmus): Redo this:**
+> It acts as an abstraction layer between between a service and monitor system,
+> it is capable of rich metadata decoration of the events passing through it.
+
+
+EVD is currently a prototype implemented to explore this design. Your milage might vary.
 
 * [Usage](#usage)
+* [EVD vs. collectd](#evd-vs.-collectd)
 * [Events and Metrics](#events-and-metrics)
 * [Debugging](#debugging)
 * [Tunneling and multi-tenancy](#tunneling-and-multi-tenancy)
@@ -21,7 +29,7 @@ it is capable of rich metadata decoration of the events passing through it.
 The simplest possible use is to install all dependencies and run it using the
 supplied example configuration.
 
-```
+```bash
 bundle install
 bin/evd -c docs/simple.conf
 ```
@@ -29,21 +37,37 @@ bin/evd -c docs/simple.conf
 This will start up an instance that periodically reports statistics about
 itself.
 
-You can try out it's capabilities by running the supplied
+You can now send events and metrics to it using one of the enabled input protocols,
+e.g. the carbon protocol or the JSON-line protocol:
+
+```bash
+echo "local.random.diceroll 4  `date +%s`" | nc -q0 localhost 2003
+echo '{"type": "metric", "key": "local.random.diceroll", "value": 6}' | nc -q0 localhost 3000
+```
+
+You can try out more advanced protocols using the supplied sample client:
 [docs/client-test.rb](docs/client-test.rb).
 
-```
+```bash
 ruby docs/client-test.rb
 ```
 
-If you want to experiment with multitenancy, use the provided
-[docs/tunnel.conf](docs/tunnel.conf) as base.
-For the example [docs/client-test.rb](docs/client-test.rb) to work, you have to
-start a tunneling agent.
+If you have the log output plugin enabled, you should see these metrics written to the log.
 
-You can do this by running the provided [bin/tunnel-agent](bin/tunnel-agent)
-which is a reference implementation of the [tunneling
-protocol](#tunneling-and-multi-tenancy).
+
+
+
+
+
+**TODO (parmus): Consider moving this section**
+> If you want to experiment with multitenancy, use the provided
+> [docs/tunnel.conf](docs/tunnel.conf) as base.
+> For the example [docs/client-test.rb](docs/client-test.rb) to work, you have to
+> start a tunneling agent.
+
+> You can do this by running the provided [bin/tunnel-agent](bin/tunnel-agent)
+> which is a reference implementation of the [tunneling
+> protocol](#tunneling-and-multi-tenancy).
 
 ```
 $ bin/tunnel-agent
@@ -52,15 +76,58 @@ INFO:__main__:CONFIG: {...}
 ...
 ```
 
-It should now be possible to use the provided
-[docs/client-test.rb](docs/client-test.rb) the same way as you did before.
+> It should now be possible to use the provided
+> [docs/client-test.rb](docs/client-test.rb) the same way as you did before.
+
+
+
+
+
+
+## EVD vs. collectd
+
+EVD is inspired by the pluggable infrastructure provided by [collectd](http://collectd.org/), but is designed
+for a slightly different use-case and using different design principals.
+
+* collectd does metric collection inside it's core using plugins, i.e. if you want
+  to add and collect some custom metric, then you write a new collectd plugin or
+  extension. In contrast, EVD only deals with forwarding metrics sent through it and
+  does NOT metric collection what so ever. Any actual collection must happen outside EVD,
+  and EVD only provides the transport (forwarding) layer.
+* collectd is optimized for performance, scalability and portability. It's written in C
+  and it makes heavily use of internal buffers and threads to deliver this performance.
+  While this makes collectd very fast, it also make it very hard to debug, when something
+  goes wrong. In contract, EVD is written in Ruby with introspection and debuggability in
+  mind, it's core is completely event-driven and synchronous (single-process and
+  single-threaded) and does no internal buffering. This makes EVD very simple to debug and
+  understand albeit not as performant as collectd. However we believe EVD's simple structure
+  makes it performant *enough*.
+* collectd tries very hard to deliver reliable metrics. collectd will buffer (both in memory
+  and ultimately on disc) and resent metrics, if it has trouble delivering them to it's
+  consumers, and it will safe unsent metrics to and reload from disc on shutdown and restart.
+  All in all, collectd behaves very much like TCP, trying to be very reliable and treating
+  every measured metrics as precious pieces of data.
+  In contract EVD behaves more like UDP, will do no buffering or saving to disc, and will
+  happily drop metrics, if it has trouble delivering them. This makes EVD very resilient to
+  e.g. high CPU load, slow network and work overload (to many or to fast incoming metrics).
+  EVD will generate internal events, when dropping traffic to notify consumers about this
+  behavior.
+
+
+**TODO (parmus): Could we put collectd in front of EVD for collection?**
+
+## Writing plugins
+
+**TODO (parmus)**
 
 ## Events and Metrics
 
 The two types of data that EVD processes are *events* and *metrics*.
 
-An input or output plugin can both produce and consume *events* and *metrics*,
-but they are treated slightly differently by *Core*.
+
+**TODO (parmus): This makes no sense:**
+> An input or output plugin can both produce and consume *events* and *metrics*,
+> but they are treated slightly differently by *Core*.
 
 * **events** Are passed as-is, without being processed.
 * **metrics** Can be optionally processed, but default to being passed as-is.
@@ -124,6 +191,8 @@ which channel the traffic was sniffed of.
 **data** Data describing the sniffed event according to specified *type*.
 
 ## Tunneling and multi-tenancy
+
+**TODO(parmus): Rewrite with focus on the container use-case **
 
 Multi-tenancy is the act of supporting multiple distinct client services with
 unique metadata (host, tags, attributes) on a single EVD agent.
