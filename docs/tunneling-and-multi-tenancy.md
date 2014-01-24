@@ -6,13 +6,14 @@ future change**
 **TODO(parmus): Rewrite with focus on the container use-case **
 
 Multi-tenancy is the act of supporting multiple distinct client services with
-unique metadata (host, tags, attributes) on a single EVD agent.
+unique metadata (host, tags, attributes) on a single FFWD agent.
 
 This is currently achieved with the *tunnel* plugin.
 
 ## Usage
 
-If you want to experiment with multitenancy, use the provided [docs/tunnel.conf](docs/tunnel.conf) as base.
+If you want to experiment with multitenancy, use the provided
+[docs/tunnel.conf](docs/tunnel.conf) as base.
 For the example [docs/client-test.rb](docs/client-test.rb) to work, you have to
 start a tunneling agent.
 
@@ -34,8 +35,8 @@ It should now be possible to use the provided
 
 In multi-tenancy we distinguish betweeh the *host* and the *guest* system.
 
-In EVD, the *host* system runs the EVD agent, and every *guest* runs a small
-[*tunneling agent*](bin/tunnel-agent) which connects to the *host*.
+In FFWD, the *host* system runs the FFWD agent, and every *guest* runs a
+small [*tunneling agent*](bin/tunnel-agent) which connects to the *host*.
 
 The tunneling agent is responsible for doing the following.
 
@@ -64,8 +65,8 @@ The read keys are *tags*, *attributes* and *host*.
 
 ```{"tags": ["env::production", ...], "attributes": {"site": "sto"}, "host": "tenant-1"}```
 
-**config** Is a JSON Object that describes which *protocol and port* combinations
-the tunneling client should bind to and tunnel traffic from.
+**config** Is a JSON Object that describes which *protocol and port*
+combinations the tunneling client should bind to and tunnel traffic from.
 The read keys are *input* which should be an array of input configurations.
 
 ```{"type": <text/binary>, "bind": [{"protocol": 2, "port": 5555}, ...]}```.
@@ -120,7 +121,7 @@ which is a base64 encoded blob.
 Since most other protocols are *general purpose*, they are usually unable to do
 the following.
 
-* Collect and forward *metadata* to the *host* system.
+* Collect and ffwd *metadata* to the *host* system.
 * Having the *guest* proxy being dynamically reconfigured by the *host*.
 
 **SOCKS5**
@@ -131,7 +132,7 @@ complicate both *host* and *guest* agents due to having to manager
 configuration changes on a side-channel.
 *Does support* dynamic proxying.
 
-**manual port forwarding**
+**manual port ffwding**
 
 One of the better alternatives.
 
@@ -139,18 +140,18 @@ One of the better alternatives.
   Supporting more than one *guest* at a time would require port mapping, which
   is a matter of configuration and change management on the basis of every
   individual *guest-to-host* combination.
-* EVD would have to be configured to apply metadata to incoming connections
+* FFWD would have to be configured to apply metadata to incoming connections
   *depending on their ip, port* which is possible but complex.
 
-**running the EVD agent in every guest (no tunneling)**
+**running the FFWD agent in every guest (no tunneling)**
 
 The best alternative!
 
-Keeping EVD normalized, up to date and availble on every guest system might be
-difficult. Immutable container images like with
+Keeping FFWD normalized, up to date and availble on every guest system might
+be difficult. Immutable container images like with
 [docker](http://www.docker.io/) make things more complicated.
 
 It can be argued that you'd still have to run the *tunneling agent* in side the
 *guest*.
-This agent is a much less complex project than EVD and therefore be subject to
-less change.
+This agent is a much less complex project than FFWD and therefore be subject
+to less change.

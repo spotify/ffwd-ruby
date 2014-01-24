@@ -1,0 +1,15 @@
+#!/usr/bin/env ruby
+
+if __FILE__ == $0
+    lib = File.expand_path File.join('..', '..', 'lib'), $0
+    $:.insert(0, lib) if File.file? File.join(lib, 'ffwd.rb')
+end
+
+begin
+    require 'ffwd'
+rescue LoadError
+    require 'rubygems'
+    require 'ffwd'
+end
+
+exit FFWD::main(ARGV || [])
