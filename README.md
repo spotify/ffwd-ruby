@@ -183,7 +183,7 @@ $ nc localhost 9999
 ```
 
 *As an alternative to connecting directly to the debug socket, you can also use
-the [**evc**](#evc) tool*.
+the [**evc**](#debugging-with-evc) tool*.
 
 Each line consists of a JSON object with the following fields.
 
