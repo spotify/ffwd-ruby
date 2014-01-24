@@ -182,6 +182,9 @@ $ nc localhost 9999
 ...
 ```
 
+*As an alternative to connecting directly to the debug socket, you can also use
+the [**evc**](#evc) tool*.
+
 Each line consists of a JSON object with the following fields.
 
 **id** The id that the specified events can be grouped by, this indicates
@@ -190,6 +193,38 @@ which channel the traffic was sniffed of.
 **type** The type of the *data* field.
 
 **data** Data describing the sniffed event according to specified *type*.
+
+### Debugging with evc
+
+**evc** is a [small CLI tool](lib/evc.rb) for connecting and analyzing EVD
+debug data.
+
+It can be invoked with the **--raw** and/or **--summary** switch.
+
+**--raw** will output everything received on the debug socket, but will also
+attempt to throttle the output to protect the users terminal.
+
+**--summary** will only output a summary of *what has been seen* on the various
+channels.
+
+The output will look something like the following.
+
+```
+<time> INFO: Summary Report:
+<time> INFO:   core.input (event)
+<time> INFO:     event-foo 2
+1time> INFO:     event-bar 2
+1time> INFO:   core.output (event)
+1time> INFO:     event-foo 2
+1time> INFO:     event-bar 2
+```
+
+The above says that the **core.input** channel has passed two events with the
+keys **event-foo** and **event-bar**.
+
+Similarly the **core.output** channel has passed the same set of events,
+meaning that all of the events are expected to have been processed by output
+plugins.
 
 ## Terminology
 
