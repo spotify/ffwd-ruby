@@ -163,8 +163,6 @@ module FFWD
     PluginLoader.load 'processor', blacklist[:processors] || []
     PluginLoader.load 'plugin', blacklist[:plugins] || []
 
-    FFWD::Plugin.init
-
     stop_early = (opts[:list_plugins] or
                   opts[:active_plugins] or
                   opts[:dump_config])
@@ -173,8 +171,8 @@ module FFWD
       puts "Available Plugins:"
 
       FFWD::Plugin.loaded.each do |name, plugin|
-        puts "Plugin #{name}"
-        puts "  #{plugin.capabilities.join(' ')}"
+        puts "Plugin '#{name}' (#{plugin.source})"
+        puts "  supports: #{plugin.capabilities.join(' ')}"
       end
     end
 
