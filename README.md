@@ -30,8 +30,8 @@ The simplest possible use is to install all dependencies and run it using the
 supplied example configuration.
 
 ```bash
-bundle install
-bin/ffwd -c docs/simple.conf
+$ bundle install
+$ bin/ffwd -c docs/simple.conf
 ```
 
 This will start up an instance that periodically reports statistics about
@@ -39,18 +39,19 @@ itself.
 
 You can now send events and metrics to it using one of the enabled input
 protocols.
-E.g. the carbon protocol or the JSON-line protocol:
+E.g. the carbon protocol or the JSON-line protocol (requires
+[ffwd-carbon](https://github.com/spotify-ffwd/ffwd-carbon)):
 
 ```bash
-echo "random.diceroll 4  `date +%s`" | nc -q0 localhost 2003
-echo '{"type": "metric", "key": "random.diceroll", "value": 6}' | nc -q0 localhost 3000
+$ echo "random.diceroll 4  `date +%s`" | nc -q0 localhost 2003
+$ echo '{"type": "metric", "key": "random.diceroll", "value": 6}' | nc -q0 localhost 3000
 ```
 
 You can try out more advanced protocols using the supplied sample client:
 [docs/client-test.rb](docs/client-test.rb).
 
 ```bash
-ruby docs/client-test.rb
+$ ruby docs/client-test.rb
 ```
 
 If you have the log output plugin enabled, you should see these metrics written
@@ -67,7 +68,7 @@ FFWD is available on rubygems so it can be installed through
 [gem](https://rubygems.org).
 
 ```bash
-gem install ffwd-core
+$ gem install ffwd-core
 ```
 
 ### Installing plugins
