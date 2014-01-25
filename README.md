@@ -1,4 +1,4 @@
-# Spotify FastForward &#9193;
+# FastForward &#9193;
 
 A highly flexible, multi-protocol events and metrics forwarder capable of
 merging and decorating events and metrics from a number of sources and
