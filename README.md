@@ -1,20 +1,16 @@
 # Spotify FastForward &#9193;
 
-A highly flexible, multi-protocol events and metrics forwarder capable
-of merging and decorating events and metrics from a number of sources
-and multiplexing them to number of event and metric consumers.
+A highly flexible, multi-protocol events and metrics forwarder capable of
+merging and decorating events and metrics from a number of sources and
+multiplexing them to number of event and metric consumers.
 
-FFWD is a deamon meant to run on a single host and receive metrics and
-events using a set of standard protocols.
+FFWD is a deamon meant to run on a single host and receive metrics and events
+using a set of standard protocols.
+It is a single point of entry for any service to dispatch data in any protocol
+that happens to suit them with a simple endpoint.
 
-
-**TODO (parmus): Redo this:**
-> It acts as an abstraction layer between between a service and monitor system,
-> it is capable of rich metadata decoration of the events passing through it.
-
-
-FFWD is currently a prototype implemented to explore this design.
-Your milage might vary.
+*FFWD is currently a prototype implemented to explore this design.
+Your milage might vary.*
 
 * [Usage](#usage)
 * [Writing Plugins](#writing-plugins)
@@ -64,6 +60,45 @@ FFWD has support for multi-tenancy (multiple guests reporting into the same
 FFWD agent).
 For more information, see
 [Tunneling and multi-tenancy](docs/tunneling-and-multi-tenancy.md)
+
+## Installation
+
+FFWD is available on rubygems so it can be installed through
+[gem](https://rubygems.org).
+
+```bash
+gem install ffwd-core
+```
+
+### Installing plugins
+
+FFWD uses plugins which has to be installed separately in order to use them.
+
+You can list the plugins available on rubygems through gem.
+
+```bash
+$ gem search -r 'ffwd-*'
+```
+
+You can then install the plugin(s) you want.
+
+```bash
+$ gem install ffwd-<plugin>
+```
+
+You can check that the plugin is available to FFWD using the **--list-plugins**
+command.
+
+```bash
+$ ffwd --list-plugins
+Available Plugins:
+Plugin log
+  output
+Plugin json_line
+  input
+Plugin tunnel
+  input
+```
 
 ## Writing plugins
 
