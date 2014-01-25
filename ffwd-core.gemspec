@@ -6,12 +6,11 @@ require 'ffwd/version'
 Gem::Specification.new do |spec|
   spec.name = "ffwd-core"
   spec.version = FFWD::VERSION
-  spec.authors = ["John-John Tedro"]
-  spec.email = ["johnjohn.tedro@gmail.com"]
-  spec.description = %q{Minimal System Event Daemon}
-  spec.summary = %q{Minimal System Event Daemon}
+  spec.authors = ["John-John Tedro", "Martin Parm"]
+  spec.email = ["udoprog@spotify.com", "parmus@spotify.com"]
+  spec.summary = %q{Core framework for the FastForward Daemon.}
   spec.homepage = "https://github.com/spotify/ffwd-core"
-  spec.license = "GPLv3"
+  spec.license = "Apache 2.0"
 
   spec.files = Dir.glob('bin/*') +
                Dir.glob('lib/**/*.rb');
