@@ -13,16 +13,19 @@ that happens to suit them with a simple endpoint.
 Your mileage might vary.*
 
 * [Usage](#usage)
-* [Writing Plugins](#writing-plugins)
+* [Installation](#installation)
+  * [Installing Plugins](#installing-plugins)
+* [Contributing](#contributing)
 * [Events and Metrics](#events-and-metrics)
   * [Input Data Structure](#input-data-structure)
   * [Output Data Structure](#output-data-structure)
 * [Debugging](#debugging)
 * [Terminology](#terminology)
 
-Other topics:
+Other focused topics.
 * [FFWD vs. collectd](docs/vs-collectd.md)
 * [Tunneling and multi-tenancy](docs/tunneling-and-multi-tenancy.md)
+* [Writing Plugins](docs/writing-plugins.md)
 
 ## Usage
 
@@ -39,8 +42,10 @@ itself.
 
 You can now send events and metrics to it using one of the enabled input
 protocols.
-E.g. the carbon protocol or the JSON-line protocol (requires
-[ffwd-carbon](https://github.com/spotify-ffwd/ffwd-carbon)):
+
+E.g. the carbon protocol (requires
+[ffwd-carbon](https://github.com/spotify-ffwd/ffwd-carbon))
+or the JSON-line protocol.
 
 ```bash
 $ echo "random.diceroll 4  `date +%s`" | nc -q0 localhost 2003
@@ -102,9 +107,20 @@ Plugin 'tunnel' (from gem: ffwd-tunnel-<version>)
 ...
 ```
 
-## Writing plugins
+At this point you will probably discover that FFWD does not support your
+favorite plugin.
+Reading our [writing plugins guide](docs/writing-plugins.md) should enable you
+to remedy this.
 
-**TODO (parmus)**
+## Contributing
+
+1. Fork FastForward (or a plugin) from
+   [github](https://github.com/spotify-ffwd) and clone your fork.
+2. Hack.
+3. Verify code by running any existing test-suite; ```bundle exec rspec```.
+   Try to include tests for your changes.
+4. Push the branch back to GitHub.
+5. Send a pull request to our upstream repo.
 
 ## Events and Metrics
 
