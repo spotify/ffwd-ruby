@@ -10,7 +10,7 @@ It is a single point of entry for any service to dispatch data in any protocol
 that happens to suit them with a simple endpoint.
 
 *FFWD is currently a prototype implemented to explore this design.
-Your milage might vary.*
+Your mileage might vary.*
 
 * [Usage](#usage)
 * [Writing Plugins](#writing-plugins)
