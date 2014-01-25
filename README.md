@@ -1,6 +1,6 @@
-# ffwd
+# Spotify FastForward &#9193;
 
-A highly flexible, multi-protocol events and metrics ffwder capable
+A highly flexible, multi-protocol events and metrics forwarder capable
 of merging and decorating events and metrics from a number of sources
 and multiplexing them to number of event and metric consumers.
 
