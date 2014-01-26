@@ -1,10 +1,11 @@
 require_relative 'logging'
 
 require_relative 'reporter'
+require_relative 'plugin_base'
 
 module FFWD
   # A client implementation that delegates all work to other threads.
-  class ProducingClient
+  class ProducingClient < FFWD::PluginBase
     include FFWD::Logging
     include FFWD::Reporter
 
@@ -24,10 +25,10 @@ module FFWD
       @timer = nil
     end
 
-    def start channel
+    def init output
       @timer = EM::PeriodicTimer.new(@flush_period){flush!}
 
-      channel.event_subscribe do |e|
+      event_sub_id = output.event_subscribe do |e|
         if @events.size >= @event_limit
           increment :dropped_events, 1
           return
@@ -36,13 +37,18 @@ module FFWD
         @events << e
       end
 
-      channel.metric_subscribe do |m|
+      metric_sub_id = output.metric_subscribe do |m|
         if @metrics.size >= @metric_limit
           increment :dropped_metrics, 1
           return
         end
 
         @metrics << m
+      end
+
+      stopping do
+        output.metric_unsubscribe metric_sub_id
+        output.event_unsubscribe event_sub_id
       end
     end
 

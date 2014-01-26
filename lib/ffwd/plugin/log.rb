@@ -1,7 +1,8 @@
-require_relative '../event'
-require_relative '../metric'
-require_relative '../plugin'
-require_relative '../logging'
+require 'ffwd/event'
+require 'ffwd/logging'
+require 'ffwd/metric'
+require 'ffwd/plugin'
+require 'ffwd/plugin_base'
 
 module FFWD::Plugin
   module Log
@@ -10,10 +11,10 @@ module FFWD::Plugin
 
     register_plugin "log"
 
-    class Writer
+    class Writer < FFWD::PluginBase
       include FFWD::Logging
 
-      def initialize(prefix)
+      def initialize prefix
         @p = if prefix
           "#{prefix} "
         else
@@ -21,13 +22,18 @@ module FFWD::Plugin
         end
       end
 
-      def start channel
-        channel.event_subscribe do |e|
+      def init output
+        event_sub = output.event_subscribe do |e|
           log.info "Event: #{@p}#{FFWD.event_to_h e}"
         end
 
-        channel.metric_subscribe do |m|
+        metric_sub = output.metric_subscribe do |m|
           log.info "Metric: #{@p}#{FFWD.metric_to_h m}"
+        end
+
+        stopping do
+          output.event_unsubscribe event_sub
+          output.metric_unsubscribe metric_sub
         end
       end
     end

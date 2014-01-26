@@ -1,8 +1,8 @@
 require 'eventmachine'
 
-require_relative '../protocol'
-require_relative '../plugin'
-require_relative '../logging'
+require 'ffwd/protocol'
+require 'ffwd/plugin'
+require 'ffwd/logging'
 
 require_relative 'json_line/connection'
 

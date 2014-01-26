@@ -2,6 +2,7 @@ require 'eventmachine'
 
 require_relative '../reporter'
 require_relative '../tunnel'
+require_relative '../plugin_base'
 
 module FFWD::TCP
   class Connection < EM::Connection
@@ -22,7 +23,7 @@ module FFWD::TCP
     end
   end
 
-  class Connect
+  class Connect < FFWD::PluginBase
     include FFWD::Reporter
 
     set_reporter_keys :dropped_events, :dropped_metrics,
@@ -97,7 +98,7 @@ module FFWD::TCP
       @handler.receive_data data
     end
 
-    def start output
+    def init output
       @c = EM.connect(@host, @port, Connection, self)
 
       EM.add_shutdown_hook{close}
@@ -172,7 +173,7 @@ module FFWD::TCP
     end
   end
 
-  class Bind
+  class Bind < FFWD::PluginBase
     def initialize log, host, port, handler, args
       @log = log
       @host = host
@@ -182,7 +183,7 @@ module FFWD::TCP
       @peer = "#{host}:#{port}"
     end
 
-    def start input, output
+    def init input, output
       @log.info "Binding to tcp://#{@peer}"
       EM.start_server @host, @port, @handler, input, output, *@args
     end

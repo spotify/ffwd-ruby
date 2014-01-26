@@ -1,9 +1,10 @@
 require 'eventmachine'
 
-require_relative '../../logging'
+require 'ffwd/logging'
+require 'ffwd/connection'
 
 module FFWD::Plugin::JsonLine
-  class Connection < EM::Connection
+  class Connection < FFWD::Connection
     include FFWD::Logging
     include EM::Protocols::LineText2
 

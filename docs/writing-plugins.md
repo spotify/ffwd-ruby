@@ -45,14 +45,13 @@ An **input plugin** implements the **setup_input** method in the plugin module.
 
 ```ruby
 require 'ffwd/plugin'
+require 'ffwd/plugin_base'
 
 module FFWD::Plugin
   module Foo
     # ...
 
-    class Input
-      def start input, output
-      end
+    class Input < FFWD::PluginBase
     end
 
     def self.setup_input core, opts={}
@@ -63,12 +62,15 @@ end
 ```
 
 The return value of the input plugin is expected to be *any object* that
-responds to the **start** method, which in turn is expected to take two
-parameters.
+responds to the **start** and the **stop** method.
+The **start** method is expected to take two parameters.
 
 **input** &mdash; The input channel which the plugin can send input data to.
 
 **output** &mdash; The output channel which the plugin can send output data to.
+
+The above example uses **FFWD::PluginBase** which provides these methods and
+allows the author to simply implement the **init** method.
 
 Lets make our plugin periodically send something on the input channel.
 
@@ -76,13 +78,14 @@ Lets make our plugin periodically send something on the input channel.
 require 'eventmachine'
 
 require 'ffwd/plugin'
+require 'ffwd/plugin_base'
 
 module FFWD::Plugin
   module Foo
     # ...
 
-    class Input
-      def start input, output
+    class Input < FFWD::PluginBase
+      def init input, output
         timer = EM::PeriodicTimer.new(10) do
           input.metric :key => "foo", :value => 10
         end
@@ -103,20 +106,21 @@ end
 With this we learn two new things.
 
 *FastForward plugins runs inside of EventMachine*, so in order to periodically
-do something we can use 
+do something we can use
 [EM::PeriodicTimer](http://eventmachine.rubyforge.org/EventMachine/PeriodicTimer.html).
 
-Plugins come with the **stopping** method which takes a block parameter, the
-provided block gets invoked anytime **Core** decides that our plugin should be
+The **stopping** method is a benefit from using the **FFWD::PluginBase** class
+as a base.
+The provided block gets invoked anytime **Core** decides that our plugin should be
 stopped.
 *Omitting this* would cause the timer to continue firing even though an input
-plugin is supposed to have been stopped having very strange effects.
+plugin is supposed to have been stopped which would have very strange effects.
 
-Now there is nothing about our plugin that is particularly interesting, if
-enabled it just generated the same metric every 10 seconds.
+There is nothing about our newly created plugin that is particularly
+interesting, if enabled it just generated the same metric every 10 seconds.
 
 In the next section we will talk about binding to a specified port and receive
-messages that way.
+metrics over the network using FFWD's **protocol stack**.
 
 #### Input: Binding to a port
 
@@ -199,6 +203,72 @@ The **input** configuration for this plugin would look like the following.
 ```
 
 ### Output Plugin
+
+An **output plugin** implements the **setup_output** method in the plugin
+module.
+
+```ruby
+require 'ffwd/plugin'
+require 'ffwd/plugin_base'
+
+module FFWD::Plugin
+  module Foo
+    # ...
+
+    class Output < FFWD::PluginBase
+    end
+
+    def self.setup_output core, opts={}
+      Output.new
+    end
+  end
+end
+```
+
+The return value of the output plugin is expected to be very similar to the
+input plugin, however it is only expected to receive a single parameter.
+
+**output**&mdash;The output channel which this plugin should subscribe to for
+events and metrics.
+
+Lets write a plugin that logs whatever it receives.
+
+```ruby
+require 'ffwd/logging'
+require 'ffwd/plugin'
+require 'ffwd/plugin_base'
+
+module FFWD::Plugin
+  module Foo
+    # ...
+
+    class Output < FFWD::PluginBase
+      include FFWD::Logging
+
+      def init output
+        es = output.subscribe_event do |event|
+          log.info "Event: #{event}"
+        end
+
+        ms = output.subscribe_metric do |metric|
+          log.info "Metric: #{metric}"
+        end
+
+        stopping do
+          output.unsubscribe_event es
+          output.unsubscribe_metric ms
+        end
+      end
+    end
+
+    def self.setup_output core, opts={}
+      Output.new
+    end
+  end
+end
+```
+
+#### Output: Connecting to a server
 
 Lets assume that we want our plugin to be able to write the numbers that it
 receives somewhere else.
