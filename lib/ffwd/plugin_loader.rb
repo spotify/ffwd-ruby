@@ -7,23 +7,73 @@ module FFWD::PluginLoader
 
   MODULE_NAME = 'ffwd'
 
-  def self.load_paths
-    $LOAD_PATH.each do |path|
-      yield "from $LOAD_PATH: #{path}", path
-    end
+  def self.plugin_directories= directories
+    @plugin_directories = directories
+  end
 
-    Gem::Specification.latest_specs(true).collect do |spec|
-      yield "from gem: #{spec.full_name}", File.join(spec.full_gem_path, 'lib')
+  def self.plugin_directories
+    @plugin_directories || []
+  end
+
+  # Discover plugins in the specified directory that are prefixed with 'ffwd-'.
+  def self.discover_plugins dir
+    return [] unless File.directory? dir
+
+    Dir.foreach(dir).map do |entity|
+      next if entity.start_with? "."
+      next unless entity.start_with? "#{MODULE_NAME}-"
+      full_path = File.join dir, entity, 'lib'
+      next unless File.directory? full_path
+      yield full_path
     end
   end
 
-  def self.list_modules(module_category, blacklist, &block)
-    load_paths do |source, path|
+  def self.plugin_paths
+    return @plugin_paths if @plugin_paths
+
+    @plugin_paths = []
+
+    plugin_directories.map do |dir|
+      discover_plugins(dir) do |path|
+        @plugin_paths << path
+      end
+    end
+
+    return @plugin_paths
+  end
+
+  def self.load_paths
+    return @load_paths if @load_paths
+
+    @load_paths = []
+
+    Gem::Specification.latest_specs(true).collect do |spec|
+      @load_paths << ["from gem: #{spec.full_name}",
+                      File.join(spec.full_gem_path, 'lib')]
+    end
+
+    plugin_paths.each do |path|
+      @load_paths << ["from plugin directory: #{path}", path]
+    end
+
+    $LOAD_PATH.each do |path|
+      @load_paths << ["from $LOAD_PATH: #{path}", path]
+    end
+
+    unless plugin_paths.empty?
+      $LOAD_PATH.concat plugin_paths
+    end
+
+    return @load_paths
+  end
+
+  def self.list_modules module_category, blacklist, &block
+    load_paths.each do |source, path|
       dir = File.join(path, MODULE_NAME, module_category)
 
       next unless File.directory? dir
 
-      Dir.foreach(dir) do |entity|
+      Dir.foreach dir do |entity|
         next if entity.start_with? "."
         next unless entity.end_with? ".rb"
         next unless File.file? File.join(dir, entity)

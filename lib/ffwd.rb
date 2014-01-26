@@ -59,7 +59,7 @@ module FFWD
   def self.opts
     @@opts ||= {:debug => false, :config => nil, :config_dir => nil,
                 :active_plugins => false, :list_plugins => false,
-                :dump_config => false}
+                :dump_config => false, :plugin_directories => []}
   end
 
   def self.parser
@@ -78,16 +78,20 @@ module FFWD
         opts[:config_dir] = path
       end
 
-      o.on "--list-plugins" do
+      o.on "--list-plugins", "Print the available plugins." do
         opts[:list_plugins] = true
       end
 
-      o.on "--active-plugins" do
+      o.on "--active-plugins", "Print the active plugins and their parameters for the current configuration." do
         opts[:active_plugins] = true
       end
 
-      o.on "--dump-config" do
+      o.on "--dump-config", "Dump the configuration that has been loaded." do
         opts[:dump_config] = true
+      end
+
+      o.on "--plugin-directory <dir>", "Load plugins from the specified directory." do |dir|
+        opts[:plugin_directories] << dir
       end
     end
   end
@@ -159,6 +163,11 @@ module FFWD
     end
 
     blacklist = config[:blacklist] || {}
+
+    directories = ((config[:plugin_directories] || []) +
+                   (opts[:plugin_directories] || []))
+
+    PluginLoader.plugin_directories = directories
 
     PluginLoader.load 'processor', blacklist[:processors] || []
     PluginLoader.load 'plugin', blacklist[:plugins] || []
