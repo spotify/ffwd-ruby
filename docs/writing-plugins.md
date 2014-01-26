@@ -17,7 +17,6 @@ require 'ffwd/plugin'
 module FFWD::Plugin
   module Foo
     include FFWD::Plugin
-
     register_plugin "foo"
   end
 end
@@ -40,7 +39,7 @@ You should also note that the **supports:** block is empty.
 
 It is now time to fix that.
 
-### Input plugins
+### Input Plugin
 
 An **input plugin** implements the **setup_input** method in the plugin module.
 
@@ -49,9 +48,7 @@ require 'ffwd/plugin'
 
 module FFWD::Plugin
   module Foo
-    include FFWD::Plugin
-
-    register_plugin "foo"
+    # ...
 
     class Input
       def start input, output
@@ -82,9 +79,7 @@ require 'ffwd/plugin'
 
 module FFWD::Plugin
   module Foo
-    include FFWD::Plugin
-
-    register_plugin "foo"
+    # ...
 
     class Input
       def start input, output
@@ -123,7 +118,7 @@ enabled it just generated the same metric every 10 seconds.
 In the next section we will talk about binding to a specified port and receive
 messages that way.
 
-### Binding to a port
+#### Input: Binding to a port
 
 ```ruby
 require 'eventmachine'
@@ -137,7 +132,6 @@ module FFWD::Plugin
   module Foo
     include FFWD::Plugin
     include FFWD::Logging
-
     register_plugin "foo"
 
     class Connection < FFWD::Connection
@@ -204,7 +198,7 @@ The **input** configuration for this plugin would look like the following.
     :metric_key: "bar"
 ```
 
-### Output plugins
+### Output Plugin
 
 Lets assume that we want our plugin to be able to write the numbers that it
 receives somewhere else.
@@ -216,32 +210,14 @@ method in the plugin module.
 require 'eventmachine'
 
 require 'ffwd/connection'
+require 'ffwd/handler'
 require 'ffwd/logging'
 require 'ffwd/plugin'
 require 'ffwd/protocol'
 
 module FFWD::Plugin
   module Foo
-    include FFWD::Plugin
-    include FFWD::Logging
-
-    register_plugin "foo"
-
-    class Connection < FFWD::Connection
-      include FFWD::Logging
-      include EM::Protocols::LineText2
-
-      def initialize input, output, metric_key
-        @input = input
-        @metric_key = metric_key
-      end
-
-      def receive_line line
-        @input.metric :key => @metric_key, :value => line.to_i
-      rescue => e
-        log.error "Failed to receive metric", e
-      end
-    end
+    # ...
 
     class ConnectHandler < FFWD::Handler
       def name
@@ -255,16 +231,6 @@ module FFWD::Plugin
       def serialize_metric metric
         metric.to_s + "\n"
       end
-    end
-
-    DEFAULT_PORT = 4567
-    DEFAULT_METRIC_KEY = "foo"
-
-    def self.setup_input core, opts={}
-      opts[:port] ||= DEFAULT_PORT
-      metric_key = opts[:metric_key] || DEFAULT_METRIC_KEY
-      protocol = FFWD.parse_protocol(opts[:protocol] || "tcp")
-      protocol.bind log, opts, Connection, metric_key
     end
 
     def self.setup_input core, opts={}
@@ -310,4 +276,3 @@ The **output** configuration for this plugin would look like the following.
     :flush_period: 10
     :outbound_limit: 10000
 ```
-
