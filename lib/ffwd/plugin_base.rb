@@ -13,9 +13,8 @@ module FFWD
     end
 
     def stop
-      @stopping.each do |p|
-        p.call
-      end
+      @stopping.each(&:call)
+      @stopping.clear
     end
 
     def stopping &block
