@@ -5,24 +5,6 @@ require_relative '../tunnel'
 require_relative '../plugin_base'
 
 module FFWD::TCP
-  class Connection < EM::Connection
-    def initialize(parent)
-      @parent = parent
-    end
-
-    def connection_completed
-      @parent.connection_completed
-    end
-
-    def unbind
-      @parent.unbind
-    end
-
-    def receive_data(data)
-      @parent.receive_data data
-    end
-  end
-
   class Connect < FFWD::PluginBase
     include FFWD::Reporter
 
@@ -33,11 +15,12 @@ module FFWD::TCP
 
     INITIAL_TIMEOUT = 2
 
-    def initialize(log, host, port, handler, flush_period, outbound_limit)
+    def initialize(log, host, port, handler, args, flush_period, outbound_limit)
       @log = log
       @host = host
       @port = port
       @handler = handler
+      @args = args
       @flush_period = flush_period
       @outbound_limit = outbound_limit
 
@@ -90,18 +73,12 @@ module FFWD::TCP
       @reconnect_timer = EM::Timer.new(@reconnect_timeout) do
         @reconnect_timeout *= 2
         @reconnect_timer = nil
-        @c.reconnect @host, @port
+        @c = EM.connect @host, @port, @handler, self, *@args
       end
     end
 
-    def receive_data data
-      @handler.receive_data data
-    end
-
     def init output
-      @c = EM.connect(@host, @port, Connection, self)
-
-      EM.add_shutdown_hook{close}
+      @c = EM.connect @host, @port, @handler, self, *@args
 
       if @flush_period == 0
         output.event_subscribe{|e| handle_event e}
@@ -117,11 +94,11 @@ module FFWD::TCP
 
       output.event_subscribe{|e| @event_buffer << e}
       output.metric_subscribe{|e| @metric_buffer << e}
-    end
 
-    def close
-      @closing = true
-      @c.close_connection
+      stopping do
+        @closing = true
+        @c.close_connection
+      end
     end
 
     private
@@ -146,7 +123,7 @@ module FFWD::TCP
         return
       end
 
-      @c.send_data @handler.serialize_all(@event_buffer, @metric_buffer)
+      @c.send_all @event_buffer, @metric_buffer
       increment :sent_events, @event_buffer.size
       increment :sent_metrics, @metric_buffer.size
     rescue => e
@@ -158,7 +135,7 @@ module FFWD::TCP
 
     def handle_event event
       return increment :dropped_events, 1 unless writable?
-      @c.send_data @handler.serialize_event(event)
+      @c.send_event event
       increment :sent_events, 1
     rescue => e
       @log.error "Failed to handle event", e
@@ -166,7 +143,7 @@ module FFWD::TCP
 
     def handle_metric metric
       return increment :dropped_metrics, 1 unless writable?
-      @c.send_data @handler.serialize_metric(metric)
+      @c.send_metric metric
       increment :sent_metrics, 1
     rescue => e
       @log.error "Failed to handle metric", e
@@ -196,12 +173,12 @@ module FFWD::TCP
   DEFAULT_FLUSH_PERIOD = 10
   DEFAULT_OUTBOUND_LIMIT = 2 ** 20
 
-  def self.connect log, opts, handler
+  def self.connect log, opts, handler, *args
     raise "Missing required key :host" if (host = opts[:host]).nil?
     raise "Missing required key :port" if (port = opts[:port]).nil?
     flush_period = opts[:flush_period] || DEFAULT_FLUSH_PERIOD
     outbound_limit = opts[:outbound_limit] || DEFAULT_OUTBOUND_LIMIT
-    Connect.new log, host, port, handler, flush_period, outbound_limit
+    Connect.new log, host, port, handler, args, flush_period, outbound_limit
   end
 
   def self.bind log, opts, handler, *args
