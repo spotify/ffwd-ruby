@@ -289,17 +289,17 @@ module FFWD::Plugin
   module Foo
     # ...
 
-    class ConnectHandler < FFWD::Handler
+    class Handler < FFWD::Handler
       def name
         "foo.connect"
       end
 
-      def serialize_all events, metrics
-        metrics.map{|m| m.metric.to_s}.join('\n') + "\n"
+      def send_all events, metrics
+        send_data (metrics.map{|m| m.metric.to_s}.join('\n') + "\n")
       end
 
-      def serialize_metric metric
-        metric.to_s + "\n"
+      def send_metric metric
+        send_data (metric.to_s + "\n")
       end
     end
 
@@ -313,23 +313,17 @@ end
 
 Implementing the output part of a plugin on the **protocol stack** is slightly
 different.
-You are not expected to provide a Connection implementation, that is covered by
-the **protocol stack**.
-
-Instead you are expected to provide a **handler** which is responsible for
-providing the name of the plugin and serializing events and metrics through the
-**serialize_all**, **serialize_event** and **serialize_metric** methods.
-These methods are called by the **protocol stack** differently depending on how
-the plugin has been configured.
+You are expected to provide a **FFWD::Handler** implementation, which can
+implement the **send_all**, **send_event** and **send_metric** methods.
 
 The **connect** part of the **protocol stack** reads the following parameters.
 
 * **:host**&mdash;The host to connect to.
 * **:port**&mdash;The port to connect to.
 * **:flush_period**&mdash;If set, causes the connection to buffer messages, and
-  only flush at the specified period (in seconds) using **serialize_all**.
-  Otherwise will send each message as they arrive, calling **serialize_event**
-  and **serialize_metric** respectively.
+  only flush at the specified period (in seconds) using **send_all**.
+  Otherwise will send each message as they arrive, calling **send_event**
+  and **send_metric** respectively.
   If the buffer has not been successfully flushed during the specified period,
   the next buffer will be dropped.
 * **:outbound_limit**&mdash;The allowed number of bytes that are allowed to be
