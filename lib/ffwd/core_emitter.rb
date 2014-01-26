@@ -10,7 +10,7 @@ module FFWD
     def initialize output, opts={}
       @output = output
       @event = EventEmitter.new output, opts, opts[:event] || {}
-      @metric = MetricEmitter.new output, opts, opts[:event] || {}
+      @metric = MetricEmitter.new output, opts, opts[:metric] || {}
     end
 
     # Emit an event.
