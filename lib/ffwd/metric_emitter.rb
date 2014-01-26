@@ -20,7 +20,7 @@ module FFWD
       m[:tags] = FFWD.merge_sets @tags, m[:tags]
       m[:attributes] = FFWD.merge_hashes @attributes, m[:attributes]
 
-      @output.metric FFWD.metric(m)
+      @output.metric Metric.make(m)
     end
   end
 end

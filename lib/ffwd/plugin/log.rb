@@ -24,11 +24,11 @@ module FFWD::Plugin
 
       def init output
         event_sub = output.event_subscribe do |e|
-          log.info "Event: #{@p}#{FFWD.event_to_h e}"
+          log.info "Event: #{@p}#{e.to_h}"
         end
 
         metric_sub = output.metric_subscribe do |m|
-          log.info "Metric: #{@p}#{FFWD.metric_to_h m}"
+          log.info "Metric: #{@p}#{m.to_h}"
         end
 
         stopping do

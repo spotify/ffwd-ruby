@@ -22,7 +22,7 @@ module FFWD
       e[:tags] = FFWD.merge_sets @tags, e[:tags]
       e[:attributes] = FFWD.merge_hashes @attributes, e[:attributes]
 
-      @output.event FFWD.event(e)
+      @output.event Event.make(e)
     end
   end
 end

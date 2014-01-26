@@ -33,11 +33,11 @@ module FFWD::Debug
 
   module Output
     def self.serialize_event event
-      FFWD.event_to_h event
+      event.to_h
     end
 
     def self.serialize_metric metric
-      FFWD.metric_to_h metric
+      metric.to_h
     end
   end
 
