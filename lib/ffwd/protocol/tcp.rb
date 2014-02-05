@@ -127,7 +127,20 @@ module FFWD::TCP
       increment :sent_events, @event_buffer.size
       increment :sent_metrics, @metric_buffer.size
     rescue => e
-      @log.error "Failed to flush", e
+      @log.error "Failed to flush buffers", e
+
+      @log.error "The following data could not be flushed:"
+
+      @event_buffer.each_with_index do |event, i|
+        @log.error "##{i}: #{event.to_h}"
+      end
+
+      @metric_buffer.each_with_index do |metric, i|
+        @log.error "##{i}: #{metric.to_h}"
+      end
+
+      increment :failed_events, @event_buffer.size
+      increment :failed_metrics, @metric_buffer.size
     ensure
       @event_buffer = []
       @metric_buffer = []
@@ -139,6 +152,8 @@ module FFWD::TCP
       increment :sent_events, 1
     rescue => e
       @log.error "Failed to handle event", e
+      @log.error "The following event could not be flushed: #{event.to_h}"
+      increment :failed_events, 1
     end
 
     def handle_metric metric
@@ -147,6 +162,8 @@ module FFWD::TCP
       increment :sent_metrics, 1
     rescue => e
       @log.error "Failed to handle metric", e
+      @log.error "The following metric could not be flushed: #{metric.to_h}"
+      increment :failed_metrics, 1
     end
   end
 
