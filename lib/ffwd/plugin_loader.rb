@@ -93,7 +93,12 @@ module FFWD::PluginLoader
 
   def self.load module_category, blacklist
     self.list_modules(module_category, blacklist) do |source, m|
-      require m
+      begin
+        require m
+      rescue LoadError => e
+        log.error "Failed to require '#{m}'", e
+      end
+
       # Initialize all newly discovered plugins.
       FFWD::Plugin.init_discovered source
     end
