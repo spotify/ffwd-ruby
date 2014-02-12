@@ -1,3 +1,19 @@
+# Logging functionality.
+#
+# Defines FFWD::Logging which when included in either a class or module makes
+# the 'log' field available both as a class and instance field.
+#
+# 'log' in turn is an object with the following fields available.
+#
+# 'debug' - Log a message of level DEBUG..
+# 'info' - Log a message of level INFO.
+# 'warning' - Log a message of level WARNING.
+# 'error' - Log a message of level ERROR.
+#
+# Every function takes the message to log as the only parameter except 'error'
+# which can take an exception as a secondary argument.
+#
+# If an exception is provided, a stacktrace will be printed to log.
 require 'logger'
 
 module FFWD
