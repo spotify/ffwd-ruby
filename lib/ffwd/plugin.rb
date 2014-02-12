@@ -60,8 +60,8 @@ module FFWD
         @config = config
       end
 
-      def setup context
-        @setup.call context, @config
+      def setup *args
+        @setup.call @config, *args
       end
     end
 

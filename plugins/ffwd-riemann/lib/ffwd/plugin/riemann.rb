@@ -99,10 +99,10 @@ module FFWD::Plugin::Riemann
       raise "No type for protocol family: #{protocol.family}"
     end
 
-    protocol.connect log, opts, type
+    protocol.connect core, log, opts, type
   end
 
-  def self.setup_input core, opts={}
+  def self.setup_input opts, core
     opts[:host] ||= DEFAULT_HOST
     opts[:port] ||= DEFAULT_PORT
     protocol = FFWD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
@@ -111,10 +111,10 @@ module FFWD::Plugin::Riemann
       raise "No connection for protocol family: #{protocol.family}"
     end
 
-    protocol.bind log, opts, connection, log
+    protocol.bind opts, core, log, connection, log
   end
 
-  def self.setup_tunnel core, opts={}
+  def self.setup_tunnel opts, core, tunnel
     opts[:port] ||= DEFAULT_PORT
     protocol = FFWD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
 
@@ -122,6 +122,6 @@ module FFWD::Plugin::Riemann
       raise "No connection for protocol family: #{protocol.family}"
     end
 
-    protocol.tunnel log, opts, connection, log
+    protocol.tunnel opts, core, tunnel, log, connection, log
   end
 end

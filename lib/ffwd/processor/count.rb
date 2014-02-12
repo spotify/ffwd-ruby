@@ -30,7 +30,7 @@ module FFWD::Processor
       end
 
       @cache[key] = value
-      @emitter.emit_metric(
+      @emitter.metric.emit(
         :key => key, :value => value, :source => key)
     end
   end

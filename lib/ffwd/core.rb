@@ -28,13 +28,9 @@ module FFWD
       @core_opts = opts[:core] || {}
       @processor_opts = opts[:processor] || {}
 
-      @output_channel = FFWD::PluginChannel.new 'output'
-      @input_channel = FFWD::PluginChannel.new 'input'
+      @output_channel = FFWD::PluginChannel.build 'output'
+      @input_channel = FFWD::PluginChannel.build 'input'
       @system_channel = Channel.new log, "system_channel"
-
-      @tunnels = @tunnel_plugins.map do |plugin|
-        plugin.setup self
-      end
 
       memory_config = (@core_opts[:memory] || {})
       @memory_limit = (memory_config[:limit] || 1000).to_f.round(3)
@@ -50,10 +46,8 @@ module FFWD
         @debug = FFWD::Debug.setup @debug_opts
       end
 
-      @processors = FFWD::Processor.load @processor_opts
-
-      @emitter = CoreEmitter.new @output_channel, @core_opts
-      @processor = CoreProcessor.new @emitter, @processors
+      @emitter = CoreEmitter.build @output_channel, @core_opts
+      @processor = CoreProcessor.build @input_channel, @emitter, @processor_opts
 
       # Configuration for statistics module.
       @statistics = nil
@@ -63,7 +57,10 @@ module FFWD
       end
 
       @interface = CoreInterface.new(
-        @tunnels, @processors, @debug, @statistics, @core_opts)
+        @input_channel, @output_channel,
+        @tunnel_plugins, @statistics, @debug,
+        @processor_opts, @core_opts
+      )
 
       @input_instances = @input_plugins.map do |plugin|
         plugin.setup @interface
@@ -74,13 +71,10 @@ module FFWD
       end
 
       unless @statistics.nil?
-        reporters = [@output_channel, @input_channel]
+        reporters = [@input_channel, @output_channel, @processor]
+        reporters += @input_instances.select{|i| FFWD.is_reporter?(i)}
         reporters += @output_instances.select{|i| FFWD.is_reporter?(i)}
-        reporters += @processor.reporters
-
-        @reporter = CoreReporter.new reporters
-
-        @statistics.register "core", @reporter
+        @statistics.register "core", CoreReporter.new(reporters)
       end
     end
 
@@ -91,17 +85,10 @@ module FFWD
     #
     def run
       EM.run do
+        @input_channel.start
+        @output_channel.start
+
         setup_memory_monitor
-
-        @processor.start @input_channel
-
-        @input_instances.each do |p|
-          p.start @input_channel, @output_channel
-        end
-
-        @output_instances.each do |p|
-          p.start @output_channel
-        end
 
         unless @statistics.nil?
           @statistics.start
@@ -113,6 +100,9 @@ module FFWD
           @debug.monitor "core.output", @output_channel, FFWD::Debug::Output
         end
       end
+
+      @input_channel.stop
+      @output_channel.stop
     end
 
     private

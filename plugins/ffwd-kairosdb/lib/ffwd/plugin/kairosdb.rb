@@ -3,7 +3,6 @@ require 'em-http'
 
 require 'ffwd/logging'
 require 'ffwd/plugin'
-require 'ffwd/plugin_base'
 require 'ffwd/reporter'
 
 module FFWD::Plugin::KairosDB
@@ -12,7 +11,7 @@ module FFWD::Plugin::KairosDB
 
   register_plugin "kairosdb"
 
-  class Output < FFWD::PluginBase
+  class Output
     include FFWD::Reporter
 
     set_reporter_keys :dropped_metrics, :sent_metrics, :failed_metrics
@@ -23,14 +22,39 @@ module FFWD::Plugin::KairosDB
 
     API_PATH = "/api/v1/datapoints"
 
-    def initialize log, opts={}
+    def initialize core, log, url, flush_interval, buffer_limit
       @log = log
-      @url = opts[:url]
-      @flush_interval = opts[:flush_interval]
-      @buffer_limit = opts[:buffer_limit]
+      @url = url
+      @flush_interval = flush_interval
+      @buffer_limit = buffer_limit
       @buffer = []
       @pending = nil
       @conn = nil
+
+      core.output.starting do
+        @log.info "Will send events to #{@url}"
+
+        @conn = EM::HttpRequest.new(@url)
+
+        sub = core.output.metric_subscribe do |metric|
+          if @buffer.size >= @buffer_limit
+            increment :dropped_metrics, 1
+            next
+          end
+
+          @buffer << metric
+          check_timer!
+        end
+
+        core.output.stopping do
+          core.output.metric_unsubscribe sub
+
+          if @timer
+            @timer.cancel
+            @timer = nil
+          end
+        end
+      end
     end
 
     def id
@@ -125,41 +149,16 @@ module FFWD::Plugin::KairosDB
         flush!
       end
     end
-
-    def init output
-      @log.info "Will send events to #{@url}"
-
-      @conn = EM::HttpRequest.new(@url)
-
-      sub = output.metric_subscribe do |metric|
-        if @buffer.size >= @buffer_limit
-          increment :dropped_metrics, 1
-          next
-        end
-
-        @buffer << metric
-        check_timer!
-      end
-
-      stopping do
-        output.metric_unsubscribe sub
-
-        if @timer
-          @timer.cancel
-          @timer = nil
-        end
-      end
-    end
   end
 
   DEFAULT_URL = "http://localhost:8080"
   DEFAULT_FLUSH_INTERVAL = 10
   DEFAULT_BUFFER_LIMIT = 100000
 
-  def self.setup_output core, opts={}
-    opts[:url] ||= DEFAULT_URL
-    opts[:flush_interval] ||= DEFAULT_FLUSH_INTERVAL
-    opts[:buffer_limit] ||= DEFAULT_BUFFER_LIMIT
-    Output.new log, opts
+  def self.setup_output opts, core
+    url = opts[:url] || DEFAULT_URL
+    flush_interval = opts[:flush_interval] || DEFAULT_FLUSH_INTERVAL
+    buffer_limit = opts[:buffer_limit] || DEFAULT_BUFFER_LIMIT
+    Output.new core, log, url, flush_interval, buffer_limit
   end
 end

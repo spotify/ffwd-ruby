@@ -27,8 +27,8 @@ module FFWD::Plugin::JsonLine
       ["attributes", :attributes]
     ]
 
-    def initialize input, output, buffer_limit
-      @input = input
+    def initialize core, buffer_limit
+      @core = core
       @buffer_limit = buffer_limit
     end
 
@@ -41,12 +41,12 @@ module FFWD::Plugin::JsonLine
       end
 
       if type == "metric"
-        @input.metric read_metric(data)
+        @core.input.metric read_metric(data)
         return
       end
 
       if type == "event"
-        @input.event read_event(data)
+        @core.input.event read_event(data)
         return
       end
 

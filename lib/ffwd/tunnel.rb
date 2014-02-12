@@ -2,7 +2,8 @@ module FFWD
   class Tunnel
     # The component that pretends to be EventMachine for the various handlers.
     class TunnelTCP
-      def initialize log, id, addr, tunnel
+      def initialize core, log, id, addr, tunnel
+        @core = core
         @log = log
         @id = id
         @addr = addr
@@ -14,7 +15,9 @@ module FFWD
       end
     end
 
-    def initialize log, protocol, port, connection, args
+    def initialize core, tunnel, log, protocol, port, connection, args
+      @core = core
+      @tunnel = tunnel
       @log = log
       @protocol = protocol
       @port = port
@@ -24,14 +27,14 @@ module FFWD
       @instances = {}
     end
 
-    def start input, output, tunnel
-      return handle_udp input, output, tunnel if @protocol == :udp
-      return handle_tcp input, output, tunnel if @protocol == :tcp
+    def start tunnel
+      return handle_udp tunnel if @protocol == :udp
+      return handle_tcp tunnel if @protocol == :tcp
       raise "Unsupported protocol: #{@protocol}"
     end
 
-    def handle_udp input, output, tunnel
-      handler_instance = @connection.new(nil, input, output, *@args)
+    def handle_udp tunnel
+      handler_instance = @connection.new(nil, @core, *@args)
       @log.info "Tunneling to #{@protocol}://#{@addr}"
 
       tunnel.subscribe @protocol, @port do |id, addr, data|
@@ -39,12 +42,12 @@ module FFWD
       end
     end
 
-    def handle_tcp input, output, tunnel
+    def handle_tcp tunnel
       tunnel.subscribe @protocol, @port do |id, addr, data|
         unless instance = @instances[addr]
           @log.debug "New connection: #{addr} (#{id}, #{@connection})"
           handler = TunnelTCP.new @log, id, addr, tunnel
-          instance = @instances[addr] = @connection.new(nil, input, output, *@args)
+          instance = @instances[addr] = @connection.new(nil, @core, *@args)
           instance.datasink = handler
         end
 

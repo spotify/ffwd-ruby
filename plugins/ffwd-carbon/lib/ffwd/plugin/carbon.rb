@@ -20,8 +20,8 @@ module FFWD::Plugin
         "carbon"
       end
 
-      def initialize input, output
-        @input = input
+      def initialize core
+        @core = core
       end
 
       def parse(line)
@@ -39,7 +39,7 @@ module FFWD::Plugin
       def receive_line(ln)
         metric = parse(ln)
         return if metric.nil?
-        @input.metric metric
+        @core.input.metric metric
       rescue => e
         log.error "Failed to receive data", e
       end
@@ -49,17 +49,17 @@ module FFWD::Plugin
     DEFAULT_PORT = 2003
     DEFAULT_PROTOCOL = "tcp"
 
-    def self.setup_input core, opts={}
+    def self.setup_input opts, core
       opts[:host] ||= DEFAULT_HOST
       opts[:port] ||= DEFAULT_PORT
       protocol = FFWD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
-      protocol.bind log, opts, Connection
+      protocol.bind opts, core, log, Connection
     end
 
-    def self.setup_tunnel core, opts={}
+    def self.setup_tunnel opts, core, tunnel
       opts[:port] ||= DEFAULT_PORT
       protocol = FFWD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
-      protocol.tunnel log, opts, Connection
+      protocol.tunnel opts, core, tunnel, log, Connection
     end
   end
 end

@@ -21,6 +21,8 @@ module FFWD
       m[:attributes] = FFWD.merge_hashes @attributes, m[:attributes]
 
       @output.metric Metric.make(m)
+    rescue => e
+      log.error "Failed to emit metric", e
     end
   end
 end

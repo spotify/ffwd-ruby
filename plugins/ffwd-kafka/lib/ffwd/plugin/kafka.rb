@@ -20,7 +20,7 @@ module FFWD::Plugin
 
       MAPPING = [:host, :ttl, :key, :time, :value, :tags, :attributes]
 
-      def initialize(zookeeper_url, producer, event_topic, metric_topic,
+      def initialize(core, zookeeper_url, producer, event_topic, metric_topic,
                      brokers, flush_period, flush_size, event_limit, metric_limit)
 
         super flush_period, flush_size, event_limit, metric_limit
@@ -34,6 +34,19 @@ module FFWD::Plugin
         @metric_topic = metric_topic
         @brokers = brokers
         @producer_instance = nil
+
+        core.output.starting do
+          if @zookeeper
+            make_zk_kafka_producer
+          else
+            @producer = make_kafka_producer
+          end
+
+          run core.output
+
+          core.output.stopping do
+          end
+        end
       end
 
       def id
@@ -45,16 +58,6 @@ module FFWD::Plugin
         messages = (events.map{|e| make_event_message e} +
                     metrics.map{|e| make_metric_message e})
         @producer_instance.send_messages messages
-      end
-
-      def start *args
-        if @zookeeper
-          make_zk_kafka_producer
-        else
-          @producer = make_kafka_producer
-        end
-
-        super(*args)
       end
 
       private
@@ -104,7 +107,7 @@ module FFWD::Plugin
     DEFAULT_METRIC_LIMIT = 10000
     DEFAULT_FLUSH_SIZE = 1000
 
-    def self.setup_output core, opts={}
+    def self.setup_output opts, core
       zookeeper_url = opts[:zookeeper_url] || DEFAULT_ZOOKEEPER_URL
       producer = opts[:producer] || DEFAULT_PRODUCER
       event_topic = opts[:event_topic] || DEFAULT_TOPIC
@@ -119,7 +122,7 @@ module FFWD::Plugin
         raise "Invalid flush period: #{flush_period}"
       end
 
-      Output.new zookeeper_url, producer, event_topic, metric_topic,
+      Output.new core, zookeeper_url, producer, event_topic, metric_topic,
                  brokers, flush_period, flush_size, event_limit, metric_limit
     end
   end

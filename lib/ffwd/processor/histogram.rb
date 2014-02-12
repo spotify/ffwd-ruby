@@ -105,7 +105,7 @@ module FFWD::Processor
 
       @cache.each do |key, bucket|
         calculate(bucket) do |p, info, value|
-          @emitter.emit_metric(
+          @emitter.metric.emit(
             :key => "#{key}.#{p}", :source => key,
             :value => value, :description => "#{info} of #{key}")
         end

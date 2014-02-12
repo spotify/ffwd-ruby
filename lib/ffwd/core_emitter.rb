@@ -5,26 +5,17 @@ require_relative 'event_emitter'
 
 module FFWD
   class CoreEmitter
-    include FFWD::Logging
+    attr_reader :event, :metric
 
-    def initialize output, opts={}
-      @output = output
-      @event = EventEmitter.new output, opts, opts[:event] || {}
-      @metric = MetricEmitter.new output, opts, opts[:metric] || {}
+    def self.build output, opts={}
+      event = EventEmitter.new output, opts, opts[:event] || {}
+      metric = MetricEmitter.new output, opts, opts[:metric] || {}
+      new(event, metric)
     end
 
-    # Emit an event.
-    def emit_event event
-      @event.emit event
-    rescue => e
-      log.error "Failed to emit event", e
-    end
-
-    # Emit a metric.
-    def emit_metric metric
-      @metric.emit metric
-    rescue => e
-      log.error "Failed to emit metric", e
+    def initialize event, metric
+      @event = event
+      @metric = metric
     end
   end
 end

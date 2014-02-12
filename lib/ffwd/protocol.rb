@@ -1,7 +1,5 @@
 require_relative 'protocol/udp'
 require_relative 'protocol/tcp'
-require_relative 'protocol/unix_udp'
-require_relative 'protocol/unix_tcp'
 
 module FFWD
   def self.parse_protocol(original)

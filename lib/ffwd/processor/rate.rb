@@ -100,7 +100,7 @@ module FFWD::Processor
         if diff > 0 and valid and aged
           rate = ((value - prev_value) / diff)
           rate = rate.round(@precision) unless @precision.nil?
-          @emitter.emit_metric(
+          @emitter.metric.emit(
             :key => "#{key}.rate", :source => key, :value => rate)
         end
       else

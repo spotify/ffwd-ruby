@@ -46,7 +46,7 @@ module FFWD
         end
 
         @reporters.each do |id, reporter|
-          reporter.collect do |key, value|
+          reporter.report do |key, value|
             @emitter.emit_metric(
               :key => "#{id} #{key}", :value => value,
               :tags => @tags, :attributes => @attributes)

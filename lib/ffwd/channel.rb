@@ -3,7 +3,7 @@ require 'set'
 # Defines containers which are limited in size.
 module FFWD
   class Channel
-    def initialize(log, name)
+    def initialize log, name
       @log = log
       @name = name
       @subs = Set.new

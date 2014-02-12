@@ -1,32 +1,55 @@
 require_relative 'event_emitter'
+require_relative 'lifecycle'
 
 module FFWD
+  # Component responsible for receiving and internally route metrics and
+  # events.
+  #
+  # The term 'processor' is used because depending on the set of provided
+  # processors it might be determined that the received metric should be
+  # provided to one of them instead.
+  #
+  # If no processor matches, it is just passed straight through.
   class CoreProcessor
-    attr_reader :reporters
+    include FFWD::Lifecycle
 
-    def initialize emitter, processors
+    def self.build input, emitter, processor_opts
+      processors = FFWD::Processor.load processor_opts
+      new(input, emitter, processors)
+    end
+
+    def initialize input, emitter, processors
       @emitter = emitter
       @processors = Hash[processors.map{|k, p| [k, p.call(@emitter)]}]
-      @reporters = @processors.select{|k, p| FFWD.is_reporter?(p)}.map{|k, p| p}
+      @reporters = processors.select{|k, p| FFWD.is_reporter?(p)}.map{|k, p| p}
+
+      input.starting do
+        @processors.each do |name, p|
+          p.start
+        end
+
+        metric_sub = input.metric_subscribe do |m|
+          process_metric m
+        end
+
+        event_sub = input.event_subscribe do |e|
+          process_event e
+        end
+
+        input.stopping do
+          input.event_unsubscribe event_sub
+          input.metric_unsubscribe metric_sub
+          @processors.clear
+          @reporters.clear
+        end
+      end
     end
 
-    def start input
-      @processors.each do |name, p|
-        p.start
-      end
-
-      input.metric_subscribe do |m|
-        process_metric m
-      end
-
-      input.event_subscribe do |e|
-        process_event e
-      end
-    end
-
-    def stop
-      @processors.each do |name, p|
-        p.stop
+    def report
+      @reporters.each do |reporter|
+        reporter.report do |key, value|
+          yield key, value
+        end
       end
     end
 
@@ -36,11 +59,11 @@ module FFWD
       m[:time] ||= Time.now
 
       unless p = m[:proc]
-        return @emitter.emit_metric m
+        return @emitter.metric.emit m
       end
 
       unless p = @processors[p]
-        return @emitter.emit_metric m
+        return @emitter.metric.emit m
       end
 
       p.process m
@@ -48,7 +71,7 @@ module FFWD
 
     def process_event e
       e[:time] ||= Time.now
-      @emitter.emit_event e
+      @emitter.event.emit e
     end
   end
 end

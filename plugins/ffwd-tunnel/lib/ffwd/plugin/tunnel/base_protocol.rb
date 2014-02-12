@@ -107,9 +107,8 @@ module FFWD::Plugin::Tunnel
       send_data "#{response}\n"
 
       # setup a small core
-      emitter = FFWD::CoreEmitter.new @output, @metadata
-      @processor = FFWD::CoreProcessor.new emitter, @core.processors
-      @processor.start input
+      emitter = FFWD::CoreEmitter.build @output, @metadata
+      @processor = FFWD::CoreProcessor.build input, emitter, @core.processors
 
       reporters = [input]
       reporters += @processor

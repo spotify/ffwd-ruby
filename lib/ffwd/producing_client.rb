@@ -1,11 +1,10 @@
 require_relative 'logging'
 
 require_relative 'reporter'
-require_relative 'plugin_base'
 
 module FFWD
   # A client implementation that delegates all work to other threads.
-  class ProducingClient < FFWD::PluginBase
+  class ProducingClient
     include FFWD::Logging
     include FFWD::Reporter
 
@@ -25,7 +24,7 @@ module FFWD
       @timer = nil
     end
 
-    def init output
+    def run output
       @timer = EM::PeriodicTimer.new(@flush_period){flush!}
 
       event_sub_id = output.event_subscribe do |e|

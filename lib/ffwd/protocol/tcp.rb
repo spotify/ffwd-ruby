@@ -2,10 +2,9 @@ require 'eventmachine'
 
 require_relative '../reporter'
 require_relative '../tunnel'
-require_relative '../plugin_base'
 
 module FFWD::TCP
-  class Connect < FFWD::PluginBase
+  class Connect
     include FFWD::Reporter
 
     set_reporter_keys :dropped_events, :dropped_metrics,
@@ -15,7 +14,7 @@ module FFWD::TCP
 
     INITIAL_TIMEOUT = 2
 
-    def initialize(log, host, port, handler, args, flush_period, outbound_limit)
+    def initialize output, log, host, port, handler, args, flush_period, outbound_limit
       @log = log
       @host = host
       @port = port
@@ -34,6 +33,32 @@ module FFWD::TCP
 
       @open = false
       @c = nil
+
+      output.starting do
+        @c = EM.connect @host, @port, @handler, self, *@args
+
+        if @flush_period == 0
+          output.event_subscribe{|e| handle_event e}
+          output.metric_subscribe{|e| handle_metric e}
+          return
+        end
+
+        @log.info "Flushing every #{@flush_period}s"
+
+        EM::PeriodicTimer.new(@flush_period){
+          flush!
+        }
+
+        event_sub = output.event_subscribe{|e| @event_buffer << e}
+        metric_sub = output.metric_subscribe{|e| @metric_buffer << e}
+
+        output.stopping do
+          @closing = true
+          @c.close_connection
+          output.event_unsubscribe event_sub
+          output.metric_unsubscribe metric_sub
+        end
+      end
     end
 
     def name
@@ -74,30 +99,6 @@ module FFWD::TCP
         @reconnect_timeout *= 2
         @reconnect_timer = nil
         @c = EM.connect @host, @port, @handler, self, *@args
-      end
-    end
-
-    def init output
-      @c = EM.connect @host, @port, @handler, self, *@args
-
-      if @flush_period == 0
-        output.event_subscribe{|e| handle_event e}
-        output.metric_subscribe{|e| handle_metric e}
-        return
-      end
-
-      @log.info "Flushing every #{@flush_period}s"
-
-      EM::PeriodicTimer.new(@flush_period){
-        flush!
-      }
-
-      output.event_subscribe{|e| @event_buffer << e}
-      output.metric_subscribe{|e| @metric_buffer << e}
-
-      stopping do
-        @closing = true
-        @c.close_connection
       end
     end
 
@@ -167,22 +168,6 @@ module FFWD::TCP
     end
   end
 
-  class Bind < FFWD::PluginBase
-    def initialize log, host, port, handler, args
-      @log = log
-      @host = host
-      @port = port
-      @handler = handler
-      @args = args
-      @peer = "#{host}:#{port}"
-    end
-
-    def init input, output
-      @log.info "Binding to tcp://#{@peer}"
-      EM.start_server @host, @port, @handler, input, output, *@args
-    end
-  end
-
   def self.family
     :tcp
   end
@@ -190,22 +175,26 @@ module FFWD::TCP
   DEFAULT_FLUSH_PERIOD = 10
   DEFAULT_OUTBOUND_LIMIT = 2 ** 20
 
-  def self.connect log, opts, handler, *args
+  def self.connect opts, core, log, handler, *args
     raise "Missing required key :host" if (host = opts[:host]).nil?
     raise "Missing required key :port" if (port = opts[:port]).nil?
     flush_period = opts[:flush_period] || DEFAULT_FLUSH_PERIOD
     outbound_limit = opts[:outbound_limit] || DEFAULT_OUTBOUND_LIMIT
-    Connect.new log, host, port, handler, args, flush_period, outbound_limit
+    Connect.new core.output, log, host, port, handler, args, flush_period, outbound_limit
   end
 
-  def self.bind log, opts, handler, *args
+  def self.bind opts, core, log, handler, *args
     raise "Missing required key :host" if (host = opts[:host]).nil?
     raise "Missing required key :port" if (port = opts[:port]).nil?
-    Bind.new log, host, port, handler, args
+
+    core.input.starting do
+      log.info "Binding to tcp://#{host}:#{port}"
+      EM.start_server host, port, handler, core, *args
+    end
   end
 
-  def self.tunnel log, opts, handler, *args
+  def self.tunnel opts, core, tunnel, log, handler, *args
     raise "Missing required key :port" if (port = opts[:port]).nil?
-    FFWD::Tunnel.new log, self.family, port, handler, args
+    FFWD::Tunnel.new core, tunnel, log, self.family, port, handler, args
   end
 end

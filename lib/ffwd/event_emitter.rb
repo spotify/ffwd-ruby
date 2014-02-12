@@ -1,5 +1,6 @@
 require_relative 'utils'
 require_relative 'event'
+require_relative 'logging'
 
 module FFWD
   # Used to emit events to an 'output' channel
@@ -7,6 +8,8 @@ module FFWD
   # Can take two parts of a configuration 'base' and 'opts' to decide which
   # metadata emitted events should be decorated with.
   class EventEmitter
+    include FFWD::Logging
+
     def initialize output, base, opts
       @output = output
       @host = opts[:host] || base[:host] || FFWD.current_host
@@ -23,6 +26,8 @@ module FFWD
       e[:attributes] = FFWD.merge_hashes @attributes, e[:attributes]
 
       @output.event Event.make(e)
+    rescue => e
+      log.error "Failed to emit event", e
     end
   end
 end

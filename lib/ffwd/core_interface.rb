@@ -1,17 +1,16 @@
 module FFWD
   class CoreInterface
-    attr_reader :tunnels
-    attr_reader :processors
-    attr_reader :statistics
-    attr_reader :debug
-    attr_reader :tags
-    attr_reader :attributes
+    attr_reader :input, :output
+    attr_reader :tunnel_plugins, :statistics, :debug, :processor_opts
+    attr_reader :tags, :attributes
 
-    def initialize tunnels, processors, debug, statistics, opts
-      @tunnels = tunnels
-      @processors = processors
-      @debug = debug
+    def initialize input, output, tunnel_plugins, statistics, debug, processor_opts, opts
+      @input = input
+      @output = output
+      @tunnel_plugins = tunnel_plugins
       @statistics = statistics
+      @debug = debug
+      @processor_opts = processor_opts
       @tags = opts[:tags] || []
       @attributes = opts[:attributes] || {}
     end

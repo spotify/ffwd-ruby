@@ -6,8 +6,12 @@ describe FFWD::Processor::CountProcessor do
   opts = {}
   m1 = {:key => :foo, :value => 10}
 
-  let(:emitter) do
+  let(:metric) do
     double
+  end
+
+  let(:emitter) do
+    double :metric => metric
   end
 
   let(:count) do
@@ -15,11 +19,10 @@ describe FFWD::Processor::CountProcessor do
   end
 
   it "should realize that 10 + 10 = 20" do
-    emitter.should_receive(:emit_metric).with m1.merge(
-      :source => m1[:key])
+    metric.should_receive(:emit).with m1.merge(:source => m1[:key])
     count.process m1
 
-    emitter.should_receive(:emit_metric).with m1.merge(
+    metric.should_receive(:emit).with m1.merge(
       :value => m1[:value] * 2, :source => m1[:key])
     count.process m1
   end

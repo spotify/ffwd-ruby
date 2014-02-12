@@ -4,7 +4,7 @@ module FFWD
       @reporters = reporters
     end
 
-    def collect
+    def report
       @reporters.each do |reporter|
         reporter.report do |key, value|
           yield key, value

@@ -7,6 +7,10 @@ require_relative 'ffwd/plugin_loader'
 require_relative 'ffwd/plugin'
 
 module FFWD
+  DEFAULT_PLUGIN_DIRECTORIES = [
+    './plugins'
+  ]
+
   def self.load_yaml path
     return YAML.load_file path
   rescue => e
@@ -59,7 +63,8 @@ module FFWD
   def self.opts
     @@opts ||= {:debug => false, :config => nil, :config_dir => nil,
                 :active_plugins => false, :list_plugins => false,
-                :dump_config => false, :plugin_directories => []}
+                :dump_config => false,
+                :plugin_directories => DEFAULT_PLUGIN_DIRECTORIES}
   end
 
   def self.parser
@@ -199,6 +204,7 @@ module FFWD
     end
 
     if opts[:dump_config]
+      puts "Dumping Configuration:"
       puts config
     end
 

@@ -26,7 +26,7 @@ module FFWD::UDP
       @id ||= "#{@handler.name}/#{@peer}"
     end
 
-    def start output
+    def start options
       @host_ip = resolve_host_ip @host
 
       if @host_ip.nil?
@@ -98,21 +98,21 @@ module FFWD::UDP
     :udp
   end
 
-  def self.connect log, opts, handler
+  def self.connect opts, core, log, handler
     raise "Missing required key :host" if (host = opts[:host]).nil?
     raise "Missing required key :port" if (port = opts[:port]).nil?
     Connect.new log, host, port, handler
   end
 
-  def self.bind log, opts, handler, *args
+  def self.bind opts, core, log, handler, *args
     raise "Missing required key :host" if (host = opts[:host]).nil?
     raise "Missing required key :port" if (port = opts[:port]).nil?
     Bind.new log, host, port, handler, *args
   end
 
-  def self.tunnel log, opts, handler, *args
+  def self.tunnel opts, core, tunnel, log, handler, *args
     raise "Missing required key :port" if (port = opts[:port]).nil?
-    FFWD::Tunnel.new log, self.family, port, handler, args
+    FFWD::Tunnel.new core, tunnel, log, self.family, port, handler, args
   end
 end
 

@@ -1,6 +1,8 @@
 require_relative 'logging'
+require_relative 'lifecycle'
 
 module FFWD::Processor
+  include FFWD::Lifecycle
   include FFWD::Logging
 
   # Module to include for processors.
@@ -27,33 +29,6 @@ module FFWD::Processor
   # end
   def process m
     raise Exception.new("process: Not Implemented")
-  end
-
-  def start
-  end
-
-  def stopping_callbacks
-    @stopping_callbacks ||= []
-  end
-
-  def stopped?
-    (@stopped ||= false)
-  end
-
-  def stopping &block
-    stopping_callbacks << block
-  end
-
-  def stop
-    @stopped = true
-
-    stopping_callbacks.each do |stop|
-      begin
-        stop.call
-      rescue => e
-        log.error "Failed to invoke stop callback", e
-      end
-    end
   end
 
   module ClassMethods

@@ -14,15 +14,15 @@ module FFWD::Plugin::Riemann
       FFWD::Plugin::Riemann::Connection::Serializer
     end
 
-    def initialize input, output, log
-      @input = input
+    def initialize core, log
+      @core = core
       @log = log
     end
 
     def receive_object(m)
       unless m.events.nil? or m.events.empty?
         m.events.each do |e|
-          @input.event read_event(e)
+          @core.input.event read_event(e)
         end
       end
 
