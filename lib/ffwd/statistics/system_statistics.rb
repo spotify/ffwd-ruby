@@ -74,24 +74,51 @@ module FFWD::Statistics
   class SystemStatistics
     include FFWD::Logging
 
-    SMAPS_FILE = '/proc/self/smaps'
+    PID_SMAPS_FILE = '/proc/self/smaps'
+    PID_STAT_FILE = '/proc/self/stat'
+    STAT_FILE = '/proc/stat'
+    MEMINFO_FILE = '/proc/meminfo'
 
     def initialize opts={}
+      @cpu_prev = nil
     end
 
     def collect channel
       memory_use = memory_usage
+      cpu_use = cpu_usage
 
-      memory_use.each do |key, value|
-        yield "statistics-system/#{key}", value
+      cpu_use.each do |key, value|
+        yield "statistics-cpu/#{key}", value
       end
 
-      channel << memory_use
+      memory_use.each do |key, value|
+        yield "statistics-memory/#{key}", value
+      end
+
+      channel << {
+        :cpu => cpu_use,
+        :memory => memory_use,
+      }
     end
 
     def check
-      if not File.file? SMAPS_FILE
-        log.error "file does not exist: #{SMAPS_FILE} (is this a linux system?)"
+      if not File.file? PID_SMAPS_FILE
+        log.error "File does not exist: #{PID_SMAPS_FILE} (is this a linux system?)"
+        return false
+      end
+
+      if not File.file? PID_STAT_FILE
+        log.error "File does not exist: #{PID_STAT_FILE} (is this a linux system?)"
+        return false
+      end
+
+      if not File.file? STAT_FILE
+        log.error "File does not exist: #{STAT_FILE} (is this a linux system?)"
+        return false
+      end
+
+      if not File.file? MEMINFO_FILE
+        log.error "File does not exist: #{MEMINFO_FILE} (is this a linux system?)"
         return false
       end
 
@@ -99,7 +126,7 @@ module FFWD::Statistics
     end
 
     def memory_usage
-      result = {:rss => 0, :pss => 0}
+      result = {:rss => 0, :pss => 0, :total => read_total_memory}
 
       read_smaps do |smap|
         result[:rss] += smap.rss
@@ -109,10 +136,61 @@ module FFWD::Statistics
       result
     end
 
+    def cpu_usage
+      stat = read_pid_stat
+
+      current = {
+        :system => stat[:stime],
+        :user => stat[:utime],
+        :total => read_stat_total
+      }
+
+      prev = @cpu_prev
+
+      if @cpu_prev.nil?
+        @cpu_prev = prev = current
+      else
+        @cpu_prev = current
+      end
+
+      return {
+        :system => current[:system] - prev[:system],
+        :user => current[:user] - prev[:user],
+        :total => current[:total] - prev[:total],
+      }
+    end
+
     private
 
+    def read_pid_stat
+      File.open(PID_STAT_FILE) do |f|
+        stat = f.readline.split(' ').map(&:strip)
+        return {:utime => stat[13].to_i, :stime => stat[14].to_i}
+      end
+    end
+
+    def read_stat_total
+      File.open(STAT_FILE) do |f|
+        f.each do |line|
+          next unless line.start_with? "cpu "
+          stat = line.split(' ').map(&:strip).map(&:to_i)
+          return stat.reduce(&:+)
+        end
+      end
+    end
+
+    def read_total_memory
+      File.open(MEMINFO_FILE) do |f|
+        f.each do |line|
+          next unless line.start_with? "MemTotal:"
+          total = line.split(' ').map(&:strip)
+          return total[1].to_i * 1000
+        end
+      end
+    end
+
     def read_smaps
-      File.open(SMAPS_FILE) do |f|
+      File.open(PID_SMAPS_FILE) do |f|
         smap = {}
 
         loop do
