@@ -1,3 +1,7 @@
+# Lifecycle management module.
+#
+# Any class and module including this will allow other components to subscribe
+# to their state changes (starting, stopping).
 module FFWD
   module Lifecycle
     def stopping_hooks
@@ -12,35 +16,58 @@ module FFWD
     # 
     # This will only be called once.
     def stopping &block
-      raise "Cannot register callback hook if already stopped" if stopped?
-      stopping_hooks << block
+      if stopped?
+        block.call
+      else
+        stopping_hooks << block
+      end
     end
 
     def starting &block
-      raise "Cannot register callback hook if already started" if started?
-      starting_hooks << block
+      if started?
+        block.call
+      else
+        starting_hooks << block
+      end
     end
 
     def start
       return if started?
       starting_hooks.each(&:call)
       starting_hooks.clear
-      @started = true
+      @state = :started
     end
 
     def stop
       return if stopped?
       stopping_hooks.each(&:call)
       stopping_hooks.clear
-      @stopped = true
+      @state = :stopped
     end
 
     def started?
-      @started ||= false
+      (@state ||= :none) == :started
     end
 
     def stopped?
-      @stopped ||= false
+      (@state ||= :none) == :stopped
+    end
+
+    def depend_on other_lifecycle
+      if (@depends ||= nil)
+        raise "This component already depends on #{@depends}"
+      end
+
+      @depends = other_lifecycle
+
+      other_lifecycle.starting do
+        start
+      end
+
+      other_lifecycle.stopping do
+        stop
+        @depends = nil
+      end
     end
   end
 end

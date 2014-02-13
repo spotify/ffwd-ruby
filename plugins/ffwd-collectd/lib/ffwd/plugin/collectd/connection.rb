@@ -7,8 +7,8 @@ module FFWD::Plugin::Collectd
   class Connection < FFWD::Connection
     include FFWD::Logging
 
-    def initialize input, output, types_db
-      @input = input
+    def initialize core, types_db
+      @core = core
       @types_db = types_db
     end
 
@@ -44,13 +44,13 @@ module FFWD::Plugin::Collectd
               index_key = i.to_s
             end
 
-            @input.metric(:key => "#{key}_#{index_key}", :time => time,
-                          :value => v[1], :host => host)
+            @core.input.metric(:key => "#{key}_#{index_key}", :time => time,
+                               :value => v[1], :host => host)
           end
         else
           v = values[0]
-          @input.metric(:key => key, :time => time, :value => v[1],
-                        :host => host)
+          @core.input.metric(:key => key, :time => time, :value => v[1],
+                             :host => host)
         end
       end
     rescue => e

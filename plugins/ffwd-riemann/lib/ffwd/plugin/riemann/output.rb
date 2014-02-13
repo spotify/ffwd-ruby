@@ -1,9 +1,7 @@
-require 'ffwd/handler'
-
 require_relative 'shared'
 
 module FFWD::Plugin::Riemann
-  module Handler
+  module Output
     def send_all events, metrics
       all_events = []
       all_events += events.map{|e| make_event e} unless events.empty?

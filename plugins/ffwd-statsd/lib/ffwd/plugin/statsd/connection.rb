@@ -7,14 +7,14 @@ module FFWD::Plugin::Statsd
   class Connection < FFWD::Connection
     include FFWD::Logging
 
-    def initialize input, output
-      @input = input
+    def initialize core
+      @core = core
     end
 
     def receive_data(data)
       metric = Parser.parse(data)
       return if metric.nil?
-      @input.metric metric
+      @core.input.metric metric
     rescue => e
       log.error "Failed to receive data", e
     end

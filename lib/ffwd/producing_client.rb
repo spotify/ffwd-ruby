@@ -8,11 +8,14 @@ module FFWD
     include FFWD::Logging
     include FFWD::Reporter
 
+    attr_reader :log
+
     set_reporter_keys :failed_events, :failed_metrics,
                       :dropped_events, :dropped_metrics,
                       :sent_events, :sent_metrics
 
-    def initialize flush_period, flush_size, event_limit, metric_limit
+    def initialize log, flush_period, flush_size, event_limit, metric_limit
+      @log = log
       @flush_period = flush_period
       @flush_size = flush_size
       @event_limit = event_limit
@@ -22,33 +25,49 @@ module FFWD
       # Pending request.
       @request = nil
       @timer = nil
+      @subs = []
     end
 
-    def run output
-      @timer = EM::PeriodicTimer.new(@flush_period){flush!}
+    def start output
+      output.starting do
+        log.info "Starting producer"
 
-      event_sub_id = output.event_subscribe do |e|
-        if @events.size >= @event_limit
-          increment :dropped_events, 1
-          return
+        @timer = EM::PeriodicTimer.new(@flush_period){flush!}
+
+        @subs << output.event_subscribe do |e|
+          if @events.size >= @event_limit
+            increment :dropped_events, 1
+            return
+          end
+
+          @events << e
         end
 
-        @events << e
+        @subs << output.metric_subscribe do |m|
+          if @metrics.size >= @metric_limit
+            increment :dropped_metrics, 1
+            return
+          end
+
+          @metrics << m
+        end
       end
 
-      metric_sub_id = output.metric_subscribe do |m|
-        if @metrics.size >= @metric_limit
-          increment :dropped_metrics, 1
-          return
+      output.stopping do
+        log.info "Stopping producer"
+
+        if @timer
+          @timer.cancel
+          @timer = nil
         end
 
-        @metrics << m
+        subs.each(&:unsubscribe).clear
+        @metrics.clear
+        @events.clear
       end
+    end
 
-      stopping do
-        output.metric_unsubscribe metric_sub_id
-        output.event_unsubscribe event_sub_id
-      end
+    def stop
     end
 
     protected

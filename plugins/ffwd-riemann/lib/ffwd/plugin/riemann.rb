@@ -15,7 +15,7 @@ require 'ffwd/protocol'
 
 require_relative 'riemann/connection'
 require_relative 'riemann/shared'
-require_relative 'riemann/handler'
+require_relative 'riemann/output'
 
 module FFWD::Plugin::Riemann
   include FFWD::Plugin
@@ -25,7 +25,7 @@ module FFWD::Plugin::Riemann
 
   class OutputTCP < FFWD::Handler
     include FFWD::Plugin::Riemann::Shared
-    include FFWD::Plugin::Riemann::Handler
+    include FFWD::Plugin::Riemann::Output
 
     def self.name
       "riemann_tcp_out"
@@ -38,7 +38,7 @@ module FFWD::Plugin::Riemann
 
   class OutputUDP < FFWD::Handler
     include FFWD::Plugin::Riemann::Shared
-    include FFWD::Plugin::Riemann::Handler
+    include FFWD::Plugin::Riemann::Output
 
     def self.name
       "riemann_udp_out"
@@ -89,7 +89,7 @@ module FFWD::Plugin::Riemann
   OUTPUTS = {:tcp => OutputTCP, :udp => OutputUDP}
   INPUTS = {:tcp => InputTCP, :udp => InputUDP}
 
-  def self.setup_output core, opts={}
+  def self.setup_output opts, core
     opts[:host] ||= DEFAULT_HOST
     opts[:port] ||= DEFAULT_PORT
 
@@ -99,7 +99,7 @@ module FFWD::Plugin::Riemann
       raise "No type for protocol family: #{protocol.family}"
     end
 
-    protocol.connect core, log, opts, type
+    protocol.connect opts, core, log, type
   end
 
   def self.setup_input opts, core

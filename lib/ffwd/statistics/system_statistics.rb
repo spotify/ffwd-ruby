@@ -76,20 +76,17 @@ module FFWD::Statistics
 
     SMAPS_FILE = '/proc/self/smaps'
 
-    def initialize system_channel, opts={}
-      @system_channel = system_channel
+    def initialize opts={}
     end
 
-    def collect
+    def collect channel
       memory_use = memory_usage
 
       memory_use.each do |key, value|
         yield "statistics-system/#{key}", value
       end
 
-      if @system_channel
-        @system_channel << memory_use
-      end
+      channel << memory_use
     end
 
     def check

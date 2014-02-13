@@ -19,10 +19,6 @@ module FFWD::Reporter
     end]
   end
 
-  def id
-    self.class.name
-  end
-
   def increment n, c
     report_data[n] += c
     report_data[:total] += c
@@ -30,7 +26,7 @@ module FFWD::Reporter
 
   def report
     report_data.each do |k, v|
-      yield "#{id}/#{k}", v
+      yield "#{reporter_id}/#{k}", v
       report_data[k] = 0
     end
   end

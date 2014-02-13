@@ -19,7 +19,7 @@ end
 def statsd
   require 'statsd'
 
-  s = Statsd.new
+  s = Statsd::Client.new
 
   0.upto 10 do
     s.timing "statsd/test", 1000 * rand

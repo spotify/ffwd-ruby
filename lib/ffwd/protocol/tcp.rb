@@ -3,194 +3,49 @@ require 'eventmachine'
 require_relative '../reporter'
 require_relative '../tunnel'
 
+require_relative 'tcp/bind'
+require_relative 'tcp/connect'
+require_relative 'tcp/flushing_connect'
+
 module FFWD::TCP
-  class Connect
-    include FFWD::Reporter
-
-    set_reporter_keys :dropped_events, :dropped_metrics,
-                      :sent_events, :sent_metrics
-
-    attr_reader :log
-
-    INITIAL_TIMEOUT = 2
-
-    def initialize output, log, host, port, handler, args, flush_period, outbound_limit
-      @log = log
-      @host = host
-      @port = port
-      @handler = handler
-      @args = args
-      @flush_period = flush_period
-      @outbound_limit = outbound_limit
-
-      @peer = "#{host}:#{port}"
-      @closing = false
-      @reconnect_timer = nil
-      @reconnect_timeout = INITIAL_TIMEOUT
-
-      @event_buffer = []
-      @metric_buffer = []
-
-      @open = false
-      @c = nil
-
-      output.starting do
-        @c = EM.connect @host, @port, @handler, self, *@args
-
-        if @flush_period == 0
-          output.event_subscribe{|e| handle_event e}
-          output.metric_subscribe{|e| handle_metric e}
-          return
-        end
-
-        @log.info "Flushing every #{@flush_period}s"
-
-        EM::PeriodicTimer.new(@flush_period){
-          flush!
-        }
-
-        event_sub = output.event_subscribe{|e| @event_buffer << e}
-        metric_sub = output.metric_subscribe{|e| @metric_buffer << e}
-
-        output.stopping do
-          @closing = true
-          @c.close_connection
-          output.event_unsubscribe event_sub
-          output.metric_unsubscribe metric_sub
-        end
-      end
-    end
-
-    def name
-      @handler.name
-    end
-
-    def id
-      @id ||= "#{@handler.name}/#{@peer}"
-    end
-
-    def connection_completed
-      @open = true
-      @log.info "Connected tcp://#{@peer}"
-      @reconnect_timeout = INITIAL_TIMEOUT
-
-      unless @reconnect_timer.nil?
-        @reconnect_timer.cancel
-        @reconnect_timer = nil
-      end
-    end
-
-    def unbind
-      @open = false
-
-      if @closing
-        @log.info "Disconnected from tcp://#{@peer}"
-        return
-      end
-
-      @log.info "Disconnected from tcp://#{@peer}, reconnecting in #{@reconnect_timeout}s"
-
-      unless @reconnect_timer.nil?
-        @reconnect_timer.cancel
-        @reconnect_timer = nil
-      end
-
-      @reconnect_timer = EM::Timer.new(@reconnect_timeout) do
-        @reconnect_timeout *= 2
-        @reconnect_timer = nil
-        @c = EM.connect @host, @port, @handler, self, *@args
-      end
-    end
-
-    private
-
-    def connected?
-      @open
-    end
-
-    # Check if a connection is writable or not.
-    def writable?
-      connected? and @c.get_outbound_data_size < @outbound_limit
-    end
-
-    def flush!
-      if @event_buffer.empty? and @metric_buffer.empty?
-        return
-      end
-
-      unless writable?
-        increment :dropped_events, @event_buffer.size
-        increment :dropped_metrics, @metric_buffer.size
-        return
-      end
-
-      @c.send_all @event_buffer, @metric_buffer
-      increment :sent_events, @event_buffer.size
-      increment :sent_metrics, @metric_buffer.size
-    rescue => e
-      @log.error "Failed to flush buffers", e
-
-      @log.error "The following data could not be flushed:"
-
-      @event_buffer.each_with_index do |event, i|
-        @log.error "##{i}: #{event.to_h}"
-      end
-
-      @metric_buffer.each_with_index do |metric, i|
-        @log.error "##{i}: #{metric.to_h}"
-      end
-
-      increment :failed_events, @event_buffer.size
-      increment :failed_metrics, @metric_buffer.size
-    ensure
-      @event_buffer = []
-      @metric_buffer = []
-    end
-
-    def handle_event event
-      return increment :dropped_events, 1 unless writable?
-      @c.send_event event
-      increment :sent_events, 1
-    rescue => e
-      @log.error "Failed to handle event", e
-      @log.error "The following event could not be flushed: #{event.to_h}"
-      increment :failed_events, 1
-    end
-
-    def handle_metric metric
-      return increment :dropped_metrics, 1 unless writable?
-      @c.send_metric metric
-      increment :sent_metrics, 1
-    rescue => e
-      @log.error "Failed to handle metric", e
-      @log.error "The following metric could not be flushed: #{metric.to_h}"
-      increment :failed_metrics, 1
-    end
-  end
-
   def self.family
     :tcp
   end
 
   DEFAULT_FLUSH_PERIOD = 10
   DEFAULT_OUTBOUND_LIMIT = 2 ** 20
+  DEFAULT_EVENT_LIMIT = 1000
+  DEFAULT_METRIC_LIMIT = 10000
+  DEFAULT_FLUSH_LIMIT = 0.8
 
   def self.connect opts, core, log, handler, *args
     raise "Missing required key :host" if (host = opts[:host]).nil?
     raise "Missing required key :port" if (port = opts[:port]).nil?
-    flush_period = opts[:flush_period] || DEFAULT_FLUSH_PERIOD
+
     outbound_limit = opts[:outbound_limit] || DEFAULT_OUTBOUND_LIMIT
-    Connect.new core.output, log, host, port, handler, args, flush_period, outbound_limit
+    flush_period = opts[:flush_period] || DEFAULT_FLUSH_PERIOD
+
+    if flush_period == 0
+      Connect.new core.output, log, host, port, handler, args, outbound_limit
+    else
+      event_limit = opts[:event_limit] || DEFAULT_EVENT_LIMIT
+      metric_limit = opts[:metric_limit] || DEFAULT_METRIC_LIMIT
+      flush_limit = opts[:flush_limit] || DEFAULT_FLUSH_LIMIT
+
+      FlushingConnect.new(
+        core.output, log, host, port, handler, args, outbound_limit,
+        flush_period, event_limit, metric_limit, flush_limit
+      )
+    end
   end
+
+  DEFAULT_REBIND_TIMEOUT = 10
 
   def self.bind opts, core, log, handler, *args
     raise "Missing required key :host" if (host = opts[:host]).nil?
     raise "Missing required key :port" if (port = opts[:port]).nil?
-
-    core.input.starting do
-      log.info "Binding to tcp://#{host}:#{port}"
-      EM.start_server host, port, handler, core, *args
-    end
+    rebind_timeout = opts[:rebind_timeout] || DEFAULT_REBIND_TIMEOUT
+    Bind.new core, log, host, port, handler, args, rebind_timeout
   end
 
   def self.tunnel opts, core, tunnel, log, handler, *args

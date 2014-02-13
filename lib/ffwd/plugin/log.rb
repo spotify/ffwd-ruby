@@ -20,19 +20,20 @@ module FFWD::Plugin
           ""
         end
 
+        subs = []
+
         core.output.starting do
-          event_sub = core.output.event_subscribe do |e|
+          subs << core.output.event_subscribe do |e|
             log.info "Event: #{@p}#{e.to_h}"
           end
 
-          metric_sub = core.output.metric_subscribe do |m|
+          subs << core.output.metric_subscribe do |m|
             log.info "Metric: #{@p}#{m.to_h}"
           end
+        end
 
-          core.output.stopping do
-            core.output.event_unsubscribe event_sub
-            core.output.metric_unsubscribe metric_sub
-          end
+        core.output.stopping do
+          subs.each(&:unsubscribe).clear
         end
       end
     end

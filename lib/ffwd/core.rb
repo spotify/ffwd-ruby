@@ -7,6 +7,7 @@ require_relative 'core_interface'
 require_relative 'core_processor'
 require_relative 'core_reporter'
 require_relative 'debug'
+require_relative 'lifecycle'
 require_relative 'logging'
 require_relative 'plugin_channel'
 require_relative 'processor'
@@ -16,6 +17,7 @@ require_relative 'utils'
 
 module FFWD
   class Core
+    include FFWD::Lifecycle
     include FFWD::Logging
 
     def initialize plugins, opts={}
@@ -23,13 +25,14 @@ module FFWD
       @input_plugins = plugins[:input] || []
       @output_plugins = plugins[:output] || []
 
-      @statistics_opts = opts[:statistics] || {}
+      @statistics_opts = opts[:statistics]
       @debug_opts = opts[:debug]
       @core_opts = opts[:core] || {}
       @processor_opts = opts[:processor] || {}
 
       @output_channel = FFWD::PluginChannel.build 'output'
       @input_channel = FFWD::PluginChannel.build 'input'
+
       @system_channel = Channel.new log, "system_channel"
 
       memory_config = (@core_opts[:memory] || {})
@@ -40,20 +43,24 @@ module FFWD
         raise "memory limit must be non-negative number"
       end
 
+      @emitter = CoreEmitter.build @output_channel, @core_opts
+      @processor = CoreProcessor.build @input_channel, @emitter, @processor_opts
+
       @debug = nil
 
       if @debug_opts
         @debug = FFWD::Debug.setup @debug_opts
+        @debug.monitor "core.input", @input_channel, FFWD::Debug::Input
+        @debug.monitor "core.output", @output_channel, FFWD::Debug::Output
+        @debug.depend_on self
       end
-
-      @emitter = CoreEmitter.build @output_channel, @core_opts
-      @processor = CoreProcessor.build @input_channel, @emitter, @processor_opts
 
       # Configuration for statistics module.
       @statistics = nil
 
       if config = @statistics_opts
         @statistics = FFWD::Statistics.setup @emitter, @system_channel, config
+        @statistics.depend_on self
       end
 
       @interface = CoreInterface.new(
@@ -76,33 +83,39 @@ module FFWD
         reporters += @output_instances.select{|i| FFWD.is_reporter?(i)}
         @statistics.register "core", CoreReporter.new(reporters)
       end
+
+      # Make the core-related channels depend on core.
+      # They will then be orchestrated with core when it's being
+      # started/stopped.
+      @input_channel.depend_on self
+      @output_channel.depend_on self
     end
 
-    #
     # Main entry point.
     #
-    # Starts an EventMachine and runs the given set of plugins.
-    #
+    # Since all components are governed by the lifecycle of core, it should
+    # mostly be a matter of calling 'start'.
     def run
-      EM.run do
-        @input_channel.start
-        @output_channel.start
-
-        setup_memory_monitor
-
-        unless @statistics.nil?
-          @statistics.start
-        end
-
-        unless @debug.nil?
-          @debug.start
-          @debug.monitor "core.input", @input_channel, FFWD::Debug::Input
-          @debug.monitor "core.output", @output_channel, FFWD::Debug::Output
+      # What to do when we receive a shutdown signal?
+      shutdown_handler = proc do
+        # Hack to get out of trap context and into EM land.
+        EM.add_timer(0) do
+          log.info "Shutting down"
+          stop
+          EM.stop
         end
       end
 
-      @input_channel.stop
-      @output_channel.stop
+      EM.run do
+        Signal.trap("INT", &shutdown_handler)
+        Signal.trap("TERM", &shutdown_handler)
+
+        start
+        setup_memory_monitor
+      end
+
+      stopping do
+      end
     end
 
     private

@@ -2,18 +2,16 @@ require_relative '../lifecycle'
 
 module FFWD::Debug
   class MonitorSession
-    include FFWD::Lifecycle
-
     attr_reader :id
 
     def initialize id, channel, type
-      @id = id
-      @channel = channel
       @type = type
       @clients = {}
 
-      starting do
-        event_sub = @channel.event_subscribe do |event|
+      subs = []
+
+      channel.starting do
+        subs << channel.event_subscribe do |event|
           data = @type.serialize_event event
 
           begin
@@ -24,7 +22,7 @@ module FFWD::Debug
           end
         end
 
-        metric_sub = @channel.metric_subscribe do |metric|
+        subs << channel.metric_subscribe do |metric|
           data = @type.serialize_metric metric
 
           begin
@@ -34,11 +32,10 @@ module FFWD::Debug
             return
           end
         end
+      end
 
-        stopping do
-          @channel.event_unsubscribe event_sub
-          @channel.metric_unsubscribe metric_sub
-        end
+      channel.stopping do
+        subs.each(&:unsubscribe).clear
       end
     end
 

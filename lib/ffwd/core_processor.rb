@@ -23,25 +23,26 @@ module FFWD
       @processors = Hash[processors.map{|k, p| [k, p.call(@emitter)]}]
       @reporters = processors.select{|k, p| FFWD.is_reporter?(p)}.map{|k, p| p}
 
+      subs = []
+
       input.starting do
         @processors.each do |name, p|
           p.start
         end
 
-        metric_sub = input.metric_subscribe do |m|
+        subs << input.metric_subscribe do |m|
           process_metric m
         end
 
-        event_sub = input.event_subscribe do |e|
+        subs << input.event_subscribe do |e|
           process_event e
         end
+      end
 
-        input.stopping do
-          input.event_unsubscribe event_sub
-          input.metric_unsubscribe metric_sub
-          @processors.clear
-          @reporters.clear
-        end
+      input.stopping do
+        subs.each(&:unsubscribe).clear
+        @processors.clear
+        @reporters.clear
       end
     end
 

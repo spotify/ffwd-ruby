@@ -4,6 +4,8 @@ require 'eventmachine'
 require_relative 'logging'
 require_relative 'event'
 require_relative 'metric'
+require_relative 'retrier'
+require_relative 'lifecycle'
 
 require_relative 'debug/connection'
 require_relative 'debug/monitor_session'
@@ -43,18 +45,23 @@ module FFWD::Debug
 
   class TCP
     include FFWD::Logging
+    include FFWD::Lifecycle
 
-    def initialize host, port
+    def initialize host, port, rebind_timeout
       @clients = {}
       @sessions = {}
       @host = host
       @port = port
       @peer = "#{@host}:#{@port}"
-    end
 
-    def start
-      log.info "Binding on tcp://#{@peer}"
-      EM.start_server @host, @port, Connection, self
+      r = FFWD::Retrier.new(log, self, rebind_timeout) do |attempt|
+        EM.start_server @host, @port, Connection, self
+        log.info "Bind on tcp://#{@peer} (attempt #{attempt})"
+      end
+
+      r.error do |attempt, timeout, e|
+        log.error "Failed to bind tcp://#{@peer} (attempt #{attempt}), retry in #{timeout}s", e
+      end
     end
 
     def register_client peer, client
@@ -86,8 +93,6 @@ module FFWD::Debug
       @clients.each do |peer, client|
         session.register peer, client
       end
-
-      session.start
     end
 
     def unmonitor id
@@ -98,13 +103,16 @@ module FFWD::Debug
     end
   end
 
+  DEFAULT_REBIND_TIMEOUT = 10
+
   def self.setup opts={}
     host = opts[:host] || "localhost"
     port = opts[:port] || 9999
+    rebind_timeout = opts[:rebind_timeout] || DEFAULT_REBIND_TIMEOUT
     proto = FFWD.parse_protocol(opts[:protocol] || "tcp")
 
     if proto == FFWD::TCP
-      return TCP.new host, port
+      return TCP.new host, port, rebind_timeout
     end
 
     throw Exception.new("Unsupported protocol '#{proto}'")

@@ -9,7 +9,7 @@ module FFWD
     include FFWD::Lifecycle
     include FFWD::Logging
 
-    attr_reader :name
+    attr_reader :events, :metrics, :name
 
     def self.build name
       events = FFWD::Channel.new log, "#{name}.events"
