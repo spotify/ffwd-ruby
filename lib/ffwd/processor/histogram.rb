@@ -63,6 +63,21 @@ module FFWD::Processor
       @received = 0
 
       @cache = {}
+
+      starting do
+        log.info "Starting histogram processor on a window of #{@window}s"
+      end
+
+      stopping do
+        log.info "Stopping histogram processor"
+
+        if @timer
+          @timer.cancel
+          @timer = nil
+        end
+
+        digest!
+      end
     end
 
     def check_timer
@@ -71,17 +86,6 @@ module FFWD::Processor
       log.debug "Starting timer"
 
       @timer = EM::Timer.new(@window) do
-        digest!
-        @timer = nil
-      end
-    end
-
-    def start
-      log.info "Digesting on a window of #{@window}s"
-
-      stopping do
-        next unless @timer
-        @timer.cancel
         digest!
         @timer = nil
       end

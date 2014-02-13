@@ -25,11 +25,11 @@ module FFWD
 
       subs = []
 
-      input.starting do
-        @processors.each do |name, p|
-          p.start
-        end
+      @processors.each do |name, p|
+        p.depend_on input
+      end
 
+      input.starting do
         subs << input.metric_subscribe do |m|
           process_metric m
         end

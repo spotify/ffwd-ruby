@@ -20,4 +20,11 @@ module FFWD
   def self.current_host
     Socket.gethostname
   end
+
+  def self.timing &block
+    start = Time.now
+    block.call
+    stop = Time.now
+    ((stop - start) * 1000).round
+  end
 end

@@ -17,12 +17,13 @@ def riemann
 end
 
 def statsd
-  require 'statsd'
+  require 'statsd-ruby'
 
-  s = Statsd::Client.new
+  s = Statsd.new
 
-  0.upto 10 do
-    s.timing "statsd/test", 1000 * rand
+  while true
+    s.timing 'statsd/timing', 1000 * rand
+    s.increment 'statsd/count'
   end
 end
 
