@@ -133,19 +133,19 @@ module FFWD
 
       memory_one_warning = false
 
-      @system_channel.subscribe do |info|
-        memory = info[:memory]
+      @system_channel.subscribe do |system|
+        memory = system[:memory]
 
-        rss_mb = (memory[:rss].to_f / 1000000).round(3)
+        mb = (memory[:resident].to_f / 1000000).round(3)
 
-        if memory_one_warning and rss_mb > @memory_limit
-          log.error "Memory limit exceeded (#{rss_mb}/#{@memory_limit} MB): SHUTTING DOWN"
+        if memory_one_warning and mb > @memory_limit
+          log.error "Memory limit exceeded (#{mb}/#{@memory_limit} MB): SHUTTING DOWN"
           EM.stop
           next
         end
 
-        if rss_mb > @memory_limit95
-          log.warning "Memory limit almost reached (#{rss_mb}/#{@memory_limit} MB)"
+        if mb > @memory_limit95
+          log.warning "Memory limit almost reached (#{mb}/#{@memory_limit} MB)"
           memory_one_warning = true
         else
           memory_one_warning = false

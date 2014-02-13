@@ -126,11 +126,10 @@ module FFWD::Statistics
     end
 
     def memory_usage
-      result = {:rss => 0, :pss => 0, :total => read_total_memory}
+      result = {:resident => 0, :total => read_total_memory}
 
       read_smaps do |smap|
-        result[:rss] += smap.rss
-        result[:pss] += smap.pss
+        result[:resident] += smap.rss
       end
 
       result
