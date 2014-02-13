@@ -24,6 +24,7 @@ Your mileage might vary.*
 
 Other focused topics.
 * [FFWD vs. collectd](docs/vs-collectd.md)
+* [FFWD vs. Language X](docs/vs-language-x.md)
 * [Tunneling and multi-tenancy](docs/tunneling-and-multi-tenancy.md)
 * [Writing Plugins](docs/writing-plugins.md)
 

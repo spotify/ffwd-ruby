@@ -45,16 +45,15 @@ An **input plugin** implements the **setup_input** method in the plugin module.
 
 ```ruby
 require 'ffwd/plugin'
-require 'ffwd/plugin_base'
 
 module FFWD::Plugin
   module Foo
     # ...
 
-    class Input < FFWD::PluginBase
+    class Input
     end
 
-    def self.setup_input core, opts={}
+    def self.setup_input opts, core
       Input.new
     end
   end
@@ -69,35 +68,38 @@ The **start** method is expected to take two parameters.
 
 **output** &mdash; The output channel which the plugin can send output data to.
 
-The above example uses **FFWD::PluginBase** which provides these methods and
-allows the author to simply implement the **init** method.
-
 Lets make our plugin periodically send something on the input channel.
 
 ```ruby
 require 'eventmachine'
 
 require 'ffwd/plugin'
-require 'ffwd/plugin_base'
 
 module FFWD::Plugin
   module Foo
     # ...
 
-    class Input < FFWD::PluginBase
-      def init input, output
-        timer = EM::PeriodicTimer.new(10) do
-          input.metric :key => "foo", :value => 10
+    class Input
+      def initialize core
+        @timer = nil
+
+        core.input.starting do
+          @timer = EM::PeriodicTimer.new(10) do
+            input.metric :key => "foo", :value => 10
+          end
         end
 
-        stopping do
-          timer.cancel
+        core.input.stopping do
+          if @timer
+            @timer.cancel
+            @timer = nil
+          end
         end
       end
     end
 
-    def self.setup_input core, opts={}
-      Input.new
+    def self.setup_input opts, core
+      Input.new core
     end
   end
 end
@@ -109,8 +111,6 @@ With this we learn two new things.
 do something we can use
 [EM::PeriodicTimer](http://eventmachine.rubyforge.org/EventMachine/PeriodicTimer.html).
 
-The **stopping** method is a benefit from using the **FFWD::PluginBase** class
-as a base.
 The provided block gets invoked anytime **Core** decides that our plugin should be
 stopped.
 *Omitting this* would cause the timer to continue firing even though an input
@@ -142,13 +142,13 @@ module FFWD::Plugin
       include FFWD::Logging
       include EM::Protocols::LineText2
 
-      def initialize input, output, metric_key
-        @input = input
+      def initialize core, metric_key
+        @core = core
         @metric_key = metric_key
       end
 
       def receive_line line
-        @input.metric :key => @metric_key, :value => line.to_i
+        @core.input.metric :key => @metric_key, :value => line.to_i
       rescue => e
         log.error "Failed to receive metric", e
       end
@@ -157,11 +157,11 @@ module FFWD::Plugin
     DEFAULT_PORT = 4567
     DEFAULT_METRIC_KEY = "foo"
 
-    def self.setup_input core, opts={}
+    def self.setup_input opts, core
       opts[:port] ||= DEFAULT_PORT
       metric_key = opts[:metric_key] || DEFAULT_METRIC_KEY
       protocol = FFWD.parse_protocol(opts[:protocol] || "tcp")
-      protocol.bind log, opts, Connection, metric_key
+      protocol.bind opts, core, log, Connection, metric_key
     end
   end
 end
@@ -209,17 +209,18 @@ module.
 
 ```ruby
 require 'ffwd/plugin'
-require 'ffwd/plugin_base'
 
 module FFWD::Plugin
   module Foo
     # ...
 
-    class Output < FFWD::PluginBase
+    class Output
+      def initialize core
+      end
     end
 
-    def self.setup_output core, opts={}
-      Output.new
+    def self.setup_output opts, core
+      Output.new core
     end
   end
 end
@@ -236,33 +237,35 @@ Lets write a plugin that logs whatever it receives.
 ```ruby
 require 'ffwd/logging'
 require 'ffwd/plugin'
-require 'ffwd/plugin_base'
 
 module FFWD::Plugin
   module Foo
     # ...
 
-    class Output < FFWD::PluginBase
+    class Output
       include FFWD::Logging
 
-      def init output
-        es = output.subscribe_event do |event|
-          log.info "Event: #{event}"
+      def initialize core
+        subs = []
+
+        core.output.starting do
+          subs << output.subscribe_event do |event|
+            log.info "Event: #{event}"
+          end
+
+          subs << output.subscribe_metric do |metric|
+            log.info "Metric: #{metric}"
+          end
         end
 
-        ms = output.subscribe_metric do |metric|
-          log.info "Metric: #{metric}"
-        end
-
-        stopping do
-          output.unsubscribe_event es
-          output.unsubscribe_metric ms
+        core.output.stopping do
+          subs.each(&:unsubscribe).clear
         end
       end
     end
 
-    def self.setup_output core, opts={}
-      Output.new
+    def self.setup_output opts, core
+      Output.new core
     end
   end
 end
@@ -303,9 +306,8 @@ module FFWD::Plugin
       end
     end
 
-    def self.setup_input core, opts={}
-      instance = ConnectHandler.new
-      protocol.connect log, opts, instance
+    def self.setup_input opts, core
+      protocol.connect opts, core, log, ConnectHandler
     end
   end
 end
