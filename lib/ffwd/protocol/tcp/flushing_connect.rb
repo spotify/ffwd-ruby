@@ -23,29 +23,34 @@ module FFWD::TCP
 
       @event_buffer = []
       @metric_buffer = []
+      @timer = nil
+
+      @subs = []
 
       output.starting do
-        connect
-
         log.info "Flushing every #{@flush_period}s"
-
-        timer = EM::PeriodicTimer.new(@flush_period){flush!}
+        @timer = EM::PeriodicTimer.new(@flush_period){flush!}
 
         event_consumer = setup_consumer(
           @event_buffer, @event_limit, @event_flush_limit, :dropped_events)
         metric_consumer = setup_consumer(
           @metric_buffer, @metric_limit, @metric_flush_limit, :dropped_metrics)
 
-        event_sub = output.event_subscribe(&event_consumer)
-        metric_sub = output.metric_subscribe(&metric_consumer)
+        @subs << output.event_subscribe(&event_consumer)
+        @subs << output.metric_subscribe(&metric_consumer)
 
-        output.stopping do
-          disconnect
+        connect
+      end
 
-          output.event_unsubscribe event_sub
-          output.metric_unsubscribe metric_sub
-          timer.cancel
+      output.stopping do
+        if @timer
+          @timer.cancel
+          @timer = nil
         end
+
+        @subs.each(&:unsubscribe).clear
+
+        disconnect
       end
     end
 
