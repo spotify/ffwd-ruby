@@ -4,7 +4,7 @@ describe FFWD::Processor::CountProcessor do
   FFWD.log_disable
 
   opts = {}
-  m1 = {:key => :foo, :value => 10}
+  m1 = {:key => "foo", :value => 10}
 
   let(:metric) do
     double
@@ -19,11 +19,13 @@ describe FFWD::Processor::CountProcessor do
   end
 
   it "should realize that 10 + 10 = 20" do
-    metric.should_receive(:emit).with m1.merge(:source => m1[:key])
-    count.process m1
+    Time.stub(:now).and_return(0)
 
     metric.should_receive(:emit).with m1.merge(
-      :value => m1[:value] * 2, :source => m1[:key])
+      :key => "#{m1[:key]}.sum", :value => m1[:value] * 2, :source => m1[:key])
+
     count.process m1
+    count.process m1
+    count.flush! 0
   end
 end

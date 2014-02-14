@@ -73,7 +73,7 @@ module FFWD::Processor
 
       unless (entry = @cache[key])
         if @cache.size < @cache_limit
-          entry = @cache[key] = {:count => value, :last => now}
+          entry = @cache[key] = {:count => 0, :last => now}
         else
           log.warning "Dropping cache update '#{key}', limit reached."
           return
