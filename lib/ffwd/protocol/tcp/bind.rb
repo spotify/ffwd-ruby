@@ -10,7 +10,7 @@ module FFWD::TCP
 
       info = "tcp://#{@peer}"
 
-      r = FFWD::Retrier.new log, core.input, rebind_timeout do |a|
+      r = FFWD.retry :timeout => rebind_timeout do |a|
         @sig = EM.start_server host, port, handler, core, *args
         log.info "Bind on #{info} (attempt #{a})"
       end
@@ -18,6 +18,8 @@ module FFWD::TCP
       r.error do |a, t, e|
         log.error "Failed to bind #{info} (attempt #{a}), retry in #{t}s", e
       end
+
+      r.depend_on core.input
 
       core.input.stopping do
         log.info "Unbinding #{info}"

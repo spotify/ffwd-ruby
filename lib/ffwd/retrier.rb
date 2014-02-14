@@ -1,25 +1,25 @@
 require_relative 'logging'
+require_relative 'lifecycle'
 
 module FFWD
   # Try to execute a block on an exponential timer until it no longer throws
   # an exception.
   class Retrier
-    attr_reader :log
+    include FFWD::Lifecycle
 
-    def initialize log, lifecycle, retry_timeout, &block
-      @log = log
+    def initialize timeout, &block
       @block = block
       @timer = nil
-      @retry_timeout = retry_timeout
-      @current_timeout = @retry_timeout
+      @timeout = timeout
+      @current_timeout = @timeout
       @attempt = 0
       @error_callbacks = []
 
-      lifecycle.starting do
+      starting do
         try_block
       end
 
-      lifecycle.stopping do
+      stopping do
         if @timer
           @timer.cancel
           @timer = nil
@@ -34,13 +34,10 @@ module FFWD
     def try_block
       @attempt += 1
       @block.call @attempt
+      @current_timeout = @timeout
     rescue => e
       @error_callbacks.each do |block|
-        begin
-          block.call @attempt, @current_timeout, e
-        rescue => e
-          log.error "Failed to call error block", e
-        end
+        block.call @attempt, @current_timeout, e
       end
 
       @timer = EM::Timer.new(@current_timeout) do
@@ -49,5 +46,12 @@ module FFWD
         try_block
       end
     end
+  end
+
+  DEFAULT_TIMEOUT = 10
+
+  def self.retry opts={}, &block
+    timeout = opts[:timeout] || DEFAULT_TIMEOUT
+    Retrier.new(timeout, &block)
   end
 end

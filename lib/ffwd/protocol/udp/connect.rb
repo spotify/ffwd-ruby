@@ -1,13 +1,16 @@
 require_relative '../../reporter'
+require_relative '../../retrier'
 
 module FFWD::UDP
   class Connect
     include FFWD::Reporter
 
+    attr_reader :reporter_id, :log
+
     set_reporter_keys :dropped_events, :dropped_metrics,
                       :sent_events, :sent_metrics
 
-    def initialize output, log, host, port, handler
+    def initialize core, log, host, port, handler
       @log = log
       @host = host
       @port = port
@@ -19,26 +22,38 @@ module FFWD::UDP
       @peer = "#{host}:#{port}"
       @reporter_id = "#{@handler.name}/#{@peer}"
 
-      output.starting do
-        @host_ip = resolve_host_ip @host
+      @subs = []
+      @r = nil
 
-        if @host_ip.nil?
-          @log.error "Could not resolve '#{@host}'"
-          return
+      info = "udp://#{@peer}"
+
+      r = FFWD.retry :timeout => resolve_timeout do |a|
+        unless @host_ip
+          @host_ip = resolve_host_ip @host
+          raise "Could not resolve: #{@host}" if @host_ip.nil?
         end
-
-        @log.info "Resolved server as #{@host_ip}"
 
         @c = EM.open_datagram_socket(@bind_host, nil)
 
-        event_sub = output.event_subscribe{|e| handle_event e}
-        metric_sub = output.metric_subscribe{|m| handle_metric m}
+        log.info "Setup of output to #{info} successful"
 
-        output.stopping do
+        @subs << core.output.event_subscribe{|e| handle_event e}
+        @subs << core.output.metric_subscribe{|m| handle_metric m}
+      end
+
+      r.error do |a, t, e|
+        log.error "Setup of output to #{info} failed (attempt #{a}), retry in #{t}s", e
+      end
+
+      r.depend_on core.output
+
+      core.output.stopping do
+        if @c
           @c.close
-          output.event_unsubscribe event_sub
-          output.metric_unsubscribe metric_sub
+          @c = nil
         end
+
+        @subs.each(&:unsubscribe).clear
       end
     end
 
