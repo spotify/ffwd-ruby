@@ -4,12 +4,12 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'ffwd/version'
 
 Gem::Specification.new do |spec|
-  spec.name = "ffwd-core"
+  spec.name = "ffwd"
   spec.version = FFWD::VERSION
   spec.authors = ["John-John Tedro", "Martin Parm"]
   spec.email = ["udoprog@spotify.com", "parmus@spotify.com"]
   spec.summary = %q{Core framework for the FastForward Daemon.}
-  spec.homepage = "https://github.com/spotify/ffwd-core"
+  spec.homepage = "https://github.com/spotify/ffwd"
   spec.license = "Apache 2.0"
 
   spec.files = Dir.glob('bin/*') +
