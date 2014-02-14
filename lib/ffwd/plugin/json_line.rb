@@ -13,7 +13,7 @@ module FFWD::Plugin::JsonLine
   register_plugin "json_line"
 
   DEFAULT_HOST = "localhost"
-  DEFAULT_PORT = 3000
+  DEFAULT_PORT = 19000
 
   def self.setup_input opts, core
     opts[:host] ||= DEFAULT_HOST

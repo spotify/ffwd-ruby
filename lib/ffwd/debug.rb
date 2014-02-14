@@ -43,10 +43,12 @@ module FFWD::Debug
   end
 
   DEFAULT_REBIND_TIMEOUT = 10
+  DEFAULT_HOST = "localhost"
+  DEFAULT_PORT = 19001
 
   def self.setup opts={}
-    host = opts[:host] || "localhost"
-    port = opts[:port] || 9999
+    host = opts[:host] || DEFAULT_HOST
+    port = opts[:port] || DEFAULT_PORT
     rebind_timeout = opts[:rebind_timeout] || DEFAULT_REBIND_TIMEOUT
     proto = FFWD.parse_protocol(opts[:protocol] || "tcp")
 

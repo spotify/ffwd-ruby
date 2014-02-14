@@ -4,6 +4,8 @@ require 'json'
 require 'set'
 require 'logger'
 
+require 'ffwd/debug'
+
 module FWC
   def self.log
     @logger ||= ::Logger.new(STDOUT).tap do |l|
@@ -37,11 +39,15 @@ module FWC
   end
 
   def self.opts
-    @@opts ||= {:debug => false, :host => "localhost", :port => 9999,
-                :summary => false,
-                :raw => false,
-                :raw_threshold => 100,
-                :report_interval => 10}
+    @@opts ||= {
+      :debug => false,
+      :host => "localhost",
+      :port => FFWD::Debug::DEFAULT_PORT,
+      :summary => false,
+      :raw => false,
+      :raw_threshold => 100,
+      :report_interval => 10
+    }
   end
 
   def self.parser
