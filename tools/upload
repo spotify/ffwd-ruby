@@ -1,0 +1,39 @@
+#!/bin/bash
+
+buildall() {
+    if ! gem build ffwd.gemspec; then
+        return 1
+    fi
+
+    for plugin in plugins/*/*.gemspec; do
+        echo "Building: $plugin"
+
+        if ! gem build $plugin; then
+            return 1
+        fi
+    done
+
+    return 0
+}
+
+GEMS_LOG="gems.log"
+
+host=$1
+
+if [[ -z $host ]]; then
+    echo "Usage: $0 <host>"
+    exit 1
+fi
+
+echo "Removing: *.gem"
+rm -f *.gem
+
+if ! buildall; then
+    echo "Failed to build all gems"
+    exit 1
+fi
+
+for gem in *.gem; do
+    echo "Uploading: $gem"
+    gem inabox -g $host $gem
+done
