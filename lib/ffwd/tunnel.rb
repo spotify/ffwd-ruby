@@ -37,9 +37,25 @@ module FFWD
       @args = args
       @peer = "?:#{port}"
       @instances = {}
+      @handler_instance = nil
 
       starting do
         setup
+        @log.info "Tunneling to #{@protocol}://*:#{@port}"
+      end
+
+      stopping do
+        if @handler_instance
+          @handler_instance.unbind
+          @handler_instance = nil
+        end
+
+        @instances.each do |addr, instance|
+          instance.unbind
+        end
+
+        @instances.clear
+        @log.info "Stopped tunneling to #{@protocol}://*:#{@port}"
       end
     end
 
@@ -51,11 +67,12 @@ module FFWD
 
     def handle_udp
       handler_instance = @connection.new(nil, @core, *@args)
-      @log.info "Tunneling to #{@protocol}://*:#{@port}"
 
       @tunnel.subscribe @protocol, @port do |id, addr, data|
         handler_instance.receive_data data
       end
+
+      @handler_instance = handler_instance
     end
 
     def handle_tcp
