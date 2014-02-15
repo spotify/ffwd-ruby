@@ -16,17 +16,18 @@ Your mileage might vary.*
 * [Installation](#installation)
   * [Installing Plugins](#installing-plugins)
 * [Contributing](#contributing)
-* [Events and Metrics](#events-and-metrics)
-  * [Input Data Structure](#input-data-structure)
-  * [Output Data Structure](#output-data-structure)
 * [Debugging](#debugging)
 * [Terminology](#terminology)
 
 Other focused topics.
-* [FFWD vs. collectd](docs/vs-collectd.md)
-* [FFWD vs. Language X](docs/vs-language-x.md)
 * [Tunneling and multi-tenancy](docs/tunneling-and-multi-tenancy.md)
 * [Writing Plugins](docs/writing-plugins.md)
+* [Events and Metrics](docs/events-and-metrics.md)
+  * [Input Data Structure](docs/events-and-metrics.md#input-data-structure)
+  * [Output Data Structure](docs/events-and-metrics.md#output-data-structure)
+* [Schemas](docs/schemas.md)
+* [FFWD vs. collectd](docs/vs-collectd.md)
+* [FFWD vs. Language X](docs/vs-language-x.md)
 
 ## Usage
 
@@ -44,9 +45,8 @@ itself.
 You can now send events and metrics to it using one of the enabled input
 protocols.
 
-E.g. the carbon protocol (requires
-[ffwd-carbon](https://github.com/spotify-ffwd/ffwd-carbon))
-or the JSON-line protocol.
+E.g. the carbon protocol (requires [ffwd-carbon](/plugins/ffwd-carbon)) or the
+built-in reference [JSON-line protocol](/lib/ffwd/plugin/json_line.rb).
 
 ```bash
 $ echo "random.diceroll 4  `date +%s`" | nc -q0 localhost 2003
@@ -122,168 +122,6 @@ to remedy this.
    Try to include tests for your changes.
 4. Push the branch back to GitHub.
 5. Send a pull request to our upstream repo.
-
-## Events and Metrics
-
-The two types of *data* that FFWD processes are *events* and *metrics*.
-
-An input plugin is responsible for consuming *data* and **emit** it into
-*Core*.
-In contrast, an output plugin **consumes** *data* from *Core* and forwards it.
-
-Two types of *data* are understood by FFWD.
-
-* **events** Which are passed as-is, without being processed.
-* **metrics** Which are optionally processed (if the **:proc** field is
-  present), but default to being passed as-is.
-
-*Core* also makes a distinction between **input** and **output** data.
-
-*Core* is responsible for *decorating* both events and metrics with *metadata*
-by adding *tags* and *attributes*.
-
-These are both heavily inspired by the fields present in
-[riemann](http://riemann.io/concepts.html) and
-[collectd](http://collectd.org/).
-
-For the schemas of both input and output data types, see
-[lib/ffwd/event.rb](lib/ffwd/event.rb) and
-[lib/ffwd/metric.rb](lib/ffwd/metric.rb).
-
-### Input Data Structure
-
-The following section describes the structure of *input data*.
-
-**input data** is a hash either classified as an **event** or as a **metric**.
-
-These hashes contain the following fields.
-
-The following are the keywords and their meaning used on each field.
-
-* **optional**&nbsp;Field is not required to be provided by an *input* plugin.
-* **internal**&nbsp;Field is used for internal purposes and should not be
-  provided by an *input plugin* and will be ignored if it is.
-* **event only**&nbsp;Field will only be read if an *event* is emitted.
-* **metric only**&nbsp;Field will only be read if a *metric* is emitted.
-
-*Note: In this section, 'data' refers to both events and metrics.*
-
-**:key**<br />
-&emsp;The key of the *data*.<br />
-**:value**<br />
-&emsp;A numeric value of the *data*.<br />
-**:time (optional)**<br />
-&emsp;The time of when the *data* was received, if not set will be set to the
-current time by *Core*.<br />
-**:ttl (optional, event only)**<br />
-&emsp;The amount of time an event is considered *valid*.<br />
-**:state (optional, event only)**<br />
-&emsp;Is used to communicate the state of the event, like **ok** or
-**critical**.<br />
-**:description (optional, event only)**<br />
-&emsp;A description of the event.<br />
-**:host (optional, metadata)**<br />
-&emsp;The host which is the originator of the data, if not set will be added by
-*Core*.<br />
-**:tags (optional, metadata)**<br />
-&emsp;Tags to associate with the event, will be merged by any tags configured
-in *Core*.<br />
-**:attributes (optional, metadata)**<br />
-&emsp;Attributes to associate with the event, will be merged by any attributes
-configured in **Core**.<br />
-**:source**<br />
-&emsp;If *data* is the result of some processing, this is the *source key* of
-the data that caused it.<br />
-**:proc (optional, metric only)**<br />
-&emsp;The processor to use for metrics.<br />
-
-It is designed like this to allow for input plugins to provide data in a
-*terse* format, making it easier for author to write plugins. See [the
-statsd plugin](lib/ffwd/plugin/statsd.rb) for a good example where only
-**:key**, **:value** and **:proc** is used.
-
-### Output Data Structure
-
-After *data* has been emitted by a plugin, processed by *Core*, it is then
-converted into a *Struct* and treated as **output** (see
-[MetricEmitter](lib/ffwd/metric_emitter.rb) and
-[EventEmitter](lib/ffwd/event_emitter.rb)).
-
-This causes the events and metrics to be *consistent* and more type safe when
-it reaches and *output plugin*.
-The *output data* is then converted by the output plugin to suit whatever
-the target protocol requires.
-
-An *output plugin* can and often will omit fields which cannot be sanely
-converted to the target protocol.
-Instead it is up to the system administrator to choose an output scheme which
-match their requirements.
-
-## Schemas
-
-Some output plugins does not have a pre-defined output structure.
-
-Consider when writing to kafka, you probably have a pre-defined internal data
-structure for the messages being consumed from the queue.
-
-For this purpose ffwd provides **schemas**.
-These are pluggable components that knows how to dump the internal data
-structures of ffwd into a specific structure of a specific *content type*.
-
-The use of a specific schema looks like the following in the configuration
-file.
-
-```yaml
-:output:
-  - :type: "kafka"
-    :schema: "my-schema-v01"
-    :content_type: "application/json"
-```
-
-To list all availble schemas and content types, use **ffwd --list-schemas**.
-
-This assumes that *my-schema-v01* is provided by a component which has been
-loaded.
-
-Writing a schema is very straight forward, it's only a matter of placing
-a component under **lib/ffwd/schema/my_schema.rb** in your own ruby gem.
-
-```ruby
-require_relative 'ffwd/schema'
-
-require 'json'
-
-module FFWD::Schema
-  module MySchema
-    include FFWD::Schema
-
-    module ApplicationJSON01
-      def self.dump_metric m
-        JSON.dump m.to_h
-      end
-
-      def self.dump_event e
-        JSON.dump e.to_h
-      end
-    end
-
-    module ApplicationJSON02
-      def self.dump_metric m
-        h = m.to_h
-        h[:my_field] = 42
-        JSON.dump h
-      end
-
-      def self.dump_event e
-        JSON.dump e.to_h
-      end
-    end
-
-    register_schema 'my-schema-v01', 'application/json', ApplicationJSON01
-    register_schema 'my-schema-v02', 'application/json', ApplicationJSON02
-  end
-end
-```
 
 ## Debugging
 
