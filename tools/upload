@@ -8,11 +8,15 @@ buildall() {
     for plugin in plugins/*/*.gemspec; do
         echo "Building: $plugin"
 
-        if ! gem build $plugin; then
+        dir=$(dirname $plugin)
+        gemspec=$(basename $plugin)
+
+        if ! (cd $dir && gem build $gemspec); then
             return 1
         fi
     done
 
+    mv plugins/*/*.gem .
     return 0
 }
 
