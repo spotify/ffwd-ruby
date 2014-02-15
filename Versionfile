@@ -3,11 +3,7 @@
 VERSION_PATTERN = /^\s*VERSION = \"(.+)\"$/
 
 matcher = proc do |line|
-  if m = VERSION_PATTERN.match(line)
-    m[1]
-  else
-    nil
-  end
+  (m = VERSION_PATTERN.match(line)) && m[1]
 end
 
 read_version do
