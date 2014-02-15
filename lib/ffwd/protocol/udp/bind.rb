@@ -19,9 +19,9 @@ module FFWD::UDP
         log.error "Failed to bind #{info} (attempt #{a}), retry in #{t}s", e
       end
 
-      r.depend_on core.input
+      r.depend_on core
 
-      core.input.stopping do
+      core.stopping do
         log.info "Unbinding #{info}"
 
         if @c

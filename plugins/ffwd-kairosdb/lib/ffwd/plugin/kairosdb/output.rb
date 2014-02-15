@@ -26,7 +26,7 @@ module FFWD::Plugin::KairosDB
 
       @sub = nil
 
-      core.output.starting do
+      core.starting do
         log.info "Will send events to #{@url}"
 
         @c = EM::HttpRequest.new(@url)
@@ -42,14 +42,14 @@ module FFWD::Plugin::KairosDB
         end
       end
 
-      core.output.stopping do
+      core.stopping do
         # Close is buggy, don.
         #@c.close
 
         log.info "Closing connection to #{@url}"
 
         if @sub
-          core.output.metric_unsubscribe @sub
+          @sub.unsubscribe
           @sub = nil
         end
 

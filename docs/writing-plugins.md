@@ -60,13 +60,7 @@ module FFWD::Plugin
 end
 ```
 
-The return value of the input plugin is expected to be *any object* that
-responds to the **start** and the **stop** method.
-The **start** method is expected to take two parameters.
-
-**input** &mdash; The input channel which the plugin can send input data to.
-
-**output** &mdash; The output channel which the plugin can send output data to.
+**core** &mdash; An instance of [CoreInterface](lib/ffwd/core_interface.rb)
 
 Lets make our plugin periodically send something on the input channel.
 

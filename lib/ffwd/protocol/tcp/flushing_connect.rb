@@ -7,10 +7,12 @@ module FFWD::TCP
     include FFWD::Reporter
 
     set_reporter_keys :dropped_events, :dropped_metrics,
-                      :sent_events, :sent_metrics
+                      :sent_events, :sent_metrics,
+                      :failed_events, :failed_metrics,
+                      :forced_flush
 
     def initialize(
-      output, log, host, port, handler, args, outbound_limit,
+      core, log, host, port, handler, args, outbound_limit,
       flush_period, event_limit, metric_limit, flush_limit
     )
       super log, host, port, handler, args, outbound_limit
@@ -25,9 +27,9 @@ module FFWD::TCP
       @metric_buffer = []
       @timer = nil
 
-      @subs = []
+      subs = []
 
-      output.starting do
+      core.starting do
         log.info "Flushing every #{@flush_period}s"
         @timer = EM::PeriodicTimer.new(@flush_period){flush!}
 
@@ -36,19 +38,19 @@ module FFWD::TCP
         metric_consumer = setup_consumer(
           @metric_buffer, @metric_limit, @metric_flush_limit, :dropped_metrics)
 
-        @subs << output.event_subscribe(&event_consumer)
-        @subs << output.metric_subscribe(&metric_consumer)
+        subs << core.output.event_subscribe(&event_consumer)
+        subs << core.output.metric_subscribe(&metric_consumer)
 
         connect
       end
 
-      output.stopping do
+      core.stopping do
+        subs.each(&:unsubscribe).clear
+
         if @timer
           @timer.cancel
           @timer = nil
         end
-
-        @subs.each(&:unsubscribe).clear
 
         disconnect
       end

@@ -1,5 +1,9 @@
+require_relative 'lifecycle'
+
 module FFWD
   class CoreInterface
+    include FFWD::Lifecycle
+
     attr_reader :input, :output
     attr_reader :tunnel_plugins, :statistics, :debug, :processor_opts
     attr_reader :tags, :attributes

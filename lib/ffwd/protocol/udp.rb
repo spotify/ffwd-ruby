@@ -14,7 +14,7 @@ module FFWD::UDP
   def self.connect opts, core, log, handler
     raise "Missing required key :host" if (host = opts[:host]).nil?
     raise "Missing required key :port" if (port = opts[:port]).nil?
-    Connect.new core.output, log, host, port, handler
+    Connect.new core, log, host, port, handler
   end
 
   DEFAULT_REBIND_TIMEOUT = 10

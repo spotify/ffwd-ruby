@@ -69,6 +69,8 @@ module FFWD
         @processor_opts, @core_opts
       )
 
+      @interface.depend_on self
+
       @input_instances = @input_plugins.map do |plugin|
         plugin.setup @interface
       end

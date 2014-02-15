@@ -9,30 +9,20 @@ module FFWD::TCP
 
     INITIAL_TIMEOUT = 2
 
-    def initialize output, log, host, port, handler, args, outbound_limit
+    def initialize core, log, host, port, handler, args, outbound_limit
       super log, host, port, handler, args, outbound_limit
 
-      @event_sub = nil
-      @metric_sub = nil
+      subs = []
 
-      output.starting do
+      core.starting do
         connect
-        @event_sub = output.event_subscribe{|e| handle_event e}
-        @metric_sub = output.metric_subscribe{|e| handle_metric e}
+        subs << core.output.event_subscribe{|e| handle_event e}
+        subs << core.output.metric_subscribe{|e| handle_metric e}
       end
 
-      output.stopping do
+      core.stopping do
         disconnect
-
-        if @event_sub
-          output.event_unsubscribe @event_sub
-          @event_sub = nil
-        end
-
-        if @metric_sub
-          output.metric_unsubscribe @metric_sub
-          @metric_sub = nil
-        end
+        subs.each(&:unsubscribe).clear
       end
     end
 

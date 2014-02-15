@@ -10,12 +10,12 @@ module FFWD::Plugin::Kafka
       include EM::Deferrable
     end
 
-    def initialize(*args)
+    def initialize *args
       @args = args
       @mutex = Mutex.new
     end
 
-    def send_messages(messages)
+    def send_messages messages
       execute do |p|
         p.send_messages messages
       end

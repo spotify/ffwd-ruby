@@ -21,39 +21,36 @@ module FFWD::UDP
       @c = nil
       @peer = "#{host}:#{port}"
       @reporter_id = "#{@handler.name}/#{@peer}"
-
-      @subs = []
-      @r = nil
-
       info = "udp://#{@peer}"
+
+      subs = []
 
       r = FFWD.retry :timeout => resolve_timeout do |a|
         unless @host_ip
-          @host_ip = resolve_host_ip @host
+          @host_ip = resolve_ip @host
           raise "Could not resolve: #{@host}" if @host_ip.nil?
         end
 
         @c = EM.open_datagram_socket(@bind_host, nil)
-
         log.info "Setup of output to #{info} successful"
 
-        @subs << core.output.event_subscribe{|e| handle_event e}
-        @subs << core.output.metric_subscribe{|m| handle_metric m}
+        subs << core.output.event_subscribe{|e| handle_event e}
+        subs << core.output.metric_subscribe{|m| handle_metric m}
       end
 
       r.error do |a, t, e|
         log.error "Setup of output to #{info} failed (attempt #{a}), retry in #{t}s", e
       end
 
-      r.depend_on core.output
+      r.depend_on core
 
-      core.output.stopping do
+      core.stopping do
         if @c
           @c.close
           @c = nil
         end
 
-        @subs.each(&:unsubscribe).clear
+        subs.each(&:unsubscribe).clear
       end
     end
 
@@ -81,7 +78,7 @@ module FFWD::UDP
       increment :sent_metrics, 1
     end
 
-    def resolve_host_ip host
+    def resolve_ip host
       Socket.getaddrinfo(@host, nil, nil, :DGRAM).each do |item|
         next if item[0] != "AF_INET"
         return item[3]

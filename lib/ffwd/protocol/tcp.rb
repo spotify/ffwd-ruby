@@ -26,14 +26,14 @@ module FFWD::TCP
     flush_period = opts[:flush_period] || DEFAULT_FLUSH_PERIOD
 
     if flush_period == 0
-      Connect.new core.output, log, host, port, handler, args, outbound_limit
+      Connect.new core, log, host, port, handler, args, outbound_limit
     else
       event_limit = opts[:event_limit] || DEFAULT_EVENT_LIMIT
       metric_limit = opts[:metric_limit] || DEFAULT_METRIC_LIMIT
       flush_limit = opts[:flush_limit] || DEFAULT_FLUSH_LIMIT
 
       FlushingConnect.new(
-        core.output, log, host, port, handler, args, outbound_limit,
+        core, log, host, port, handler, args, outbound_limit,
         flush_period, event_limit, metric_limit, flush_limit
       )
     end

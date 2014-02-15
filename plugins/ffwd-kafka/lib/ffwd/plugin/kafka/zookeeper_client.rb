@@ -1,7 +1,7 @@
 require 'zookeeper'
 require 'thread'
 
-module FFWD
+module FFWD::Plugin::Kafka
   # A tiny zookeeper wrapper that delegates requests to the thread-pool of
   # EventMachine.
   class ZookeeperClient
