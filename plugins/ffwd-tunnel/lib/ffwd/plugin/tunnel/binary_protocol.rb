@@ -5,8 +5,8 @@ require_relative 'base_protocol'
 
 module FFWD::Plugin::Tunnel
   class BinaryProtocol < BaseProtocol
-    def initialize core, output, connection
-      super core, output, connection
+    def initialize core, connection
+      super core, connection
       @header = nil
     end
 

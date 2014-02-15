@@ -3,20 +3,71 @@ require 'ffwd/logging'
 require 'ffwd/plugin_channel'
 require 'ffwd/core_emitter'
 require 'ffwd/core_processor'
+require 'ffwd/lifecycle'
+require 'ffwd/tunnel'
 
 module FFWD::Plugin::Tunnel
-  class BaseProtocol
+  class BaseProtocol < FFWD::Tunnel::Plugin
     include FFWD::Logging
+    include FFWD::Lifecycle
 
-    def initialize core, output, connection
-      @core = core
-      @output = output
+    def initialize core, connection
       @connection = connection
       @metadata = nil
       @processor = nil
       @channel_id = nil
       @statistics_id = nil
       @subs = {}
+      @input = FFWD::PluginChannel.build 'tunnel_input'
+
+      starting do
+        if @metadata.nil?
+          raise "no metadata"
+        end
+
+        if host = @metadata[:host]
+          @statistics_id = "tunnel/#{host}"
+          @channel_id = "tunnel.input/#{host}"
+        else
+          @statistics_id = "tunnel/#{@connection.get_peer}"
+          @channel_id = "tunnel.input/#{@connection.get_peer}"
+        end
+
+        # setup a small core
+        emitter = FFWD::CoreEmitter.build @core.output, @metadata
+        @processor = FFWD::CoreProcessor.build @input, emitter, @core.processor_opts
+
+        @reporter = FFWD::CoreReporter.new [@input, @processor]
+
+        if @core.debug
+          @core.debug.monitor @channel_id, @input, FFWD::Debug::Input
+        end
+
+        if @core.statistics
+          @core.statistics.register @statistics_id, @reporter
+        end
+      end
+
+      stopping do
+        if @core.statistics and @statistics_id
+          @core.statistics.unregister @statistics_id
+          @statistics_id = nil
+        end
+
+        @metadata = nil
+        @processor = nil
+        @subs = {}
+      end
+
+      @core = core.reconnect @input
+
+      @core.tunnel_plugins.each do |t|
+        instance = t.setup @core, self
+        instance.depend_on self
+      end
+
+      @input.depend_on self
+      @core.depend_on self
     end
 
     def send_data data
@@ -52,24 +103,6 @@ module FFWD::Plugin::Tunnel
       @subs[id] = block
     end
 
-    def stop
-      @processor.stop if @processor
-
-      if @core.debug and @channel_id
-        @core.debug.unmonitor @channel_id
-      end
-
-      if @core.statistics and @statistics_id
-        @core.statistics.unregister @statistics_id
-      end
-
-      @metadata = nil
-      @processor = nil
-      @channel_id = nil
-      @statistics_id = nil
-      @subs = {}
-    end
-
     def read_metadata data
       d = {}
 
@@ -90,11 +123,7 @@ module FFWD::Plugin::Tunnel
     def receive_metadata data
       @metadata = read_metadata data
 
-      input = FFWD::PluginChannel.new 'tunnel_input'
-
-      @core.tunnels.each do |t|
-        t.start input, @output, self
-      end
+      start
 
       response = {:type => self.class.type}
 
@@ -103,33 +132,7 @@ module FFWD::Plugin::Tunnel
       end
 
       response = JSON.dump(response)
-
       send_data "#{response}\n"
-
-      # setup a small core
-      emitter = FFWD::CoreEmitter.build @output, @metadata
-      @processor = FFWD::CoreProcessor.build input, emitter, @core.processors
-
-      reporters = [input]
-      reporters += @processor
-
-      @reporter = FFWD::CoreReporter.new reporters
-
-      if host = @metadata[:host]
-        @statistics_id = "tunnel/#{host}"
-        @channel_id = "tunnel.input/#{host}"
-      else
-        @statistics_id = "tunnel/#{@connection.get_peer}"
-        @channel_id = "tunnel.input/#{@connection.get_peer}"
-      end
-
-      if @core.debug
-        @core.debug.monitor @channel_id, input, FFWD::Debug::Input
-      end
-
-      if @core.statistics
-        @core.statistics.register @statistics_id, @reporter
-      end
     end
   end
 end

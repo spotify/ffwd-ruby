@@ -20,7 +20,7 @@ module FFWD::Plugin::Statsd
     protocol.bind opts, core, log, Connection
   end
 
-  def self.setup_tunnel core, tunnel, opts={}
+  def self.setup_tunnel opts, core, tunnel
     opts[:port] ||= DEFAULT_PORT
     protocol = FFWD.parse_protocol(opts[:protocol] || "tcp")
     protocol.tunnel opts, core, tunnel, log, Connection

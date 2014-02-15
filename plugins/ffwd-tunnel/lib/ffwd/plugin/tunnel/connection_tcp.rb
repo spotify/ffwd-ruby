@@ -5,9 +5,7 @@ module FFWD::Plugin::Tunnel
     include FFWD::Logging
     include EM::Protocols::LineText2
 
-    def initialize input, output, core, tunnel_protocol
-      @input = input
-      @output = output
+    def initialize core, tunnel_protocol
       @core = core
       @tunnel_protocol = tunnel_protocol
       @protocol_instance = nil
@@ -32,7 +30,7 @@ module FFWD::Plugin::Tunnel
     end
 
     def post_init
-      @protocol_instance = @tunnel_protocol.new @core, @output, self
+      @protocol_instance = @tunnel_protocol.new @core, self
     end
 
     def unbind

@@ -58,11 +58,8 @@ module FFWD::Debug
       @clients.each do |peer, client|
         session.register peer, client
       end
-    end
 
-    def unmonitor id
-      if session = @sessions[id]
-        session.stop
+      channel.stopping do
         @sessions.delete id
       end
     end

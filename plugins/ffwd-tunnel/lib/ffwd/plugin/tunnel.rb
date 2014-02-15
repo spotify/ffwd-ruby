@@ -27,7 +27,7 @@ module FFWD::Plugin::Tunnel
     "binary" => BinaryProtocol,
   }
 
-  def self.setup_input core, opts={}
+  def self.setup_input opts, core
     opts[:host] ||= DEFAULT_HOST
     opts[:port] ||= DEFAULT_PORT
     protocol = FFWD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
@@ -41,10 +41,10 @@ module FFWD::Plugin::Tunnel
       raise "No such tunnel protocol: #{protocol_type}"
     end
 
-    if core.tunnels.empty?
+    if core.tunnel_plugins.empty?
       raise "Nothing requires tunneling"
     end
 
-    protocol.bind log, opts, connection, core, protocol_type
+    protocol.bind opts, core, log, connection, protocol_type
   end
 end

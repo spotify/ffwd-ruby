@@ -54,6 +54,10 @@ module FFWD
     end
 
     def depend_on other_lifecycle
+      if other_lifecycle.nil?
+        raise "Other lifecycle must not be nil"
+      end
+
       if (@depends ||= nil)
         raise "This component already depends on #{@depends}"
       end
