@@ -2,7 +2,7 @@ require_relative 'logging'
 
 module FFWD
   module Plugin
-    class LoadedPlugin
+    class Loaded
       attr_reader :source, :name
 
       def initialize source, name, options
@@ -51,7 +51,7 @@ module FFWD
       end
     end
 
-    class SetupPlugin
+    class Setup
       attr_reader :name, :config
 
       def initialize name, setup, config
@@ -67,10 +67,6 @@ module FFWD
 
     def self.discovered
       @@discovered ||= {}
-    end
-
-    def self.clear_discovered
-      @@discovered = {}
     end
 
     def self.loaded
@@ -93,12 +89,16 @@ module FFWD
       mod.extend ClassMethods
     end
 
-    def self.init_discovered source
+    def self.category
+      'plugin'
+    end
+
+    def self.load_discovered source
       FFWD::Plugin.discovered.each do |name, options|
-        FFWD::Plugin.loaded[name] = LoadedPlugin.new source, name, options
+        FFWD::Plugin.loaded[name] = Loaded.new source, name, options
       end
 
-      FFWD::Plugin.clear_discovered
+      FFWD::Plugin.discovered.clear
     end
 
     def self.load_plugins log, kind_name, config, kind
@@ -125,7 +125,7 @@ module FFWD
           next
         end
 
-        result << SetupPlugin.new(name, plugin.get(kind), plugin_config)
+        result << Setup.new(name, plugin.get(kind), plugin_config)
       end
 
       return result

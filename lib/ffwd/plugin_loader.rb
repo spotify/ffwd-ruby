@@ -91,8 +91,8 @@ module FFWD::PluginLoader
     end
   end
 
-  def self.load module_category, blacklist
-    self.list_modules(module_category, blacklist) do |source, m|
+  def self.load mod, blacklist
+    self.list_modules(mod.category, blacklist) do |source, m|
       begin
         require m
       rescue LoadError => e
@@ -100,7 +100,7 @@ module FFWD::PluginLoader
       end
 
       # Initialize all newly discovered plugins.
-      FFWD::Plugin.init_discovered source
+      mod.load_discovered source
     end
   end
 end

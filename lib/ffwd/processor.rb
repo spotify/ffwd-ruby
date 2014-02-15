@@ -49,8 +49,15 @@ module FFWD::Processor
     @@registry ||= {}
   end
 
+  def self.category
+    'processor'
+  end
+
   def self.included(mod)
     mod.extend ClassMethods
+  end
+
+  def self.load_discovered source
   end
 
   #

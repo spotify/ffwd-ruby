@@ -3,8 +3,10 @@ require 'optparse'
 
 require_relative 'ffwd/core'
 require_relative 'ffwd/logging'
-require_relative 'ffwd/plugin_loader'
 require_relative 'ffwd/plugin'
+require_relative 'ffwd/plugin_loader'
+require_relative 'ffwd/processor'
+require_relative 'ffwd/schema'
 
 module FFWD
   DEFAULT_PLUGIN_DIRECTORIES = [
@@ -62,7 +64,7 @@ module FFWD
 
   def self.opts
     @@opts ||= {:debug => false, :config => nil, :config_dir => nil,
-                :active_plugins => false, :list_plugins => false,
+                :list_plugins => false, :list_schemas => false,
                 :dump_config => false,
                 :plugin_directories => DEFAULT_PLUGIN_DIRECTORIES}
   end
@@ -83,12 +85,12 @@ module FFWD
         opts[:config_dir] = path
       end
 
-      o.on "--list-plugins", "Print the available plugins." do
+      o.on "--list-plugins", "Print available plugins." do
         opts[:list_plugins] = true
       end
 
-      o.on "--active-plugins", "Print the active plugins and their parameters for the current configuration." do
-        opts[:active_plugins] = true
+      o.on "--list-schemas", "Print available schemas." do
+        opts[:list_schemas] = true
       end
 
       o.on "--dump-config", "Dump the configuration that has been loaded." do
@@ -174,12 +176,16 @@ module FFWD
 
     PluginLoader.plugin_directories = directories
 
-    PluginLoader.load 'processor', blacklist[:processors] || []
-    PluginLoader.load 'plugin', blacklist[:plugins] || []
+    PluginLoader.load FFWD::Plugin, blacklist[:plugins] || []
+    PluginLoader.load FFWD::Processor, blacklist[:processors] || []
+    PluginLoader.load FFWD::Schema, blacklist[:schemas] || []
 
-    stop_early = (opts[:list_plugins] or
-                  opts[:active_plugins] or
-                  opts[:dump_config])
+    stop_early = false
+    stop_early ||= opts[:list_plugins]
+    stop_early ||= opts[:list_schemas]
+    stop_early ||= opts[:dump_config]
+
+    plugins = setup_plugins config
 
     if opts[:list_plugins]
       puts "Available Plugins:"
@@ -188,18 +194,28 @@ module FFWD
         puts "Plugin '#{name}' (#{plugin.source})"
         puts "  supports: #{plugin.capabilities.join(' ')}"
       end
-    end
 
-    plugins = setup_plugins config
-
-    if opts[:active_plugins]
-      puts "Activated Plugins (#{opts[:config]}):"
+      puts "Activated Plugins:"
 
       plugins.each do |kind, kind_plugins|
         puts "#{kind}:"
+
+        if kind_plugins.empty?
+          puts "  (no active)"
+        end
+
         kind_plugins.each do |p|
           puts "  #{p.name}: #{p.config}"
         end
+      end
+    end
+
+    if opts[:list_schemas]
+      puts "Available Schemas:"
+
+      FFWD::Schema.loaded.each do |key, schema|
+        name, content_type = key
+        puts "Schema '#{name}' #{content_type} (#{schema.source})"
       end
     end
 

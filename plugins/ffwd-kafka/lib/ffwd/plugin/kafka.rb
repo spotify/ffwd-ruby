@@ -16,6 +16,8 @@ module FFWD::Plugin
     DEFAULT_PRODUCER = "ffwd"
     DEFAULT_TOPIC = "ffwd"
     DEFAULT_BROKERS = ["localhost:9092"]
+    DEFAULT_SCHEMA = 'default'
+    DEFAULT_CONTENT_TYPE = 'application/json'
 
     def self.setup_output opts, core
       zookeeper_url = opts[:zookeeper_url] || DEFAULT_ZOOKEEPER_URL
@@ -24,7 +26,9 @@ module FFWD::Plugin
       metric_topic = opts[:metric_topic] || DEFAULT_TOPIC
       brokers = opts[:brokers] || DEFAULT_BROKERS
 
-      producer = Output.new zookeeper_url, producer, event_topic, metric_topic, brokers
+      schema = FFWD.parse_schema opts
+
+      producer = Output.new schema, zookeeper_url, producer, event_topic, metric_topic, brokers
       FFWD.producing_client core.output, producer, opts
     end
   end

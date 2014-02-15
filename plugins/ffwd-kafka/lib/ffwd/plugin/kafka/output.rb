@@ -14,11 +14,12 @@ module FFWD::Plugin::Kafka
 
     MAPPING = [:host, :ttl, :key, :time, :value, :tags, :attributes]
 
-    def initialize zookeeper_url, producer, event_topic, metric_topic, brokers
+    def initialize schema, zookeeper_url, producer, event_topic, metric_topic, brokers
       unless zookeeper_url.nil?
         @zookeeper = ZookeeperClient.new(zookeeper_url)
       end
 
+      @schema = schema
       @producer = producer
       @event_topic = event_topic
       @metric_topic = metric_topic
@@ -80,11 +81,11 @@ module FFWD::Plugin::Kafka
     end
 
     def make_event_message(e)
-      ::FFWD::Plugin::Kafka::MessageToSend.new @event_topic, JSON.dump(e.to_h)
+      MessageToSend.new @event_topic, @schema.dump_event(e)
     end
 
     def make_metric_message(m)
-      ::FFWD::Plugin::Kafka::MessageToSend.new @metric_topic, JSON.dump(m.to_h)
+      MessageToSend.new @metric_topic, @schema.dump_metric(m)
     end
   end
 end
