@@ -27,7 +27,6 @@ Other focused topics.
   * [Output Data Structure](docs/events-and-metrics.md#output-data-structure)
 * [Schemas](docs/schemas.md)
 * [FFWD vs. collectd](docs/vs-collectd.md)
-* [FFWD vs. Language X](docs/vs-language-x.md)
 
 ## Usage
 
