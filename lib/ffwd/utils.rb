@@ -1,9 +1,10 @@
 require 'socket'
+require 'set'
 
 module FFWD
   # Merge two sets (arrays actually)
   def self.merge_sets(a, b)
-    return a + b if a and b
+    return Set.new(a + b).to_a if a and b
     a || b || []
   end
 

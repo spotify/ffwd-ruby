@@ -1,12 +1,6 @@
 module FFWD::Reporter
   def self.map_meta meta
-    m = {}
-
-    meta.each do |k, v|
-      m[k.to_s] = v
-    end
-
-    m
+    Hash[meta.map{|k, v| [k.to_s, v]}]
   end
 
   module ClassMethods
@@ -45,8 +39,7 @@ module FFWD::Reporter
 
   def report!
     @_reporter_meta ||= FFWD::Reporter.map_meta(
-      self.class.reporter_meta || send(self.class.reporter_meta_method)
-    )
+      self.class.reporter_meta || send(self.class.reporter_meta_method))
 
     reporter_data.each do |k, v|
       yield(:key => k, :value => v,

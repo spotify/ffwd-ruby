@@ -8,8 +8,8 @@ module FFWD
     attr_reader :event, :metric
 
     def self.build output, opts={}
-      event = EventEmitter.new output, opts, opts[:event] || {}
-      metric = MetricEmitter.new output, opts, opts[:metric] || {}
+      event = EventEmitter.build output, opts, opts[:event] || {}
+      metric = MetricEmitter.build output, opts, opts[:metric] || {}
       new(event, metric)
     end
 

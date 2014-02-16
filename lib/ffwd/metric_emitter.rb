@@ -7,11 +7,18 @@ module FFWD
   # Can take two parts of a configuration 'base' and 'opts' to decide which
   # metadata emitted metrics should be decorated with.
   class MetricEmitter
-    def initialize output, base, opts
+    def self.build output, base, opts
+      host = opts[:host] || base[:host] || FFWD.current_host
+      tags = FFWD.merge_sets base[:tags], opts[:tags]
+      attributes = FFWD.merge_hashes base[:attributes], opts[:attributes]
+      new output, host, tags, attributes
+    end
+
+    def initialize output, host, tags, attributes
       @output = output
-      @host = opts[:host] || base[:host] || FFWD.current_host
-      @tags = FFWD.merge_sets base[:tags], opts[:tags]
-      @attributes = FFWD.merge_hashes base[:attributes], opts[:attributes]
+      @host = host
+      @tags = tags
+      @attributes = attributes
     end
 
     def emit m
