@@ -22,4 +22,11 @@ module FFWD::Plugin::JsonLine
     protocol = FFWD.parse_protocol(opts[:protocol] || "tcp")
     protocol.bind opts, core, log, Connection, buffer_limit
   end
+
+  def self.setup_tunnel opts, core, tunnel
+    opts[:port] ||= DEFAULT_PORT
+    buffer_limit = opts["buffer_limit"] || 1000
+    protocol = FFWD.parse_protocol(opts[:protocol] || "tcp")
+    protocol.tunnel opts, core, tunnel, log, Connection, buffer_limit
+  end
 end

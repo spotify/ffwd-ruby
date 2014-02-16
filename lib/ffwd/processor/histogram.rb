@@ -71,12 +71,8 @@ module FFWD::Processor
 
       stopping do
         log.info "Stopping histogram processor"
-
-        if @timer
-          @timer.cancel
-          @timer = nil
-        end
-
+        @timer.cancel if @timer
+        @timer = nil
         digest!
       end
     end
@@ -86,9 +82,9 @@ module FFWD::Processor
 
       log.debug "Starting timer"
 
-      @timer = EM::Timer.new(@window) do
-        digest!
+      @timer = EM.add_timer(@window) do
         @timer = nil
+        digest!
       end
     end
 

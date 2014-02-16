@@ -26,20 +26,13 @@ module FFWD::Processor
 
       starting do
         log.info "Starting count processor"
-
-        @timer = EM::PeriodicTimer.new(@period) do
-          now = Time.now
-          flush! now
-        end
+        @timer = EM.add_periodic_timer(@period){flush! Time.now} if @period > 0
       end
 
       stopping do
         log.info "Stopping count processor"
-
-        if @timer
-          @timer.cancel
-          @timer = nil
-        end
+        @timer.cancel if @timer
+        @timer = nil
       end
     end
 

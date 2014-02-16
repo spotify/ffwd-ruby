@@ -40,17 +40,13 @@ module FFWD::Processor
       @cache = Hash.new
 
       starting do
-        unless @ttl.nil?
-          log.info "Expiring cache every #{@ttl}s"
-          @timer = EM::PeriodicTimer.new(@ttl){expire!}
-        end
+        log.info "Starting rate processor (ttl: #{@ttl})"
+        @timer = EM.add_periodic_timer(@ttl){expire!} unless @ttl.nil?
       end
 
       stopping do
-        if @timer
-          @timer.cancel
-          @timer = nil
-        end
+        log.info "Stopping rate processor"
+        @timer.cancel if @timer
       end
     end
 
