@@ -12,7 +12,7 @@ module FFWD::Processor
   # class MyProcessor
   #   include FFWD::Processor
   #
-  #   register_type "my_processor"
+  #   register_processor "my_processor"
   #
   #   def initialize opts
   #     .. read options ..
@@ -32,7 +32,7 @@ module FFWD::Processor
   end
 
   module ClassMethods
-    def register_type(name)
+    def register_processor(name)
       unless FFWD::Processor.registry[name].nil?
         raise "Already registered '#{name}'"
       end

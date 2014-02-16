@@ -13,7 +13,7 @@ module FFWD::Processor
     include FFWD::Processor
     include FFWD::Reporter
 
-    register_type "count"
+    register_processor "count"
     set_reporter_keys :dropped, :received
 
     def initialize emitter, opts={}

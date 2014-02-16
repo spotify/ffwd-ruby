@@ -24,7 +24,7 @@ module FFWD::Processor
     include FFWD::Logging
     include FFWD::Reporter
 
-    register_type "histogram"
+    register_processor "histogram"
     set_reporter_keys :dropped, :bucket_dropped, :received
 
     def reporter_id
