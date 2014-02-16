@@ -1,5 +1,6 @@
 require 'ffwd/processor'
 require 'ffwd/logging'
+require 'ffwd/reporter'
 
 module FFWD::Processor
   #
@@ -8,8 +9,10 @@ module FFWD::Processor
   class RateProcessor
     include FFWD::Logging
     include FFWD::Processor
+    include FFWD::Reporter
 
     register_type "rate"
+    set_reporter_keys :dropped, :expired, :received
 
     # Options:
     #
@@ -36,23 +39,18 @@ module FFWD::Processor
       # Cache of active events.
       @cache = Hash.new
 
-      # Amount of events dropped, log during 'report'.
-      @dropped = 0
-      @expired = 0
-      @received = 0
-    end
-
-    def start
-      return if @ttl.nil?
-
-      log.info "Expiring cache every #{@ttl}s"
-
-      timer = EM::PeriodicTimer.new(@ttl) do
-        expire!
+      starting do
+        unless @ttl.nil?
+          log.info "Expiring cache every #{@ttl}s"
+          @timer = EM::PeriodicTimer.new(@ttl){expire!}
+        end
       end
 
       stopping do
-        timer.cancel
+        if @timer
+          @timer.cancel
+          @timer = nil
+        end
       end
     end
 
@@ -67,20 +65,10 @@ module FFWD::Processor
       end
 
       unless @expire.empty?
-        @expired += @cache.size - @expire.size
+        increment :expired, @cache.size - @expire.size
         @cache = @expire
         @expire = Hash.new
       end
-    end
-
-    def report
-      yield "processor-rate/dropped", @dropped
-      yield "processor-rate/expired", @expired
-      yield "processor-rate/received", @received
-
-      @dropped = 0
-      @expired = 0
-      @received = 0
     end
 
     def process msg
@@ -104,13 +92,10 @@ module FFWD::Processor
             :key => "#{key}.rate", :source => key, :value => rate)
         end
       else
-        if @cache.size >= @limit
-          @dropped += 1
-          return
-        end
+        return increment :dropped if @cache.size >= @limit
       end
 
-      @received += 1
+      increment :received
       @cache[key] = {:key => key, :time => time, :value => value}
     end
   end

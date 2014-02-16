@@ -2,6 +2,7 @@ require_relative '../processor'
 require_relative '../logging'
 require_relative '../event'
 require_relative '../utils'
+require_relative '../reporter'
 
 module FFWD::Processor
   #
@@ -10,8 +11,10 @@ module FFWD::Processor
   class CountProcessor
     include FFWD::Logging
     include FFWD::Processor
+    include FFWD::Reporter
 
     register_type "count"
+    set_reporter_keys :dropped, :received
 
     def initialize emitter, opts={}
       @emitter = emitter
@@ -72,14 +75,11 @@ module FFWD::Processor
       now = Time.now
 
       unless (entry = @cache[key])
-        if @cache.size < @cache_limit
-          entry = @cache[key] = {:count => 0, :last => now}
-        else
-          log.warning "Dropping cache update '#{key}', limit reached."
-          return
-        end
+        return increment :dropped if @cache.size >= @cache_limit
+        entry = @cache[key] = {:count => 0, :last => now}
       end
 
+      increment :received
       entry[:count] += value
       entry[:last] = now
     end

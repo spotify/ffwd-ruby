@@ -19,7 +19,7 @@ module FFWD::Reporter
     end]
   end
 
-  def increment n, c
+  def increment n, c=1
     report_data[n] += c
     report_data[:total] += c
   end

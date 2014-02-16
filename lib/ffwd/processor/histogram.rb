@@ -24,13 +24,12 @@ module FFWD::Processor
     include FFWD::Logging
     include FFWD::Reporter
 
+    register_type "histogram"
     set_reporter_keys :dropped, :bucket_dropped, :received
 
     def reporter_id
       "processor-histogram"
     end
-
-    register_type "histogram"
 
     DEFAULT_MISSING = 0
 
