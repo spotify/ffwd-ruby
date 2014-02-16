@@ -1,11 +1,16 @@
 module FFWD::Reporter
   module ClassMethods
     def reporter_keys
-      @keys ||= [:total]
+      @reporter_keys ||= [:total]
     end
 
-    def set_reporter_keys keys
-      @keys = [:total] + keys
+    def reporter_id_method
+      @reporter_id_method ||= :reporter_id
+    end
+
+    def setup_reporter opts={}
+      @reporter_keys = [:total] + (opts[:keys] || [])
+      @reporter_id_method = opts[:id_method] || :reporter_id
     end
   end
 
@@ -13,21 +18,22 @@ module FFWD::Reporter
     mod.extend ClassMethods
   end
 
-  def report_data
-    @report_data ||= Hash[self.class.reporter_keys.map do |k|
-      [k, 0]
-    end]
+  def reporter_data
+    @reporter_keys ||= self.class.reporter_keys
+    @reporter_data ||= Hash[@reporter_keys.map{|k| [k, 0]}]
   end
 
   def increment n, c=1
-    report_data[n] += c
-    report_data[:total] += c
+    reporter_data[n] += c
+    reporter_data[:total] += c
   end
 
   def report
-    report_data.each do |k, v|
-      yield "#{reporter_id}/#{k}", v
-      report_data[k] = 0
+    @reporter_id ||= send(self.class.reporter_id_method)
+
+    reporter_data.each do |k, v|
+      yield "#{@reporter_id}/#{k}", v
+      reporter_data[k] = 0
     end
   end
 end

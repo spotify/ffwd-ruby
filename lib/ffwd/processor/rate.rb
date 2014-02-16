@@ -12,7 +12,7 @@ module FFWD::Processor
     include FFWD::Reporter
 
     register_processor "rate"
-    set_reporter_keys [:dropped, :expired, :received]
+    setup_reporter :keys => [:dropped, :expired, :received]
 
     # Options:
     #

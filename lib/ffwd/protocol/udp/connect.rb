@@ -7,7 +7,7 @@ module FFWD::UDP
 
     attr_reader :reporter_id, :log
 
-    set_reporter_keys [
+    setup_reporter :keys => [
       :dropped_events, :dropped_metrics,
       :sent_events, :sent_metrics
     ]

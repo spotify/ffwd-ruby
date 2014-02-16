@@ -6,7 +6,7 @@ module FFWD::TCP
   class FlushingConnect < ConnectBase
     include FFWD::Reporter
 
-    set_reporter_keys [
+    setup_reporter :keys => [
       :dropped_events, :dropped_metrics,
       :sent_events, :sent_metrics,
       :failed_events, :failed_metrics,

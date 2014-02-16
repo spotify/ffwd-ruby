@@ -14,7 +14,7 @@ module FFWD
       def produce events, metrics; raise "not implemented: produce"; end
     end
 
-    set_reporter_keys [
+    setup_reporter :keys => [
       :failed_events, :failed_metrics,
       :dropped_events, :dropped_metrics,
       :sent_events, :sent_metrics
