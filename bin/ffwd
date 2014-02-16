@@ -5,11 +5,5 @@ if __FILE__ == $0
     $:.insert(0, lib) if File.file? File.join(lib, 'ffwd.rb')
 end
 
-begin
-    require 'ffwd'
-rescue LoadError
-    require 'rubygems'
-    require 'ffwd'
-end
-
+require 'ffwd'
 exit FFWD::main(ARGV || [])

@@ -20,5 +20,5 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "em-http-request"
 
-  spec.add_development_dependency "ffwd-core"
+  spec.add_development_dependency "ffwd"
 end

@@ -48,8 +48,8 @@ module FFWD::TCP
     Bind.new core, log, host, port, handler, args, rebind_timeout
   end
 
-  def self.tunnel opts, core, tunnel, log, handler, *args
+  def self.tunnel opts, core, plugin, log, handler, *args
     raise "Missing required key :port" if (port = opts[:port]).nil?
-    FFWD::Tunnel.new core, tunnel, log, self.family, port, handler, args
+    FFWD.tunnel self.family, port, core, plugin, log, handler, args
   end
 end

@@ -21,5 +21,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency "zookeeper"
   spec.add_dependency "poseidon"
 
-  spec.add_development_dependency "ffwd-core"
+  spec.add_development_dependency "ffwd"
 end
