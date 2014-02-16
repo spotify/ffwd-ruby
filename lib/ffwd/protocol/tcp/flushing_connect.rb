@@ -1,9 +1,9 @@
-require_relative 'connect_base'
+require_relative '../../reporter'
 
 module FFWD::TCP
   # A TCP connection implementation that buffers events and metrics in batches
-  # over a time window and calls 'send_all' on the handler.
-  class FlushingConnect < ConnectBase
+  # over a time window and calls 'send_all' on the connection.
+  class FlushingConnect
     include FFWD::Reporter
 
     setup_reporter :keys => [
@@ -13,11 +13,18 @@ module FFWD::TCP
       :forced_flush
     ]
 
+    attr_reader :log
+
+    def reporter_id
+      @c.reporter_id
+    end
+
     def initialize(
-      core, log, host, port, handler, args, outbound_limit,
+      core, log, connection,
       flush_period, event_limit, metric_limit, flush_limit
     )
-      super log, host, port, handler, args, outbound_limit
+      @log = log
+      @c = connection
 
       @flush_period = flush_period
       @event_limit = event_limit
@@ -43,7 +50,7 @@ module FFWD::TCP
         subs << core.output.event_subscribe(&event_consumer)
         subs << core.output.metric_subscribe(&metric_consumer)
 
-        connect
+        @c.connect
       end
 
       core.stopping do
@@ -54,7 +61,7 @@ module FFWD::TCP
           @timer = nil
         end
 
-        disconnect
+        @c.disconnect
       end
     end
 
@@ -63,13 +70,13 @@ module FFWD::TCP
         return
       end
 
-      unless writable?
+      unless @c.writable?
         increment :dropped_events, @event_buffer.size
         increment :dropped_metrics, @metric_buffer.size
         return
       end
 
-      send_all @event_buffer, @metric_buffer
+      @c.send_all @event_buffer, @metric_buffer
       increment :sent_events, @event_buffer.size
       increment :sent_metrics, @metric_buffer.size
     rescue => e

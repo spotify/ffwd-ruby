@@ -1,7 +1,7 @@
-require_relative 'connect_base'
+require_relative '../../reporter'
 
 module FFWD::TCP
-  class Connect < ConnectBase
+  class PlainConnect
     include FFWD::Reporter
 
     setup_reporter :keys => [
@@ -9,28 +9,35 @@ module FFWD::TCP
       :sent_events, :sent_metrics
     ]
 
+    attr_reader :log
+
+    def reporter_id
+      @c.reporter_id
+    end
+
     INITIAL_TIMEOUT = 2
 
-    def initialize core, log, host, port, handler, args, outbound_limit
-      super log, host, port, handler, args, outbound_limit
+    def initialize core, log, connection
+      @log = log
+      @c = connection
 
       subs = []
 
       core.starting do
-        connect
+        @c.connect
         subs << core.output.event_subscribe{|e| handle_event e}
         subs << core.output.metric_subscribe{|e| handle_metric e}
       end
 
       core.stopping do
-        disconnect
+        @c.disconnect
         subs.each(&:unsubscribe).clear
       end
     end
 
     def handle_event event
-      return increment :dropped_events, 1 unless writable?
-      send_event event
+      return increment :dropped_events, 1 unless @c.writable?
+      @c.send_event event
       increment :sent_events, 1
     rescue => e
       log.error "Failed to handle event", e
@@ -39,8 +46,8 @@ module FFWD::TCP
     end
 
     def handle_metric metric
-      return increment :dropped_metrics, 1 unless writable?
-      send_metric metric
+      return increment :dropped_metrics, 1 unless @c.writable?
+      @c.send_metric metric
       increment :sent_metrics, 1
     rescue => e
       log.error "Failed to handle metric", e

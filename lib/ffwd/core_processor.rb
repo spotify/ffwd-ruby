@@ -46,7 +46,7 @@ module FFWD
       end
     end
 
-    def report
+    def report!
       @reporters.each do |reporter|
         reporter.report do |key, value|
           yield key, value

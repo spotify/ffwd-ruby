@@ -4,14 +4,14 @@ require_relative '../../retrier'
 
 module FFWD::TCP
   class Bind
-    def initialize core, log, host, port, handler, args, rebind_timeout
+    def initialize core, log, host, port, connection, args, rebind_timeout
       @peer = "#{host}:#{port}"
       @sig = nil
 
       info = "tcp://#{@peer}"
 
       r = FFWD.retry :timeout => rebind_timeout do |a|
-        @sig = EM.start_server host, port, handler, core, *args
+        @sig = EM.start_server host, port, connection, core, *args
         log.info "Bind on #{info} (attempt #{a})"
       end
 

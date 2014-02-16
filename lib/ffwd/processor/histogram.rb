@@ -25,11 +25,10 @@ module FFWD::Processor
     include FFWD::Reporter
 
     register_processor "histogram"
-    setup_reporter :keys => [:dropped, :bucket_dropped, :received]
-
-    def reporter_id
-      "processor-histogram"
-    end
+    setup_reporter(
+      :reporter_id => "processor-histogram",
+      :keys => [:dropped, :bucket_dropped, :received]
+    )
 
     DEFAULT_MISSING = 0
 

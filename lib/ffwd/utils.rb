@@ -14,7 +14,7 @@ module FFWD
   end
 
   def self.is_reporter? var
-    var.respond_to? :report
+    var.respond_to? :report!
   end
 
   def self.current_host

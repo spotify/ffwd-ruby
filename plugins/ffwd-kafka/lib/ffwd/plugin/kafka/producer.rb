@@ -13,6 +13,19 @@ module FFWD::Plugin::Kafka
     def initialize *args
       @args = args
       @mutex = Mutex.new
+      @request = nil
+      @stopped = false
+    end
+
+    def stop
+      @stopped = true
+      shutdown
+    end
+
+    def shutdown
+      @mutex.synchronize do
+        @producer.shutdown unless @request
+      end
     end
 
     def send_messages messages
@@ -20,8 +33,6 @@ module FFWD::Plugin::Kafka
         p.send_messages messages
       end
     end
-
-    private
 
     def make_producer
       if EM.reactor_thread?
@@ -36,22 +47,36 @@ module FFWD::Plugin::Kafka
     # Execute the provided block on a dedicated thread.
     # The sole provided argument is an instance of Poseidon::Producer.
     def execute &block
-      unless block_given?
-        raise "Expected block"
+      raise "Expected block" unless block_given?
+      raise "Request already pending" if @request
+
+      if @stopped
+        r = Request.new
+        r.fail "producer stopped"
+        return r
       end
 
-      request = Request.new
+      @request = Request.new
 
       EM.defer do
         begin
-          result = block.call(make_producer)
-          EM.next_tick{request.succeed(result)}
+          result = block.call make_producer
+
+          EM.next_tick do
+            @request.succeed result
+            @request = nil
+            shutdown if @stopped
+          end
         rescue => e
-          EM.next_tick{request.fail(e)}
+          EM.next_tick do
+            @request.fail e
+            @request = nil
+            shutdown if @stopped
+          end
         end
       end
 
-      request
+      @request
     end
   end
 end

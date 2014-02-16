@@ -25,7 +25,7 @@ module FFWD::Plugin::Kafka
       @metric_topic = metric_topic
       @brokers = brokers
       @instance = nil
-      @reporter_id = "kafka/#{@producer}/#{@event_topic}:#{@metric_topic}"
+      @reporter_id = "kafka_out/#{@producer}/#{@event_topic}:#{@metric_topic}"
     end
 
     def setup
@@ -38,6 +38,8 @@ module FFWD::Plugin::Kafka
 
     def teardown
       if @instance
+        @instance.stop
+        @instance = nil
       end
     end
 
@@ -67,7 +69,16 @@ module FFWD::Plugin::Kafka
       end
 
       req.errback do |e|
-        log.error "Failed to find brokers", e
+        # Do not log backtrace since this will be common when the zookeeper
+        # broker is not running.
+        if e.is_a? ZookeeperClient::ContinuationTimeoutError
+          log.error "Failed to find brokers, request timed out: #{e}"
+        else
+          log.error "Failed to find brokers", e
+        end
+
+        log.info "Retrying zookeeper request for brokers"
+        make_zk_kafka_producer
       end
     end
 

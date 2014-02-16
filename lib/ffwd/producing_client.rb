@@ -20,6 +20,10 @@ module FFWD
       :sent_events, :sent_metrics
     ]
 
+    def reporter_id
+      @producer.reporter_id
+    end
+
     def initialize channel, producer, flush_period, event_limit, metric_limit
       @flush_period = flush_period
       @event_limit = event_limit
@@ -76,10 +80,6 @@ module FFWD
 
         @producer.teardown
       end
-    end
-
-    def reporter_id
-      @producer.reporter_id
     end
 
     def flush!

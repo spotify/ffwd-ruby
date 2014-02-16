@@ -1,5 +1,6 @@
-require_relative 'logging'
 require_relative 'lifecycle'
+require_relative 'logging'
+require_relative 'reporter'
 
 module FFWD
   # A set of channels, one for metrics and one for events.
@@ -7,9 +8,12 @@ module FFWD
   # to a plugin in one direction (usually either input or output).
   class PluginChannel
     include FFWD::Lifecycle
+    include FFWD::Reporter
     include FFWD::Logging
 
-    attr_reader :events, :metrics, :name
+    setup_reporter :keys => [:metrics, :events]
+
+    attr_reader :reporter_id, :events, :metrics, :name
 
     def self.build name
       events = FFWD::Channel.new log, "#{name}.events"
@@ -21,14 +25,7 @@ module FFWD
       @name = name
       @events = events
       @metrics = metrics
-      @metric_count = 0
-      @event_count = 0
-    end
-
-    def report
-      yield "plugin_channel-#{@name}/metrics", @metric_count
-      yield "plugin_channel-#{@name}/events", @event_count
-      @metric_count = @event_count = 0
+      @reporter_id = "plugin_channel-#{@name}"
     end
 
     def event_subscribe
@@ -43,7 +40,7 @@ module FFWD
 
     def event event
       @events << event
-      @event_count += 1
+      increment :events
     end
 
     def metric_subscribe
@@ -58,7 +55,7 @@ module FFWD
 
     def metric metric
       @metrics << metric
-      @metric_count += 1
+      increment :metrics
     end
   end
 end

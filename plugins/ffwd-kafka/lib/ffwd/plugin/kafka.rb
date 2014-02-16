@@ -14,7 +14,8 @@ module FFWD::Plugin
 
     DEFAULT_ZOOKEEPER_URL = "localhost:2181"
     DEFAULT_PRODUCER = "ffwd"
-    DEFAULT_TOPIC = "ffwd"
+    DEFAULT_EVENT_TOPIC = "ffwd-events"
+    DEFAULT_METRIC_TOPIC = "ffwd-metrics"
     DEFAULT_BROKERS = ["localhost:9092"]
     DEFAULT_SCHEMA = 'default'
     DEFAULT_CONTENT_TYPE = 'application/json'
@@ -22,8 +23,8 @@ module FFWD::Plugin
     def self.setup_output opts, core
       zookeeper_url = opts[:zookeeper_url] || DEFAULT_ZOOKEEPER_URL
       producer = opts[:producer] || DEFAULT_PRODUCER
-      event_topic = opts[:event_topic] || DEFAULT_TOPIC
-      metric_topic = opts[:metric_topic] || DEFAULT_TOPIC
+      event_topic = opts[:event_topic] || DEFAULT_EVENT_TOPIC
+      metric_topic = opts[:metric_topic] || DEFAULT_METRIC_TOPIC
       brokers = opts[:brokers] || DEFAULT_BROKERS
 
       schema = FFWD.parse_schema opts

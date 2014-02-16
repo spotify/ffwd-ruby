@@ -64,7 +64,7 @@ module FFWD::Statistics
       end
 
       @reporters.each do |id, reporter|
-        reporter.report do |key, value|
+        reporter.report! do |key, value|
           @emitter.metric.emit(
             :key => "#{id} #{key}", :value => value,
             :tags => @tags, :attributes => @attributes)

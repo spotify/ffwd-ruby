@@ -5,6 +5,8 @@ module FFWD::Plugin::Kafka
   # A tiny zookeeper wrapper that delegates requests to the thread-pool of
   # EventMachine.
   class ZookeeperClient
+    ContinuationTimeoutError = Zookeeper::Exceptions::ContinuationTimeoutError
+
     class Request
       include EM::Deferrable
     end
@@ -38,8 +40,6 @@ module FFWD::Plugin::Kafka
       @mutex.synchronize do
         @client ||= ::Zookeeper.new(*@args)
       end
-
-      return @client
     end
 
     def execute(&block)

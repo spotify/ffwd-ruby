@@ -1,5 +1,5 @@
 module FFWD::TCP
-  class ConnectBase
+  class Connection
     INITIAL_TIMEOUT = 2
 
     attr_reader :log, :peer, :reporter_id
@@ -14,12 +14,29 @@ module FFWD::TCP
 
       @peer = "#{host}:#{port}"
       @closing = false
-      @reconnect_timer = nil
       @reconnect_timeout = INITIAL_TIMEOUT
       @reporter_id =  "#{@handler.name}/#{peer}"
 
+      @timer = nil
       @c = nil
       @open = false
+    end
+
+    # Start attempting to connect.
+    def connect
+      log.info "Connecting to tcp://#{@host}:#{@port}"
+      @c = EM.connect @host, @port, @handler, self, *@args
+    end
+
+    # Explicitly disconnect and discard any reconnect attempts..
+    def disconnect
+      log.info "Disconnecting from tcp://#{@host}:#{@port}"
+      @closing = true
+
+      @c.close_connection if @c
+      @timer.cancel if @timer
+      @c = nil
+      @timer = nil
     end
 
     def send_event event
@@ -34,55 +51,42 @@ module FFWD::TCP
       @c.send_all events, metrics
     end
 
-    def connect
-      @c = EM.connect @host, @port, @handler, self, *@args
-    end
-
-    def disconnect
-      @closing = true
-      @c.close_connection
-    end
-
     def connection_completed
       @open = true
       @log.info "Connected tcp://#{peer}"
       @reconnect_timeout = INITIAL_TIMEOUT
 
-      unless @reconnect_timer.nil?
-        @reconnect_timer.cancel
-        @reconnect_timer = nil
+      unless @timer.nil?
+        @timer.cancel
+        @timer = nil
       end
     end
 
     def unbind
       @open = false
+      @c = nil
 
       if @closing
-        @log.info "Closing connection to tcp://#{peer}"
         return
       end
 
       @log.info "Disconnected from tcp://#{peer}, reconnecting in #{@reconnect_timeout}s"
 
-      unless @reconnect_timer.nil?
-        @reconnect_timer.cancel
-        @reconnect_timer = nil
+      unless @timer.nil?
+        @timer.cancel
+        @timer = nil
       end
 
-      @reconnect_timer = EM::Timer.new(@reconnect_timeout) do
+      @timer = EM::Timer.new(@reconnect_timeout) do
         @reconnect_timeout *= 2
-        @reconnect_timer = nil
+        @timer = nil
         @c = EM.connect @host, @port, @handler, self, *@args
       end
     end
 
-    def connected?
-      @open
-    end
-
     # Check if a connection is writable or not.
     def writable?
-      connected? and @c.get_outbound_data_size < @outbound_limit
+      not @c.nil? and @open and @c.get_outbound_data_size < @outbound_limit
     end
   end
 end

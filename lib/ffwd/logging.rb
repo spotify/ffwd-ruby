@@ -88,7 +88,7 @@ module FFWD
 
       return unless e
 
-      FFWD.log.error(@progname){"Caused by: #{e}"}
+      FFWD.log.error(@progname){"Caused by #{e.class}: #{e}"}
       e.backtrace.each do |b|
         FFWD.log.error(@progname){"  #{b}"}
       end
