@@ -28,14 +28,8 @@ module FFWD
       @reporter_meta = {:name => @name, :type => "plugin_channel"}
     end
 
-    def event_subscribe
-      @events.subscribe do |event|
-        yield event
-      end
-    end
-
-    def event_unsubscribe id
-      @events.unsubscribe id
+    def event_subscribe &block
+      @events.subscribe(&block)
     end
 
     def event event
@@ -43,14 +37,8 @@ module FFWD
       increment :events
     end
 
-    def metric_subscribe
-      @metrics.subscribe do |metric|
-        yield metric
-      end
-    end
-
-    def metric_unsubscribe id
-      @metrics.unsubscribe id
+    def metric_subscribe &block
+      @metrics.subscribe(&block)
     end
 
     def metric metric
