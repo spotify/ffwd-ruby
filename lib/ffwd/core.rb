@@ -28,7 +28,7 @@ module FFWD
       @statistics_opts = opts[:statistics]
       @debug_opts = opts[:debug]
       @core_opts = opts[:core] || {}
-      @processor_opts = opts[:processor] || {}
+      @processors = FFWD::Processor.load_processors(opts[:processor] || {})
 
       @output_channel = FFWD::PluginChannel.build 'output'
       @input_channel = FFWD::PluginChannel.build 'input'
@@ -44,7 +44,7 @@ module FFWD
       end
 
       @emitter = CoreEmitter.build @output_channel, @core_opts
-      @processor = CoreProcessor.build @input_channel, @emitter, @processor_opts
+      @processor = CoreProcessor.build @input_channel, @emitter, @processors
 
       @debug = nil
 
@@ -65,8 +65,7 @@ module FFWD
 
       @interface = CoreInterface.new(
         @input_channel, @output_channel,
-        @tunnel_plugins, @statistics, @debug,
-        @processor_opts, @core_opts
+        @tunnel_plugins, @statistics, @debug, @processors, @core_opts
       )
 
       @interface.depend_on self

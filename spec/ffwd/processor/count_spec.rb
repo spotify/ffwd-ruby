@@ -26,6 +26,6 @@ describe FFWD::Processor::CountProcessor do
 
     count.process m1
     count.process m1
-    count.flush! 0
+    count.digest! 0
   end
 end

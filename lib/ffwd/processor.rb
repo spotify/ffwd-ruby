@@ -5,6 +5,20 @@ module FFWD::Processor
   include FFWD::Lifecycle
   include FFWD::Logging
 
+  class Setup
+    attr_reader :name
+
+    def initialize name, klass, options
+      @name = name
+      @klass = klass
+      @options = options
+    end
+
+    def setup emitter
+      @klass.new emitter, @options
+    end
+  end
+
   # Module to include for processors.
   #
   # Usage:
@@ -60,22 +74,8 @@ module FFWD::Processor
   def self.load_discovered source
   end
 
-  #
-  # setup hash of datatype functions.
-  #
-  def self.load config
-    processors = {}
-
-    registry.each do |name, klass|
-      opts = config[name] || {}
-      processors[name] = lambda{|emitter| klass.new emitter, opts}
-    end
-
-    if processors.empty?
-      raise "No processors loaded"
-    end
-
-    log.info "Loaded processors: #{processors.keys.sort.join(', ')}"
-    return processors
+  # setup hash of processor setup classes.
+  def self.load_processors config
+    registry.map{|name, klass| Setup.new name, klass, config[name] || {}}
   end
 end

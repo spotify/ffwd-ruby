@@ -93,15 +93,19 @@ module FFWD::Processor
         return
       end
 
-      @cache.each do |key, bucket|
-        calculate(bucket) do |p, info, value|
-          @emitter.metric.emit(
-            :key => "#{key}.#{p}", :source => key,
-            :value => value, :description => "#{info} of #{key}")
+      ms = FFWD.timer do
+        @cache.each do |key, bucket|
+          calculate(bucket) do |p, info, value|
+            @emitter.metric.emit(
+              :key => "#{key}.#{p}", :source => key,
+              :value => value, :description => "#{info} of #{key}")
+          end
         end
+
+        @cache = {}
       end
 
-      @cache = {}
+      log.debug "Digest took #{ms}ms"
     end
 
     def calculate bucket

@@ -14,7 +14,10 @@ module FFWD::Processor
     include FFWD::Reporter
 
     register_processor "count"
-    setup_reporter :keys => [:dropped, :received]
+    setup_reporter(
+      :reporter_meta => {:processor => "count"},
+      :keys => [:dropped, :received]
+    )
 
     def initialize emitter, opts={}
       @emitter = emitter
@@ -26,7 +29,7 @@ module FFWD::Processor
 
       starting do
         log.info "Starting count processor"
-        @timer = EM.add_periodic_timer(@period){flush! Time.now} if @period > 0
+        @timer = EM.add_periodic_timer(@period){digest! Time.now} if @period > 0
       end
 
       stopping do
@@ -53,7 +56,7 @@ module FFWD::Processor
       end
     end
 
-    def flush! now
+    def digest! now
       ms = FFWD.timing do
         flush_caches! now
       end

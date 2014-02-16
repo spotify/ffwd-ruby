@@ -35,7 +35,7 @@ module FFWD::Plugin::Tunnel
 
         # setup a small core
         emitter = FFWD::CoreEmitter.build @core.output, @metadata
-        @processor = FFWD::CoreProcessor.build @input, emitter, @core.processor_opts
+        @processor = FFWD::CoreProcessor.build @input, emitter, @core.processors
 
         @reporter = FFWD::CoreReporter.new [@input, @processor]
 

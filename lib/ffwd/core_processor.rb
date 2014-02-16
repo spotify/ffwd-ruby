@@ -13,15 +13,16 @@ module FFWD
   class CoreProcessor
     include FFWD::Lifecycle
 
-    def self.build input, emitter, processor_opts
-      processors = FFWD::Processor.load processor_opts
-      new(input, emitter, processors)
+    def self.build input, emitter, processors
+      processors = Hash[processors.map{|p| [p.name, p.setup(emitter)]}]
+      reporters = processors.select{|k, p| FFWD.is_reporter?(p)}.map{|k, p| p}
+      new(input, emitter, processors, reporters)
     end
 
-    def initialize input, emitter, processors
+    def initialize input, emitter, processors, reporters
       @emitter = emitter
-      @processors = Hash[processors.map{|k, p| [k, p.call(@emitter)]}]
-      @reporters = processors.select{|k, p| FFWD.is_reporter?(p)}.map{|k, p| p}
+      @processors = processors
+      @reporters = reporters
 
       subs = []
 
