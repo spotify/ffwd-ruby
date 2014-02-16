@@ -1,6 +1,7 @@
-require 'ffwd/processor'
-require 'ffwd/logging'
 require 'ffwd/event'
+require 'ffwd/logging'
+require 'ffwd/processor'
+require 'ffwd/reporter'
 
 module FFWD::Processor
   #
@@ -21,6 +22,13 @@ module FFWD::Processor
   class HistogramProcessor
     include FFWD::Processor
     include FFWD::Logging
+    include FFWD::Reporter
+
+    set_reporter_keys :dropped, :bucket_dropped, :received
+
+    def reporter_id
+      "processor-histogram"
+    end
 
     register_type "histogram"
 
@@ -55,13 +63,7 @@ module FFWD::Processor
       @missing = opts[:missing] || DEFAULT_MISSING
       @percentiles = opts[:percentiles] || DEFAULT_PERCENTILES
 
-      # Dropped values.
-      @dropped = 0
-
       # Dropped values that would have gone into a bucket.
-      @bucket_dropped = 0
-      @received = 0
-
       @cache = {}
 
       starting do
@@ -89,16 +91,6 @@ module FFWD::Processor
         digest!
         @timer = nil
       end
-    end
-
-    def report
-      yield "processor-histogram/dropped", @dropped
-      yield "processor-histogram/bucket_dropped", @bucket_dropped
-      yield "processor-histogram/received", @received
-
-      @dropped = 0
-      @bucket_dropped = 0
-      @received = 0
     end
 
     # Digest the cache.
@@ -179,25 +171,14 @@ module FFWD::Processor
       value = m[:value] || @missing
 
       if (bucket = @cache[key]).nil?
-        if @cache.size >= @cache_limit
-          @dropped += 1
-          return
-        end
-
+        return increment :dropped if @cache.size >= @cache_limit
         @cache[key] = bucket = []
       end
 
-      if bucket.size >= @bucket_limit
-        @bucket_dropped += 1
-        return
-      end
+      return increment :bucket_dropped if bucket.size >= @bucket_limit
+      return increment :dropped if stopped?
+      increment :received
 
-      if stopped?
-        @dropped += 1
-        return
-      end
-
-      @received += 1
       bucket << value
       check_timer
     end
