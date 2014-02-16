@@ -27,8 +27,8 @@ module FFWD::Plugin::Riemann
     include FFWD::Plugin::Riemann::Shared
     include FFWD::Plugin::Riemann::Output
 
-    def self.name
-      "riemann_tcp_out"
+    def self.plugin_type
+      "riemann_out"
     end
 
     def encode m
@@ -40,8 +40,8 @@ module FFWD::Plugin::Riemann
     include FFWD::Plugin::Riemann::Shared
     include FFWD::Plugin::Riemann::Output
 
-    def self.name
-      "riemann_udp_out"
+    def self.plugin_type
+      "riemann_out"
     end
 
     def encode m
@@ -54,8 +54,8 @@ module FFWD::Plugin::Riemann
     include FFWD::Plugin::Riemann::Shared
     include FFWD::Plugin::Riemann::Connection
 
-    def self.name
-      "riemann_tcp_in"
+    def self.plugin_type
+      "riemann_in"
     end
 
     def send_ok
@@ -73,8 +73,8 @@ module FFWD::Plugin::Riemann
     include FFWD::Plugin::Riemann::Shared
     include FFWD::Plugin::Riemann::Connection
 
-    def self.name
-      "riemann_udp_in"
+    def self.plugin_type
+      "riemann_in"
     end
 
     def receive_data(data)

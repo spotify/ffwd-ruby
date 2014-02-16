@@ -15,8 +15,8 @@ module FFWD::TCP
 
     attr_reader :log
 
-    def reporter_id
-      @c.reporter_id
+    def reporter_meta
+      @c.reporter_meta
     end
 
     def initialize(

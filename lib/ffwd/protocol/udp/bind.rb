@@ -1,17 +1,32 @@
 require 'eventmachine'
 
+require_relative '../../reporter'
 require_relative '../../retrier'
 
 module FFWD::UDP
   class Bind
-    def initialize core, log, host, port, handler, args, rebind_timeout
+    include FFWD::Reporter
+
+    setup_reporter :keys => [
+      :received_events, :received_metrics,
+      :failed_events, :failed_metrics
+    ]
+
+    attr_reader :reporter_meta
+
+    def initialize core, log, host, port, connection, args, rebind_timeout
       @peer = "#{host}:#{port}"
-      @c = nil
+      @reporter_meta = {
+        :type => connection.plugin_type,
+        :listen => @peer, :family => 'udp'
+      }
+
+      @sig = nil
 
       info = "udp://#{@peer}"
 
       r = FFWD.retry :timeout => rebind_timeout do |a|
-        @c = EM.open_datagram_socket host, port, handler, core, *args
+        @sig = EM.open_datagram_socket host, port, connection, self, core, *args
         log.info "Bind on #{info} (attempt #{a})"
       end
 
@@ -24,9 +39,9 @@ module FFWD::UDP
       core.stopping do
         log.info "Unbinding #{info}"
 
-        if @c
-          @c.unbind
-          @c = nil
+        if @sig
+          @sig.unbind
+          @sig = nil
         end
       end
     end

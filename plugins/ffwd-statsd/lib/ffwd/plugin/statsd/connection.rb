@@ -7,7 +7,12 @@ module FFWD::Plugin::Statsd
   class Connection < FFWD::Connection
     include FFWD::Logging
 
-    def initialize core
+    def self.plugin_type
+      "statsd_in"
+    end
+
+    def initialize bind, core
+      @bind = bind
       @core = core
     end
 
@@ -15,6 +20,7 @@ module FFWD::Plugin::Statsd
       metric = Parser.parse(data)
       return if metric.nil?
       @core.input.metric metric
+      @bind.increment :received_metrics
     rescue => e
       log.error "Failed to receive data", e
     end

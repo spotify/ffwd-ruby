@@ -10,7 +10,7 @@ module FFWD::Plugin::Kafka
     include FFWD::Logging
     include FFWD::Plugin::Kafka::ZookeeperFunctions
 
-    attr_reader :reporter_id
+    attr_reader :reporter_meta
 
     MAPPING = [:host, :ttl, :key, :time, :value, :tags, :attributes]
 
@@ -24,8 +24,12 @@ module FFWD::Plugin::Kafka
       @event_topic = event_topic
       @metric_topic = metric_topic
       @brokers = brokers
+      @reporter_meta = {
+        :type => "kafka_out", :producer => @producer,
+        :event_topic => @event_topic, :metric_topic => @metric_topic,
+      }
+
       @instance = nil
-      @reporter_id = "kafka_out/#{@producer}/#{@event_topic}:#{@metric_topic}"
     end
 
     def setup

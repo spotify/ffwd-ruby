@@ -6,13 +6,14 @@ module FFWD::TCP
 
     setup_reporter :keys => [
       :dropped_events, :dropped_metrics,
-      :sent_events, :sent_metrics
+      :sent_events, :sent_metrics,
+      :failed_events, :failed_metrics
     ]
 
     attr_reader :log
 
-    def reporter_id
-      @c.reporter_id
+    def reporter_meta
+      @c.reporter_meta
     end
 
     INITIAL_TIMEOUT = 2

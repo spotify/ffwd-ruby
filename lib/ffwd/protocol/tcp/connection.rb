@@ -2,7 +2,7 @@ module FFWD::TCP
   class Connection
     INITIAL_TIMEOUT = 2
 
-    attr_reader :log, :peer, :reporter_id
+    attr_reader :log, :peer, :reporter_meta
 
     def initialize log, host, port, handler, args, outbound_limit
       @log = log
@@ -15,7 +15,7 @@ module FFWD::TCP
       @peer = "#{host}:#{port}"
       @closing = false
       @reconnect_timeout = INITIAL_TIMEOUT
-      @reporter_id =  "#{@handler.name}/#{peer}"
+      @reporter_meta = {:type => @handler.plugin_type, :peer => peer}
 
       @timer = nil
       @c = nil

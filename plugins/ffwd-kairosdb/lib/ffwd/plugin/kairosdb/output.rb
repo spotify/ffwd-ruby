@@ -8,7 +8,7 @@ module FFWD::Plugin::KairosDB
       :dropped_metrics, :sent_metrics, :failed_metrics
     ]
 
-    attr_reader :log, :reporter_id
+    attr_reader :log, :reporter_meta
 
     HEADER = {
       "Content-Type" => "application/json"
@@ -21,10 +21,11 @@ module FFWD::Plugin::KairosDB
       @url = url
       @flush_interval = flush_interval
       @buffer_limit = buffer_limit
+      @reporter_meta = {:type => "kairosdb_out", :url => @url}
+
       @buffer = []
       @pending = nil
       @c = nil
-      @reporter_id = "kairosdb_out/#{@url}"
 
       @sub = nil
 

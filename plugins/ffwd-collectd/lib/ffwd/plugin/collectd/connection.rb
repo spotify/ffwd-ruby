@@ -7,7 +7,12 @@ module FFWD::Plugin::Collectd
   class Connection < FFWD::Connection
     include FFWD::Logging
 
-    def initialize core, types_db
+    def self.plugin_type
+      "collectd_in"
+    end
+
+    def initialize bind, core, types_db
+      @bind = bind
       @core = core
       @types_db = types_db
     end
@@ -44,13 +49,16 @@ module FFWD::Plugin::Collectd
               index_key = i.to_s
             end
 
-            @core.input.metric(:key => "#{key}_#{index_key}", :time => time,
-                               :value => v[1], :host => host)
+            @core.input.metric(
+              :key => "#{key}_#{index_key}", :time => time, :value => v[1],
+              :host => host)
+            @bind.increment :received_metrics
           end
         else
           v = values[0]
-          @core.input.metric(:key => key, :time => time, :value => v[1],
-                             :host => host)
+          @core.input.metric(
+            :key => key, :time => time, :value => v[1], :host => host)
+          @bind.increment :received_metrics
         end
       end
     rescue => e

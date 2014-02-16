@@ -5,7 +5,7 @@ module FFWD::UDP
   class Connect
     include FFWD::Reporter
 
-    attr_reader :reporter_id, :log
+    attr_reader :reporter_meta, :log
 
     setup_reporter :keys => [
       :dropped_events, :dropped_metrics,
@@ -22,7 +22,10 @@ module FFWD::UDP
       @host_ip = nil
       @c = nil
       @peer = "#{host}:#{port}"
-      @reporter_id = "#{@handler.name}/#{@peer}"
+      @reporter_meta = {
+        :type => @handler.name, :peer => peer
+      }
+
       info = "udp://#{@peer}"
 
       subs = []

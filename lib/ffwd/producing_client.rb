@@ -20,8 +20,8 @@ module FFWD
       :sent_events, :sent_metrics
     ]
 
-    def reporter_id
-      @producer.reporter_id
+    def reporter_meta
+      @producer.reporter_meta
     end
 
     def initialize channel, producer, flush_period, event_limit, metric_limit

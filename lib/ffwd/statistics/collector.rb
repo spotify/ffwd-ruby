@@ -64,10 +64,11 @@ module FFWD::Statistics
       end
 
       @reporters.each do |id, reporter|
-        reporter.report! do |key, value|
+        reporter.report! do |d|
+          attributes = FFWD.merge_hashes @attributes, d[:meta]
           @emitter.metric.emit(
-            :key => "#{id} #{key}", :value => value,
-            :tags => @tags, :attributes => @attributes)
+            :key => d[:key], :value => d[:value],
+            :tags => @tags, :attributes => attributes)
         end
       end
     end

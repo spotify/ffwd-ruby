@@ -16,11 +16,12 @@ module FFWD::Plugin
       include FFWD::Logging
       include EM::Protocols::LineText2
 
-      def self.name
-        "carbon"
+      def self.plugin_type
+        "carbon_in"
       end
 
-      def initialize core
+      def initialize bind, core
+        @bind = bind
         @core = core
       end
 
@@ -40,6 +41,7 @@ module FFWD::Plugin
         metric = parse(ln)
         return if metric.nil?
         @core.input.metric metric
+        @bind.increment :received_metrics
       rescue => e
         log.error "Failed to receive data", e
       end

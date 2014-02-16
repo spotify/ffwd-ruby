@@ -1,21 +1,31 @@
 module FFWD::Reporter
+  def self.map_meta meta
+    m = {}
+
+    meta.each do |k, v|
+      m[k.to_s] = v
+    end
+
+    m
+  end
+
   module ClassMethods
     def reporter_keys
-      @reporter_keys ||= [:total]
+      @_reporter_keys ||= [:total]
     end
 
-    def reporter_id
-      @reporter_id ||= nil
+    def reporter_meta
+      @_reporter_meta ||= nil
     end
 
-    def reporter_id_method
-      @reporter_id_method ||= :reporter_id
+    def reporter_meta_method
+      @_reporter_meta_method ||= :reporter_meta
     end
 
     def setup_reporter opts={}
-      @reporter_keys = [:total] + (opts[:keys] || [])
-      @reporter_id = opts[:reporter_id]
-      @reporter_id_method = opts[:id_method] || :reporter_id
+      @_reporter_keys = [:total] + (opts[:keys] || [])
+      @_reporter_meta = opts[:reporter_meta]
+      @_reporter_meta_method = opts[:id_method] || :reporter_meta
     end
   end
 
@@ -24,8 +34,8 @@ module FFWD::Reporter
   end
 
   def reporter_data
-    @reporter_keys ||= self.class.reporter_keys
-    @reporter_data ||= Hash[@reporter_keys.map{|k| [k, 0]}]
+    @_reporter_keys ||= self.class.reporter_keys
+    @_reporter_data ||= Hash[@_reporter_keys.map{|k| [k, 0]}]
   end
 
   def increment n, c=1
@@ -34,11 +44,13 @@ module FFWD::Reporter
   end
 
   def report!
-    @reporter_id ||= (
-      self.class.reporter_id || send(self.class.reporter_id_method))
+    @_reporter_meta ||= FFWD::Reporter.map_meta(
+      self.class.reporter_meta || send(self.class.reporter_meta_method)
+    )
 
     reporter_data.each do |k, v|
-      yield "#{@reporter_id}/#{k}", v
+      yield(:key => k, :value => v,
+            :meta => @_reporter_meta)
       reporter_data[k] = 0
     end
   end

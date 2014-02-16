@@ -13,7 +13,7 @@ module FFWD
 
     setup_reporter :keys => [:metrics, :events]
 
-    attr_reader :reporter_id, :events, :metrics, :name
+    attr_reader :reporter_meta, :events, :metrics, :name
 
     def self.build name
       events = FFWD::Channel.new log, "#{name}.events"
@@ -25,7 +25,7 @@ module FFWD
       @name = name
       @events = events
       @metrics = metrics
-      @reporter_id = "plugin_channel-#{@name}"
+      @reporter_meta = {:name => @name, :type => "plugin_channel"}
     end
 
     def event_subscribe

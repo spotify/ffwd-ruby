@@ -26,7 +26,7 @@ module FFWD::Processor
 
     register_processor "histogram"
     setup_reporter(
-      :reporter_id => "processor-histogram",
+      :reporter_meta => {:processor => "histogram"},
       :keys => [:dropped, :bucket_dropped, :received]
     )
 

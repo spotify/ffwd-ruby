@@ -6,8 +6,8 @@ module FFWD
 
     def report!
       @reporters.each do |reporter|
-        reporter.report! do |key, value|
-          yield key, value
+        reporter.report! do |d|
+          yield d
         end
       end
     end
