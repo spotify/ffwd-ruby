@@ -6,10 +6,12 @@ module FFWD::TCP
   class FlushingConnect < ConnectBase
     include FFWD::Reporter
 
-    set_reporter_keys :dropped_events, :dropped_metrics,
-                      :sent_events, :sent_metrics,
-                      :failed_events, :failed_metrics,
-                      :forced_flush
+    set_reporter_keys [
+      :dropped_events, :dropped_metrics,
+      :sent_events, :sent_metrics,
+      :failed_events, :failed_metrics,
+      :forced_flush
+    ]
 
     def initialize(
       core, log, host, port, handler, args, outbound_limit,

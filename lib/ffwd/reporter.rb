@@ -4,7 +4,7 @@ module FFWD::Reporter
       @keys ||= [:total]
     end
 
-    def set_reporter_keys *keys
+    def set_reporter_keys keys
       @keys = [:total] + keys
     end
   end

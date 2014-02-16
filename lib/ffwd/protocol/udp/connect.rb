@@ -7,8 +7,10 @@ module FFWD::UDP
 
     attr_reader :reporter_id, :log
 
-    set_reporter_keys :dropped_events, :dropped_metrics,
-                      :sent_events, :sent_metrics
+    set_reporter_keys [
+      :dropped_events, :dropped_metrics,
+      :sent_events, :sent_metrics
+    ]
 
     def initialize core, log, host, port, handler
       @log = log

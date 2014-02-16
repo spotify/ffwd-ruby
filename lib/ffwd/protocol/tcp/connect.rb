@@ -4,8 +4,10 @@ module FFWD::TCP
   class Connect < ConnectBase
     include FFWD::Reporter
 
-    set_reporter_keys :dropped_events, :dropped_metrics,
-                      :sent_events, :sent_metrics
+    set_reporter_keys [
+      :dropped_events, :dropped_metrics,
+      :sent_events, :sent_metrics
+    ]
 
     INITIAL_TIMEOUT = 2
 

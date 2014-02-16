@@ -4,7 +4,9 @@ module FFWD::Plugin::KairosDB
   class Output
     include FFWD::Reporter
 
-    set_reporter_keys :dropped_metrics, :sent_metrics, :failed_metrics
+    set_reporter_keys [
+      :dropped_metrics, :sent_metrics, :failed_metrics
+    ]
 
     attr_reader :log, :reporter_id
 

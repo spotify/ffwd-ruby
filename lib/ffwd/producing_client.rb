@@ -9,22 +9,16 @@ module FFWD
     include FFWD::Logging
 
     class Producer
-      def setup
-        raise "not implemented: setup"
-      end
-
-      def teardown
-        raise "not implemented: teardown"
-      end
-
-      def produce events, metrics
-        raise "not implemented: produce"
-      end
+      def setup; raise "not implemented: setup"; end
+      def teardown; raise "not implemented: teardown"; end
+      def produce events, metrics; raise "not implemented: produce"; end
     end
 
-    set_reporter_keys :failed_events, :failed_metrics,
-                      :dropped_events, :dropped_metrics,
-                      :sent_events, :sent_metrics
+    set_reporter_keys [
+      :failed_events, :failed_metrics,
+      :dropped_events, :dropped_metrics,
+      :sent_events, :sent_metrics
+    ]
 
     def initialize channel, producer, flush_period, event_limit, metric_limit
       @flush_period = flush_period
@@ -50,8 +44,7 @@ module FFWD
 
         @subs << channel.event_subscribe do |e|
           if @events.size >= @event_limit
-            increment :dropped_events, 1
-            return
+            return increment :dropped_events
           end
 
           @events << e
@@ -59,8 +52,7 @@ module FFWD
 
         @subs << channel.metric_subscribe do |m|
           if @metrics.size >= @metric_limit
-            increment :dropped_metrics, 1
-            return
+            return increment :dropped_metrics
           end
 
           @metrics << m

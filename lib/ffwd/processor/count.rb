@@ -14,7 +14,7 @@ module FFWD::Processor
     include FFWD::Reporter
 
     register_processor "count"
-    set_reporter_keys :dropped, :received
+    set_reporter_keys [:dropped, :received]
 
     def initialize emitter, opts={}
       @emitter = emitter
