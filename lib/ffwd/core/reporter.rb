@@ -1,5 +1,7 @@
 module FFWD
-  class CoreReporter
+  class Core; end
+
+  class Core::Reporter
     def initialize reporters
       @reporters = reporters
     end

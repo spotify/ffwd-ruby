@@ -1,7 +1,9 @@
-require_relative 'lifecycle'
+require_relative '../lifecycle'
 
 module FFWD
-  class CoreInterface
+  class Core; end
+
+  class Core::Interface
     include FFWD::Lifecycle
 
     attr_reader :input, :output

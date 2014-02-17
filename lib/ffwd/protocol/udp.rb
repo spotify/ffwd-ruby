@@ -18,16 +18,16 @@ module FFWD::UDP
     Connect.new core, log, host, port, handler
   end
 
-  def self.bind opts, core, log, handler, *args
+  def self.bind opts, core, log, connection, *args
     raise "Missing required key :host" if (host = opts[:host]).nil?
     raise "Missing required key :port" if (port = opts[:port]).nil?
     rebind_timeout = opts[:rebind_timeout] || DEFAULT_REBIND_TIMEOUT
-    Bind.new core, log, host, port, handler, args, rebind_timeout
+    Bind.new core, log, host, port, connection, args, rebind_timeout
   end
 
-  def self.tunnel opts, core, plugin, log, handler, *args
+  def self.tunnel opts, core, plugin, log, connection, *args
     raise "Missing required key :port" if (port = opts[:port]).nil?
-    FFWD.tunnel self.family, port, core, plugin, log, handler, args
+    FFWD.tunnel self.family, port, core, plugin, log, connection, args
   end
 end
 

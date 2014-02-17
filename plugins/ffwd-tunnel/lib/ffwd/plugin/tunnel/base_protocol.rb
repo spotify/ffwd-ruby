@@ -1,5 +1,6 @@
-require 'ffwd/core_emitter'
-require 'ffwd/core_processor'
+require 'ffwd/core/emitter'
+require 'ffwd/core/interface'
+require 'ffwd/core/reporter'
 require 'ffwd/lifecycle'
 require 'ffwd/logging'
 require 'ffwd/plugin_channel'
@@ -34,10 +35,10 @@ module FFWD::Plugin::Tunnel
         end
 
         # setup a small core
-        emitter = FFWD::CoreEmitter.build @core.output, @metadata
-        @processor = FFWD::CoreProcessor.build @input, emitter, @core.processors
+        emitter = FFWD::Core::Emitter.build @core.output, @metadata
+        @processor = FFWD::Core::Processor.build @input, emitter, @core.processors
 
-        @reporter = FFWD::CoreReporter.new [@input, @processor]
+        @reporter = FFWD::Core::Reporter.new [@input, @processor]
 
         if @core.debug
           @core.debug.monitor @channel_id, @input, FFWD::Debug::Input

@@ -5,7 +5,12 @@ module FFWD::Plugin::Tunnel
     include FFWD::Logging
     include EM::Protocols::LineText2
 
-    def initialize core, tunnel_protocol
+    def self.plugin_type
+      "tunnel_in_tcp"
+    end
+
+    def initialize bind, core, tunnel_protocol
+      @bind = bind
       @core = core
       @tunnel_protocol = tunnel_protocol
       @protocol_instance = nil

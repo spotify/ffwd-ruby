@@ -1,20 +1,19 @@
 require_relative '../lifecycle'
+require_relative '../reporter'
+
+require_relative 'data_sink'
 
 module FFWD::Tunnel
   class TCP
     include FFWD::Lifecycle
+    include FFWD::Reporter
 
-    class DataSink
-      def initialize plugin, id, addr
-        @plugin = plugin
-        @id = id
-        @addr = addr
-      end
+    setup_reporter :keys => [
+      :received_events, :received_metrics,
+      :failed_events, :failed_metrics
+    ]
 
-      def << data
-        @plugin.dispatch @id, @addr, data
-      end
-    end
+    attr_reader :log
 
     def initialize port, core, plugin, log, connection, args
       @port = port
@@ -29,8 +28,9 @@ module FFWD::Tunnel
         @plugin.subscribe :tcp, @port do |id, addr, data|
           unless instance = @instances[addr]
             @log.debug "New connection: #{addr} (#{id}, #{@connection})"
-            instance = @instances[addr] = @connection.new(nil, @core, *@args)
+            instance = @connection.new(nil, self, @core, *@args)
             instance.datasink = DataSink.new @plugin, id, addr
+            @instances[addr] = instance
           end
 
           if data.nil? or data.empty?

@@ -1,8 +1,17 @@
 require_relative '../lifecycle'
+require_relative '../reporter'
 
 module FFWD::Tunnel
   class UDP
     include FFWD::Lifecycle
+    include FFWD::Reporter
+
+    setup_reporter :keys => [
+      :received_events, :received_metrics,
+      :failed_events, :failed_metrics
+    ]
+
+    attr_reader :log
 
     def initialize port, core, plugin, log, connection, args
       @port = port
@@ -15,7 +24,7 @@ module FFWD::Tunnel
       @instance = nil
 
       starting do
-        @instance = @connection.new(nil, @core, *@args)
+        @instance = @connection.new(nil, self, @core, *@args)
 
         @plugin.subscribe :udp, @port do |id, addr, data|
           @instance.receive_data data

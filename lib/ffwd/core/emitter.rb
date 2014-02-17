@@ -1,10 +1,12 @@
-require_relative 'logging'
-require_relative 'utils'
-require_relative 'metric_emitter'
-require_relative 'event_emitter'
+require_relative '../logging'
+require_relative '../utils'
+require_relative '../metric_emitter'
+require_relative '../event_emitter'
 
 module FFWD
-  class CoreEmitter
+  class Core; end
+
+  class Core::Emitter
     attr_reader :event, :metric
 
     def self.build output, opts={}

@@ -2,10 +2,6 @@ require 'json'
 require 'eventmachine'
 
 require_relative 'channel'
-require_relative 'core_emitter'
-require_relative 'core_interface'
-require_relative 'core_processor'
-require_relative 'core_reporter'
 require_relative 'debug'
 require_relative 'lifecycle'
 require_relative 'logging'
@@ -14,6 +10,11 @@ require_relative 'processor'
 require_relative 'protocol'
 require_relative 'statistics'
 require_relative 'utils'
+
+require_relative 'core/emitter'
+require_relative 'core/interface'
+require_relative 'core/processor'
+require_relative 'core/reporter'
 
 module FFWD
   class Core
@@ -43,8 +44,8 @@ module FFWD
         raise "memory limit must be non-negative number"
       end
 
-      @emitter = CoreEmitter.build @output_channel, @core_opts
-      @processor = CoreProcessor.build @input_channel, @emitter, @processors
+      @emitter = Core::Emitter.build @output_channel, @core_opts
+      @processor = Core::Processor.build @input_channel, @emitter, @processors
 
       @debug = nil
 
@@ -63,7 +64,7 @@ module FFWD
         @statistics.depend_on self
       end
 
-      @interface = CoreInterface.new(
+      @interface = Core::Interface.new(
         @input_channel, @output_channel,
         @tunnel_plugins, @statistics, @debug, @processors, @core_opts
       )
@@ -82,7 +83,7 @@ module FFWD
         reporters = [@input_channel, @output_channel, @processor]
         reporters += @input_instances.select{|i| FFWD.is_reporter?(i)}
         reporters += @output_instances.select{|i| FFWD.is_reporter?(i)}
-        @statistics.register "core", CoreReporter.new(reporters)
+        @statistics.register "core", Core::Reporter.new(reporters)
       end
 
       # Make the core-related channels depend on core.

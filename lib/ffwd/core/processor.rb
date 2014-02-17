@@ -1,7 +1,9 @@
-require_relative 'event_emitter'
-require_relative 'lifecycle'
+require_relative '../event_emitter'
+require_relative '../lifecycle'
 
 module FFWD
+  class Core; end
+
   # Component responsible for receiving and internally route metrics and
   # events.
   #
@@ -10,7 +12,7 @@ module FFWD
   # provided to one of them instead.
   #
   # If no processor matches, it is just passed straight through.
-  class CoreProcessor
+  class Core::Processor
     def self.build input, emitter, processors
       processors = Hash[processors.map{|p| [p.name, p.setup(emitter)]}]
       reporters = processors.select{|k, p| FFWD.is_reporter?(p)}.map{|k, p| p}
