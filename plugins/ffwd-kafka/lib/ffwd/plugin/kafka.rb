@@ -2,6 +2,7 @@ require 'ffwd/logging'
 require 'ffwd/plugin'
 require 'ffwd/producing_client'
 require 'ffwd/reporter'
+require 'ffwd/schema'
 
 require_relative 'kafka/output'
 
