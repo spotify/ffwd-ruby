@@ -1,8 +1,6 @@
 require_relative '../lifecycle'
 require_relative '../reporter'
 
-require_relative 'data_sink'
-
 module FFWD::Tunnel
   class TCP
     include FFWD::Lifecycle
@@ -22,27 +20,25 @@ module FFWD::Tunnel
       @args = args
 
       starting do
-        @plugin.tcp @port do |addr, handle|
-          @log.debug "Open tcp/#{@port}"
+        @plugin.tcp @port do |handle|
+          log.debug "Open tcp/#{@port}"
 
           instance = @connection.new(nil, self, @core, *@args)
-          instance.datasink = DataSink.new handle
+          instance.datasink = handle
 
           handle.data do |data|
             instance.receive_data data
           end
 
           handle.close do
-            @log.debug "Close tcp/#{@port}"
+            log.debug "Close tcp/#{@port}"
             instance.unbind
           end
         end
-
-        @log.info "Tunneling tcp/#{@port}"
       end
 
       stopping do
-        @log.info "Stopped tunneling tcp/#{@port}"
+        log.info "Stopped tunneling tcp/#{@port}"
       end
     end
   end

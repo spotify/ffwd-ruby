@@ -10,6 +10,19 @@ require 'ffwd/utils'
 module FFWD::Plugin::Tunnel
   class BinaryProtocol < FFWD::Tunnel::Plugin
     class BindUDP
+      class Handle < FFWD::Tunnel::Plugin::Handle
+        attr_reader :addr
+
+        def initialize bind, addr
+          @bind = bind
+          @addr = addr
+        end
+
+        def send_data data
+          @bind.send_data @addr, data
+        end
+      end
+
       def initialize port, family, tunnel, block
         @port = port
         @family = family
@@ -18,16 +31,19 @@ module FFWD::Plugin::Tunnel
       end
 
       def send_data addr, data
-        @tunnel.udp_send_data @family, @port, addr, data
+        @tunnel.send_data Socket::SOCK_DGRAM, @family, @port, addr, data
       end
 
       def data! addr, data
-        @block.call self, addr, data
+        handle = Handle.new self, addr
+        @block.call handle, data
       end
     end
 
     class BindTCP
       class Handle < FFWD::Tunnel::Plugin::Handle
+        attr_reader :addr
+
         def initialize bind, addr
           @bind = bind
           @addr = addr
@@ -47,12 +63,14 @@ module FFWD::Plugin::Tunnel
           @data = block
         end
 
-        def close!
+        def recv_close
           return if @close.nil?
           @close.call
+          @close = nil
+          @data = nil
         end
 
-        def data! data
+        def recv_data data
           return if @data.nil?
           @data.call data
         end
@@ -69,12 +87,12 @@ module FFWD::Plugin::Tunnel
       def open addr
         raise "Already open: #{addr}" if @handles[addr]
         handle = @handles[addr] = Handle.new self, addr
-        @block.call addr, handle
+        @block.call handle
       end
 
       def close addr
         raise "Not open: #{addr}" unless handle = @handles[addr]
-        handle.close!
+        handle.recv_close
         @handles.delete addr
       end
 
@@ -83,11 +101,11 @@ module FFWD::Plugin::Tunnel
           raise "Not available: #{addr}"
         end
 
-        handle.data! data
+        handle.recv_data data
       end
 
       def send_data addr, data
-        @tunnel.tcp_send_data @family, @port, addr, data
+        @tunnel.send_data Socket::SOCK_STREAM, @family, @port, addr, data
       end
     end
 
@@ -286,22 +304,12 @@ module FFWD::Plugin::Tunnel
       @c.set_text_mode rest
     end
 
-    def tcp_send_data family, port, addr, data
+    def send_data protocol, family, port, addr, data
       addr_data, addr_size = peer_addr_pack family, addr
       length = HeaderSize + addr_size + data.size
       # Struct.new(:length, :type, :port, :family, :protocol)
       header_data = [
-        length, DATA, port, family, Socket::SOCK_STREAM].pack HeaderFormat
-      frame = header_data + addr_data + data
-      @c.send_data frame
-    end
-
-    def udp_send_data family, port, addr, data
-      addr_data, addr_size = peer_addr_pack family, addr
-      length = HeaderSize + addr_size + data.size
-      # Struct.new(:length, :type, :port, :family, :protocol)
-      header_data = [
-        length, DATA, port, family, Socket::SOCK_DGRAM].pack HeaderFormat
+        length, DATA, port, family, protocol].pack HeaderFormat
       frame = header_data + addr_data + data
       @c.send_data frame
     end

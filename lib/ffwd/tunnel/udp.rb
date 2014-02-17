@@ -24,9 +24,10 @@ module FFWD::Tunnel
       starting do
         @instance = @connection.new(nil, self, @core, *@args)
 
-        @plugin.udp @port do |handle, addr, data|
-          # TODO: set datasink to this handle/address.
+        @plugin.udp @port do |handle, data|
+          @instance.datasink = handle
           @instance.receive_data data
+          @instance.datasink = nil
         end
 
         @log.info "Tunneling udp/#{@port}"
