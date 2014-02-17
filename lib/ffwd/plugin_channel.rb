@@ -25,7 +25,7 @@ module FFWD
       @name = name
       @events = events
       @metrics = metrics
-      @reporter_meta = {:name => @name, :type => "plugin_channel"}
+      @reporter_meta = {:plugin_channel => @name, :type => "plugin_channel"}
     end
 
     def event_subscribe &block
