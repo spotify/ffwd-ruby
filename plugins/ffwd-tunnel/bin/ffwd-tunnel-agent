@@ -2,7 +2,6 @@
 """A reference tunneling proxy for FFWD."""
 
 import time
-import base64
 import json
 import asyncore
 import sys
@@ -34,7 +33,6 @@ def protocol_ip(family, ip):
     raise Exception("unsupported family: %s" % (family))
 
 
-
 class _TunnelBindUDP(asyncore.dispatcher):
     def __init__(self, tunnel, bindport):
         asyncore.dispatcher.__init__(self)
@@ -48,6 +46,10 @@ class _TunnelBindUDP(asyncore.dispatcher):
     def handle_read(self):
         """implement asyncore.dispatcher#handle_read"""
         data, addr = self.recvfrom(RECV_MAX)
+
+        if not data:
+            return
+
         addr = (self.family, addr[0], addr[1])
         self._tunnel.receive_client_data(
             socket.SOCK_DGRAM, self._bindport, addr, data)
@@ -70,11 +72,15 @@ class _TunnelBindTCP(asyncore.dispatcher):
 
         def handle_error(self):
             """implement asyncore.dispatcher_with_send#handle_error."""
-            self.tunnel.connection_close(self.addr)
 
         def handle_read(self):
             """implement asyncore.dispatcher#handle_read."""
-            self.tunnel.client_receive_data(self.addr, self.recv(RECV_MAX))
+            data = self.recv(RECV_MAX)
+
+            if not data:
+                return
+
+            self.tunnel.client_receive_data(self.addr, data)
 
     def __init__(self, tunnel, bindport):
         asyncore.dispatcher.__init__(self)
@@ -89,10 +95,8 @@ class _TunnelBindTCP(asyncore.dispatcher):
 
     def client_receive_data(self, addr, data):
         """Receive data from TCP connections."""
-
-        if len(data) > 0:
-            self._tunnel.receive_client_data(
-                socket.SOCK_STREAM, self._bindport, addr, data)
+        self._tunnel.receive_client_data(
+            socket.SOCK_STREAM, self._bindport, addr, data)
 
     def handle_close(self):
         """implement asyncore.dispatcher#handle_close."""
@@ -112,6 +116,8 @@ class _TunnelBindTCP(asyncore.dispatcher):
         client = self._connections[addr]
         client.close()
         del self._connections[addr]
+        print "closing connection"
+        self.client_receive_data(addr, "")
 
     def close(self):
         for client in self._connections.values():
@@ -205,47 +211,7 @@ BIND_PROTOCOLS = {
 }
 
 
-class TextProtocol(object):
-    def __init__(self, conn):
-        self._conn = conn
-
-    def client_data(self, protocol, bindport, addr, data):
-        family = addr[0]
-        ip = addr[1]
-        port = addr[2]
-
-        data = base64.b64encode(data)
-
-        self._conn.send_line(
-            "%d %d %d %s %d %s" % (protocol, bindport, family, ip, port, data))
-
-    def setup(self):
-        pass
-
-    def receive_line(self, line):
-        parts = line.split(' ', 6)
-        protocol, bindport, family, ip, port, data = parts
-
-        try:
-            protocol = int(protocol)
-            bindport = int(bindport)
-            family = int(family)
-            port = int(port)
-            data = base64.b64decode(data)
-        except:
-            log.error("received invalid frame")
-            self.close()
-            return
-
-        server_id = (protocol, bindport)
-        addr = (family, ip, port)
-        self._conn.send_frame(server_id, addr, data)
-
-    def receive_text(self, data):
-        raise Exception("receive text unsupported")
-
-
-class BinaryProtocol(object):
+class _BinaryProtocol(object):
     HEADER = struct.Struct("!BHB16sHH")
 
     def __init__(self, conn):
@@ -290,16 +256,6 @@ class BinaryProtocol(object):
         self._conn.set_mode(self.HEADER.size)
 
 
-def protocol_type(protocol, conn):
-    if protocol == "text":
-        return TextProtocol(conn)
-
-    if protocol == "binary":
-        return BinaryProtocol(conn)
-
-    raise Exception("Unsupported protocol: %s" % (protocol))
-
-
 class _TunnelClient(_LineProtocol, asyncore.dispatcher_with_send):
     def __init__(self, metadata, addr):
         asyncore.dispatcher_with_send.__init__(self)
@@ -342,6 +298,7 @@ class _TunnelClient(_LineProtocol, asyncore.dispatcher_with_send):
 
     def receive_client_data(self, protocol, bindport, addr, data):
         """Handle data received by a connected client."""
+
         try:
             self._protocol.client_data(protocol, bindport, addr, data)
         except:
@@ -371,35 +328,32 @@ class _TunnelClient(_LineProtocol, asyncore.dispatcher_with_send):
     def receive_line(self, line):
         """implement _LineProtocol#receive_line."""
 
-        if self._protocol is None:
-            try:
-                self._protocol = self.configure(line)
-            except:
-                log.error("failed to receive line", exc_info=sys.exc_info())
-                self.close()
-
-            try:
-                self._protocol.setup()
-            except:
-                log.error("failed to setup protocol", exc_info=sys.exc_info())
-                self.close()
-
-            return
+        if self._protocol is not None:
+            raise Exception("protocol already configured")
 
         try:
-            self._protocol.receive_line(line)
+            self._protocol = self.configure(line)
         except:
             log.error("failed to receive line", exc_info=sys.exc_info())
             self.close()
+            return
+
+        try:
+            self._protocol.setup()
+        except:
+            log.error("failed to setup protocol", exc_info=sys.exc_info())
+            self.close()
+            return
 
     def configure(self, line):
         config = json.loads(line)
         log.info("CONFIG: %s", repr(config))
 
-        protocol = protocol_type(config.get('type', DEFAULT_PROTOCOL), self)
+        if not self._bind_all(config):
+            self.close()
+            return
 
-        self._bind_all(config)
-        return protocol
+        return _BinaryProtocol(self)
 
     def receive_text(self, data):
         try:
@@ -439,9 +393,10 @@ class _TunnelClient(_LineProtocol, asyncore.dispatcher_with_send):
 
         if len(self._servers) != len(bind):
             log.error("unable to bind everything: %s", repr(bind))
-            self.close()
+            return False
 
         log.info("ports bound")
+        return True
 
 
 def hostip(string):

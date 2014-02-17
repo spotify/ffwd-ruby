@@ -2,7 +2,6 @@ require 'eventmachine'
 require 'base64'
 
 require_relative 'tunnel/connection_tcp'
-require_relative 'tunnel/text_protocol'
 require_relative 'tunnel/binary_protocol'
 
 require 'ffwd/logging'
@@ -20,11 +19,8 @@ module FFWD::Plugin::Tunnel
   DEFAULT_PROTOCOL = 'tcp'
   DEFAULT_PROTOCOL_TYPE = 'text'
 
-  CONNECTIONS = {:tcp => ConnectionTCP}
-
-  PROTOCOL_TYPES = {
-    "text" => TextProtocol,
-    "binary" => BinaryProtocol,
+  CONNECTIONS = {
+    :tcp => ConnectionTCP
   }
 
   def self.setup_input opts, core
@@ -37,14 +33,10 @@ module FFWD::Plugin::Tunnel
       raise "No connection for protocol family: #{protocol.family}"
     end
 
-    unless protocol_type = PROTOCOL_TYPES[protocol_type]
-      raise "No such tunnel protocol: #{protocol_type}"
-    end
-
     if core.tunnel_plugins.empty?
       raise "Nothing requires tunneling"
     end
 
-    protocol.bind opts, core, log, connection, protocol_type
+    protocol.bind opts, core, log, connection, BinaryProtocol
   end
 end
