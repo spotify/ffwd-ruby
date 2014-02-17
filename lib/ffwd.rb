@@ -131,7 +131,7 @@ module FFWD
 
     if config_path = opts[:config_path]
       unless File.file? config_path
-        puts "Configuration path does not exist: #{path}"
+        puts "Configuration path does not exist: #{config_path}"
         puts ""
         puts parser.help
         return 1
