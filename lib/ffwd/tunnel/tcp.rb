@@ -23,9 +23,7 @@ module FFWD::Tunnel
 
       starting do
         @plugin.tcp @port do |addr, handle|
-          peer = "#{addr[0]}:#{addr[1]}"
-
-          @log.debug "Open tcp/#{@port}: #{peer}"
+          @log.debug "Open tcp/#{@port}"
 
           instance = @connection.new(nil, self, @core, *@args)
           instance.datasink = DataSink.new handle
@@ -35,7 +33,7 @@ module FFWD::Tunnel
           end
 
           handle.close do
-            @log.debug "Close tcp/#{@port}: #{peer}"
+            @log.debug "Close tcp/#{@port}"
             instance.unbind
           end
         end
