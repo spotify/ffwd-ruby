@@ -21,4 +21,6 @@ Gem::Specification.new do |spec|
   spec.add_dependency "em-http-request"
 
   spec.add_development_dependency "ffwd"
+  spec.add_development_dependency "rspec"
+  spec.add_development_dependency "rspec-mocks"
 end
