@@ -11,8 +11,6 @@ module FFWD
   #
   # If no processor matches, it is just passed straight through.
   class CoreProcessor
-    include FFWD::Lifecycle
-
     def self.build input, emitter, processors
       processors = Hash[processors.map{|p| [p.name, p.setup(emitter)]}]
       reporters = processors.select{|k, p| FFWD.is_reporter?(p)}.map{|k, p| p}
@@ -42,8 +40,6 @@ module FFWD
 
       input.stopping do
         subs.each(&:unsubscribe).clear
-        @processors.clear
-        @reporters.clear
       end
     end
 

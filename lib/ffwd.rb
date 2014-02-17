@@ -127,7 +127,7 @@ module FFWD
 
     FFWD.log_config[:level] = opts[:debug] ? Logger::DEBUG : Logger::INFO
 
-    config = {:debug => {}}
+    config = {:debug => nil}
 
     if config_path = opts[:config_path]
       unless File.file? config_path
