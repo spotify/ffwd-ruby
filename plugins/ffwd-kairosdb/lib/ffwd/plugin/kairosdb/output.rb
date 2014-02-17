@@ -1,5 +1,7 @@
 require 'ffwd/reporter'
 
+require_relative 'utils'
+
 module FFWD::Plugin::KairosDB
   class Output
     include FFWD::Reporter
@@ -80,16 +82,13 @@ module FFWD::Plugin::KairosDB
         return
       end
 
-      events = make_events(@buffer)
       buffer_size = @buffer.size
+      metrics = Utils.make_metrics(@buffer)
+      metrics = JSON.dump(metrics)
       @buffer.clear
 
-      events = JSON.dump(events)
-
-      log.info "Sending metrics to #{@url}"
-
-      @pending = @c.post(
-        :path => API_PATH, :head => HEADER, :body => events)
+      log.info "Sending #{buffer_size} metric(s) to #{@url}"
+      @pending = @c.post(:path => API_PATH, :head => HEADER, :body => metrics)
 
       @pending.callback do
         increment :sent_metrics, buffer_size
@@ -101,48 +100,6 @@ module FFWD::Plugin::KairosDB
         increment :failed_metrics, buffer_size
         @pending = nil
       end
-    end
-
-    # optimized, makes the assumption that all events have the same metadata as
-    # the first seen one.
-    def make_events buffer
-      groups = {}
-
-      buffer.each do |metric|
-        key = {:host => metric.host, :name => metric.key,
-               :attributes => metric.attributes}
-        group = (groups[key] ||= safe_entry(key).merge(:datapoints => []))
-        group[:datapoints] << [(metric.time.to_f * 1000).to_i, metric.value]
-      end
-
-      return groups.values
-    end
-
-    # Warning: These are the 'bad' characters I've been able to reverse
-    # engineer so far.
-    def safe_string string
-      string = string.to_s
-      string = string.gsub " ", "/"
-      string.gsub ":", "_"
-    end
-
-    def safe_entry entry
-      name = entry[:name]
-      host = entry[:host]
-      attributes = entry[:attributes]
-      {:name => safe_string(name), :tags => make_tags(host, attributes)}
-    end
-
-    # Warning: KairosDB ignores complete metrics if you use tags which have no
-    # values, therefore I have not figured out a way to transport 'tags'.
-    def make_tags host, attributes
-      tags = {"host" => safe_string(host)}
-
-      attributes.each do |key, value|
-        tags[safe_string(key)] = safe_string(value)
-      end
-
-      return tags
     end
 
     def check_timer!
