@@ -1,10 +1,10 @@
-require 'ffwd/utils'
-require 'ffwd/logging'
-require 'ffwd/plugin_channel'
 require 'ffwd/core_emitter'
 require 'ffwd/core_processor'
 require 'ffwd/lifecycle'
-require 'ffwd/tunnel'
+require 'ffwd/logging'
+require 'ffwd/plugin_channel'
+require 'ffwd/tunnel/plugin'
+require 'ffwd/utils'
 
 module FFWD::Plugin::Tunnel
   class BaseProtocol < FFWD::Tunnel::Plugin
