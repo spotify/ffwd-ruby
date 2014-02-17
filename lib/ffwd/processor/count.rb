@@ -28,8 +28,7 @@ module FFWD::Processor
       @timer = nil
 
       starting do
-        log.info "Starting count processor"
-        @timer = EM.add_periodic_timer(@period){digest! Time.now} if @period > 0
+        log.info "Starting count processor on a window of #{@period}s"
       end
 
       stopping do
@@ -56,6 +55,17 @@ module FFWD::Processor
       end
     end
 
+    def check_timer
+      return if @timer
+
+      log.debug "Starting timer"
+
+      @timer = EM::Timer.new(@period) do
+        @timer = nil
+        digest!
+      end
+    end
+
     def digest! now
       ms = FFWD.timing do
         flush_caches! now
@@ -78,6 +88,7 @@ module FFWD::Processor
       increment :received
       entry[:count] += value
       entry[:last] = now
+      check_timer
     end
   end
 end

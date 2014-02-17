@@ -34,6 +34,9 @@ class _BindUDP(asyncore.dispatcher):
         self._tunnel = tunnel
         self._port = bindport
 
+    def writable(self):
+        return False
+
     def handle_read(self):
         """implement asyncore.dispatcher#handle_read"""
         data, addr = self.recvfrom(RECV_MAX)
@@ -92,7 +95,6 @@ class _BindTCP(asyncore.dispatcher):
 
     def conn_handle_data(self, addr, data):
         """Receive data from TCP connections."""
-        self._connections[addr]
         self.client_data(addr, data)
 
     def conn_handle_close(self, addr):

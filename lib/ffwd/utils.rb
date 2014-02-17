@@ -26,6 +26,6 @@ module FFWD
     start = Time.now
     block.call
     stop = Time.now
-    ((stop - start) * 1000).round
+    ((stop - start) * 1000).round(3)
   end
 end
