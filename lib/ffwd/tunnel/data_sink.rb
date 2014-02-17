@@ -1,13 +1,11 @@
 module FFWD::Tunnel
   class DataSink
-    def initialize plugin, id, addr
-      @plugin = plugin
-      @id = id
-      @addr = addr
+    def initialize handle
+      @handle = handle
     end
 
     def << data
-      @plugin.dispatch @id, @addr, data
+      @handle.dispatch data
     end
   end
 end

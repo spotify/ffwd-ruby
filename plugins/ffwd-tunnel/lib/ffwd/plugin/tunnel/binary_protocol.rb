@@ -9,21 +9,116 @@ require 'ffwd/utils'
 
 module FFWD::Plugin::Tunnel
   class BinaryProtocol < FFWD::Tunnel::Plugin
+    class TcpBind
+      class TcpHandle < FFWD::Tunnel::Plugin::Handle
+        def initialize bind, addr
+          @bind = bind
+          @addr = addr
+          @close = nil
+          @data = nil
+        end
+
+        def dispatch data
+          @bind.dispatch @addr, data
+        end
+
+        def close &block
+          @close = block
+        end
+
+        def data &block
+          @data = block
+        end
+
+        def close!
+          return if @close.nil?
+          @close.call
+        end
+
+        def data! data
+          return if @data.nil?
+          @data.call data
+        end
+      end
+
+      def initialize port, family, tunnel, block
+        @port = port
+        @family = family
+        @tunnel = tunnel
+        @block = block
+        @handles = {}
+      end
+
+      def ntop ip
+        if @family == Socket::AF_INET
+          return ip.unpack("C*").map(&:to_s).join '.'
+        end
+
+        if @family == Socket::AF_INET6
+          parts = []
+          ip.unpack("C*").each_slice(2){|s|
+            parts << s.map{|c| c.to_s(16)}.join('')
+          }
+          return parts.join '::'
+        end
+      end
+
+      def open addr
+        raise "Already open: #{addr}" if @handles[addr]
+        handle = @handles[addr] = TcpHandle.new self, addr
+        ip, port = addr
+        ip = ntop ip
+        @block.call [ip, port], handle
+      end
+
+      def close addr
+        raise "Not open: #{addr}" unless handle = @handles[addr]
+        handle.close!
+        @handles.delete addr
+      end
+
+      def data addr, data
+        unless handle = @handles[addr]
+          raise "Not available: #{addr}"
+        end
+
+        handle.data! data
+      end
+
+      def dispatch addr, data
+        @tunnel.tcp_dispatch @family, @port, addr, data
+      end
+    end
+
     include FFWD::Logging
     include FFWD::Lifecycle
 
-    Header = Struct.new(
-      :protocol, :bindport,
-      :family, :ip, :port,
-      :datasize
-    )
+    Header = Struct.new(:length, :type, :port, :family, :protocol)
+    HeaderFormat = 'nnnCC'
+    HeaderSize = 8
 
-    HEADER_FORMAT = 'CnCa16nn'
-    HEADER_LENGTH = 24
+    PeerAddrAfInet = Struct.new(:ip, :port)
+    PeerAddrAfInetFormat = "a4n"
+    PeerAddrAfInetSize = 6
 
-    def initialize core, connection
-      @connection = connection
-      @subs = {}
+    PeerAddrAfInet6 = Struct.new(:ip, :port)
+    PeerAddrAfInet6Format = "a16n"
+    PeerAddrAfInet6Size = 18
+
+    State = Struct.new(:state)
+    StateFormat = 'n'
+    StateSize = 2
+
+    STATE = 0x0000
+    DATA = 0x0001
+
+    OPEN = 0x0000
+    CLOSE = 0x0001
+
+    def initialize core, c
+      @c = c
+      @tcp_bind = {}
+      @udp_bind = {}
       @input = FFWD::PluginChannel.build 'tunnel_input'
 
       @metadata = nil
@@ -39,8 +134,8 @@ module FFWD::Plugin::Tunnel
           @statistics_id = "tunnel/#{host}"
           @channel_id = "tunnel.input/#{host}"
         else
-          @statistics_id = "tunnel/#{@connection.get_peer}"
-          @channel_id = "tunnel.input/#{@connection.get_peer}"
+          @statistics_id = "tunnel/#{@c.get_peer}"
+          @channel_id = "tunnel.input/#{@c.get_peer}"
         end
 
         # setup a small core
@@ -67,7 +162,8 @@ module FFWD::Plugin::Tunnel
         @metadata = nil
         @processor = nil
         @channel_id = nil
-        @subs = {}
+        @tcp_bind = {}
+        @udp_bind = {}
       end
 
       @core = core.reconnect @input
@@ -81,29 +177,13 @@ module FFWD::Plugin::Tunnel
       @core.depend_on self
     end
 
-    def send_data data
-      @connection.send_data data
+    def tcp port, &block
+      @tcp_bind[[port, Socket::AF_INET]] = TcpBind.new(
+        port, Socket::AF_INET, self, block)
     end
 
-    def set_text_mode size
-      @connection.set_text_mode size
-    end
-
-    def parse_protocol string
-      return Socket::SOCK_STREAM if string == :tcp
-      return Socket::SOCK_DGRAM if string == :udp
-      raise "Unsupported protocol: #{string}"
-    end
-
-    def subscribe protocol, port, &block
-      protocol = parse_protocol protocol
-      id = [protocol, port]
-
-      if @subs[id]
-        raise "Only one plugin at a time can tunnel port '#{port}'"
-      end
-
-      @subs[id] = block
+    def udp port, &block
+      @udp_bind[[port, Socket::AF_INET]] = block
     end
 
     def read_metadata data
@@ -126,12 +206,19 @@ module FFWD::Plugin::Tunnel
     def send_config
       response = {}
 
-      response[:bind] = @subs.keys.map do |protocol, port|
-        {:protocol => protocol, :port => port}
-      end
+      tcp = @tcp_bind.keys.map{|port, family|
+        {:protocol => Socket::SOCK_STREAM,
+         :family => family,
+         :port => port}}
+      udp = @udp_bind.keys.map{|port, family|
+        {:protocol => Socket::SOCK_DGRAM,
+         :family => family,
+         :port => port}}
+
+      response[:bind] = tcp + udp
 
       response = JSON.dump(response)
-      send_data "#{response}\n"
+      @c.send_data "#{response}\n"
     end
 
     def receive_metadata data
@@ -143,47 +230,120 @@ module FFWD::Plugin::Tunnel
     def receive_line line
       raise "already have metadata" if @metadata
       receive_metadata JSON.load(line)
-      set_text_mode HEADER_LENGTH
+      @c.set_text_mode HeaderSize
+    end
+
+    def parse_addr_format family
+      if family == Socket::AF_INET
+        return PeerAddrAfInetFormat, PeerAddrAfInetSize
+      end
+
+      if family == Socket::AF_INET6
+        return PeerAddrAfInet6Format, PeerAddrAfInet6Size
+      end
+
+      raise "Unsupported address family: #{family}"
+    end
+
+    def peer_addr_pack family, addr
+      format, size = parse_addr_format family
+      return addr.pack(format), size
+    end
+
+    def peer_addr_unpack family, data
+      format, size = parse_addr_format family
+      return data[0,size].unpack(format), size
+    end
+
+    def receive_frame header, addr, data
+      if header.type == DATA
+        tunnel_data header, addr, data
+        return
+      end
+
+      if header.type == STATE
+        state = data.unpack(StateFormat)[0]
+        tunnel_state header, addr, state
+        return
+      end
     end
 
     def receive_binary_data data
       if @header
-        tunnel_data @header, data
+        addr, addr_size = peer_addr_unpack @header.family, data
+        data = data[addr_size,data.size - addr_size]
+        receive_frame @header, addr, data
         @header = nil
-        set_text_mode HEADER_LENGTH
+        @c.set_text_mode HeaderSize
         return
       end
 
-      fields = data.unpack HEADER_FORMAT
+      fields = data.unpack HeaderFormat
       @header = Header.new(*fields)
-
-      if @header.datasize > 0
-        set_text_mode @header.datasize
-      else
-        tunnel_data @header, nil
-        @header = nil
-        set_text_mode HEADER_LENGTH
-      end
+      rest = @header.length - HeaderSize
+      @c.set_text_mode rest
     end
 
-    def dispatch id, addr, data
-      protocol, bindport = id
-      family, ip, port = addr
-      header = [protocol, bindport, family, ip, port, data.size]
-      header = header.pack HEADER_FORMAT
-      frame = header + data
-      send_data frame
+    def tcp_dispatch family, port, addr, data
+      addr_data, addr_size = peer_addr_pack family, addr
+      length = HeaderSize + addr_size + data.size
+      # Struct.new(:length, :type, :port, :family, :protocol)
+      header_data = [
+        length, DATA, port, family, Socket::SOCK_STREAM].pack HeaderFormat
+      frame = header_data + addr_data + data
+      @c.send_data frame
     end
 
-    def tunnel_data header, data
-      id = [header.protocol, header.bindport]
-      addr = [header.family, header.ip, header.port]
+    def tunnel_data header, addr, data
+      if header.protocol == Socket::SOCK_DGRAM
+        if udp = @udp_bind[[header.port, header.family]]
+          udp.call addr, data
+        end
 
-      if s = @subs[id]
-        s.call id, addr, data
-      else
-        log.error "Nothing listening on #{id}"
+        return
       end
+
+      if header.protocol == Socket::SOCK_STREAM
+        unless bind = @tcp_bind[[header.port, header.family]]
+          log.error "Nothing listening on tcp/#{header.port}"
+          return
+        end
+
+        bind.data addr, data
+        return
+      end
+
+      log.error "DATA: Unsupported protocol: #{header.protocol}"
+    end
+
+    def tunnel_state header, addr, state
+      if header.protocol == Socket::SOCK_DGRAM
+        # ignored
+        log.error "UDP does not handle: #{state}"
+        return
+      end
+
+      if header.protocol == Socket::SOCK_STREAM
+        unless bind = @tcp_bind[[header.port, header.family]]
+          log.error "Nothing listening on tcp/#{header.port}"
+          return
+        end
+
+        if state == OPEN
+          bind.open addr
+          return
+        end
+
+        if state == CLOSE
+          bind.close addr
+          return
+        end
+
+        log.error "Unknown state: #{state}"
+        return
+      end
+
+      log.error "STATE: Unsupported protocol: #{header.protocol}"
     end
   end
 end

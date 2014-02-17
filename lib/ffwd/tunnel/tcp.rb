@@ -9,9 +9,7 @@ module FFWD::Tunnel
     include FFWD::Reporter
 
     setup_reporter :keys => [
-      :received_events, :received_metrics,
-      :failed_events, :failed_metrics
-    ]
+      :received_events, :received_metrics, :failed_events, :failed_metrics]
 
     attr_reader :log
 
@@ -22,36 +20,30 @@ module FFWD::Tunnel
       @log = log
       @connection = connection
       @args = args
-      @instances = {}
 
       starting do
-        @plugin.subscribe :tcp, @port do |id, addr, data|
-          unless instance = @instances[addr]
-            @log.debug "New connection: #{addr} (#{id}, #{@connection})"
-            instance = @connection.new(nil, self, @core, *@args)
-            instance.datasink = DataSink.new @plugin, id, addr
-            @instances[addr] = instance
+        @plugin.tcp @port do |addr, handle|
+          peer = "#{addr[0]}:#{addr[1]}"
+
+          @log.debug "Open tcp/#{@port}: #{peer}"
+
+          instance = @connection.new(nil, self, @core, *@args)
+          instance.datasink = DataSink.new handle
+
+          handle.data do |data|
+            instance.receive_data data
           end
 
-          if data.nil? or data.empty?
-            @log.debug "Close connection: #{addr}"
+          handle.close do
+            @log.debug "Close tcp/#{@port}: #{peer}"
             instance.unbind
-            @instances.delete addr
-            next
           end
-
-          instance.receive_data data
         end
 
         @log.info "Tunneling tcp/#{@port}"
       end
 
       stopping do
-        @instances.each do |addr, instance|
-          instance.unbind
-        end
-
-        @instances.clear
         @log.info "Stopped tunneling tcp/#{@port}"
       end
     end

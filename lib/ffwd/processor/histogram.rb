@@ -2,6 +2,7 @@ require 'ffwd/event'
 require 'ffwd/logging'
 require 'ffwd/processor'
 require 'ffwd/reporter'
+require 'ffwd/utils'
 
 module FFWD::Processor
   #
@@ -93,7 +94,7 @@ module FFWD::Processor
         return
       end
 
-      ms = FFWD.timer do
+      ms = FFWD.timing do
         @cache.each do |key, bucket|
           calculate(bucket) do |p, info, value|
             @emitter.metric.emit(

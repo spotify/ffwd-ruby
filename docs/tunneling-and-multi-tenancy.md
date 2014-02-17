@@ -69,21 +69,42 @@ The read keys are *tags*, *attributes* and *host*.
 combinations the tunneling client should bind to and tunnel traffic from.
 The read keys are *input* which should be an array of input configurations.
 
-```{"type": <text/binary>, "bind": [{"protocol": 2, "port": 5555}, ...]}```.
+```{"bind": [{"protocol": 2, "port": 5555}, ...]}```.
 
-Now depending on the value of the **type** field, either the **text** or
-**binary** section applies.
-
-### type: binary
+After this stage, the protocol switches from text to binary mode.
 
 Every message is a frame with the following fields.
 
 ```
-        _____________________________________________________
- field | protocol | bindport | family | ip | port | data     |
-       |-----------------------------------------------------|
-  size | 1        | 2        | 1      | 16 | 2    | 2 + var  |
-       '-----------------------------------------------------'
+HEADER:
+ field | length | type | port | family | protocol | peer_addr | packet |
+  size | 2      | 2    | 2    | 1      | 1        | *         | *      |
+
+type:
+  0x0000 = STATE
+  0x0001 = DATA
+
+peer_addr (family=AF_INET):
+ field | ip | port |
+  size | 4  | 2    |
+
+peer_addr (family=AF_INET6):
+ field | ip | port |
+  size | 16 | 2    |
+
+DATA:
+ field | data |
+  size | *    |
+
+STATE:
+ field | state |
+  size | 2     |
+
+state:
+  ; Indicates that a remote end opened a connection to the tunnel.
+  0x0000 = OPEN (SOCK_STREAM)
+  ; Indicates that a remote end closed a connection to the tunnel.
+  0x0001 = CLOSE (SOCK_STREAM)
 ```
 
 Every numeric field greater then 2 bytes are in network byte order.
@@ -96,25 +117,10 @@ Every numeric field greater then 2 bytes are in network byte order.
 
 **ip** peer IPv4 or IPv6 address encoded in octets.
 
-Note: IPv4 addresses are padded with zeroes to be 16 octets wide.
-
 **port** peer port encoded in octets.
 
 **data** the transferred blob of data, prefixed with 2 octets describing the
 length of the payload. Maximum size of the payload is 2^16 bytes.
-
-### type: text
-
-**datastream** Is a bi-directional stream of messages going from the client to
-the agent of the following structure.
-*&lt;base64-data&gt;* Is the data being tunneled, encoded in *base 64*.
-
-```
-<protocol> ' ' <bindport> ' ' <family> ' ' <ip> ' ' <port> ' ' <base64-data>
-```
-
-Fields are the same as for the binary protocol, with the exception of **data**
-which is a base64 encoded blob.
 
 ## Comparison to other tunneling solutions
 

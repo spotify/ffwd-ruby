@@ -21,10 +21,8 @@ def statsd
 
   s = Statsd.new
 
-  while true
-    s.timing 'statsd/timing', 1000 * rand
-    s.increment 'statsd/count'
-  end
+  s.timing 'statsd/timing', 1000 * rand
+  s.increment 'statsd/count'
 end
 
 riemann

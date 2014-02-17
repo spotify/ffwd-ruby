@@ -7,9 +7,7 @@ module FFWD::Tunnel
     include FFWD::Reporter
 
     setup_reporter :keys => [
-      :received_events, :received_metrics,
-      :failed_events, :failed_metrics
-    ]
+      :received_events, :received_metrics, :failed_events, :failed_metrics]
 
     attr_reader :log
 
@@ -26,7 +24,7 @@ module FFWD::Tunnel
       starting do
         @instance = @connection.new(nil, self, @core, *@args)
 
-        @plugin.subscribe :udp, @port do |id, addr, data|
+        @plugin.udp @port do |addr, data|
           @instance.receive_data data
         end
 
