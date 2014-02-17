@@ -113,7 +113,7 @@ module FFWD::Plugin::KairosDB
 
       buffer.each do |metric|
         group = (groups[metric.key] ||= {
-          :name => make_name(metric.key), :tags => make_tags(metric),
+          :name => safe_string(metric.key), :tags => make_tags(metric),
           :datapoints => []})
         group[:datapoints] << [(metric.time.to_f * 1000).to_i, metric.value]
       end
@@ -123,7 +123,7 @@ module FFWD::Plugin::KairosDB
 
     # Warning: These are the 'bad' characters I've been able to reverse
     # engineer so far.
-    def make_name key
+    def safe_string key
       key = key.to_s
       key = key.gsub " ", "/"
       key.gsub ":", "_"
@@ -132,12 +132,10 @@ module FFWD::Plugin::KairosDB
     # Warning: KairosDB ignores complete metrics if you use tags which have no
     # values, therefore I have not figured out a way to transport 'tags'.
     def make_tags metric
-      tags = {
-        "host" => metric.host
-      }
+      tags = {"host" => safe_string(metric.host)}
 
       metric.attributes.each do |key, value|
-        tags[key] = value
+        tags[safe_string(key)] = safe_string(value)
       end
 
       return tags
