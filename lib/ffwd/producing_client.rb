@@ -48,7 +48,8 @@ module FFWD
 
         @subs << channel.event_subscribe do |e|
           if @events.size >= @event_limit
-            return increment :dropped_events
+            increment :dropped_events
+            next
           end
 
           @events << e
@@ -56,7 +57,8 @@ module FFWD
 
         @subs << channel.metric_subscribe do |m|
           if @metrics.size >= @metric_limit
-            return increment :dropped_metrics
+            increment :dropped_metrics
+            next
           end
 
           @metrics << m
