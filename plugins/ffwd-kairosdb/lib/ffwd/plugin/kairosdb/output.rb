@@ -124,6 +124,7 @@ module FFWD::Plugin::KairosDB
     # Warning: These are the 'bad' characters I've been able to reverse
     # engineer so far.
     def make_name key
+      key = key.to_s
       key = key.gsub " ", "/"
       key.gsub ":", "_"
     end
