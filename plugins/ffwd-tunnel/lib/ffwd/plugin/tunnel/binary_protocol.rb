@@ -9,8 +9,25 @@ require 'ffwd/utils'
 
 module FFWD::Plugin::Tunnel
   class BinaryProtocol < FFWD::Tunnel::Plugin
-    class TcpBind
-      class TcpHandle < FFWD::Tunnel::Plugin::Handle
+    class BindUDP
+      def initialize port, family, tunnel, block
+        @port = port
+        @family = family
+        @tunnel = tunnel
+        @block = block
+      end
+
+      def send_data addr, data
+        @tunnel.udp_send_data @family, @port, addr, data
+      end
+
+      def data! addr, data
+        @block.call self, addr, data
+      end
+    end
+
+    class BindTCP
+      class Handle < FFWD::Tunnel::Plugin::Handle
         def initialize bind, addr
           @bind = bind
           @addr = addr
@@ -18,8 +35,8 @@ module FFWD::Plugin::Tunnel
           @data = nil
         end
 
-        def dispatch data
-          @bind.dispatch @addr, data
+        def send_data data
+          @bind.send_data @addr, data
         end
 
         def close &block
@@ -49,26 +66,10 @@ module FFWD::Plugin::Tunnel
         @handles = {}
       end
 
-      def ntop ip
-        if @family == Socket::AF_INET
-          return ip.unpack("C*").map(&:to_s).join '.'
-        end
-
-        if @family == Socket::AF_INET6
-          parts = []
-          ip.unpack("C*").each_slice(2){|s|
-            parts << s.map{|c| c.to_s(16)}.join('')
-          }
-          return parts.join '::'
-        end
-      end
-
       def open addr
         raise "Already open: #{addr}" if @handles[addr]
-        handle = @handles[addr] = TcpHandle.new self, addr
-        ip, port = addr
-        ip = ntop ip
-        @block.call [ip, port], handle
+        handle = @handles[addr] = Handle.new self, addr
+        @block.call addr, handle
       end
 
       def close addr
@@ -85,8 +86,8 @@ module FFWD::Plugin::Tunnel
         handle.data! data
       end
 
-      def dispatch addr, data
-        @tunnel.tcp_dispatch @family, @port, addr, data
+      def send_data addr, data
+        @tunnel.tcp_send_data @family, @port, addr, data
       end
     end
 
@@ -178,12 +179,13 @@ module FFWD::Plugin::Tunnel
     end
 
     def tcp port, &block
-      @tcp_bind[[port, Socket::AF_INET]] = TcpBind.new(
+      @tcp_bind[[port, Socket::AF_INET]] = BindTCP.new(
         port, Socket::AF_INET, self, block)
     end
 
     def udp port, &block
-      @udp_bind[[port, Socket::AF_INET]] = block
+      @udp_bind[[port, Socket::AF_INET]] = BindUDP.new(
+        port, Socket::AF_INET, self, block)
     end
 
     def read_metadata data
@@ -284,7 +286,7 @@ module FFWD::Plugin::Tunnel
       @c.set_text_mode rest
     end
 
-    def tcp_dispatch family, port, addr, data
+    def tcp_send_data family, port, addr, data
       addr_data, addr_size = peer_addr_pack family, addr
       length = HeaderSize + addr_size + data.size
       # Struct.new(:length, :type, :port, :family, :protocol)
@@ -294,10 +296,20 @@ module FFWD::Plugin::Tunnel
       @c.send_data frame
     end
 
+    def udp_send_data family, port, addr, data
+      addr_data, addr_size = peer_addr_pack family, addr
+      length = HeaderSize + addr_size + data.size
+      # Struct.new(:length, :type, :port, :family, :protocol)
+      header_data = [
+        length, DATA, port, family, Socket::SOCK_DGRAM].pack HeaderFormat
+      frame = header_data + addr_data + data
+      @c.send_data frame
+    end
+
     def tunnel_data header, addr, data
       if header.protocol == Socket::SOCK_DGRAM
         if udp = @udp_bind[[header.port, header.family]]
-          udp.call addr, data
+          udp.data! addr, data
         end
 
         return

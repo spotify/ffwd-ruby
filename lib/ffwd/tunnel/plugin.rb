@@ -11,6 +11,10 @@ module FFWD::Tunnel
       def data &block
         raise "Not implemented: data"
       end
+
+      def send_data data
+        raise "Not implemented: send_data"
+      end
     end
 
     def tcp port, &block
@@ -21,8 +25,8 @@ module FFWD::Tunnel
       raise "Not implemented: udp"
     end
 
-    def dispatch ip, addr, data
-      raise "Not implemented: dispatch"
+    def send_data addr, data
+      raise "Not implemented: send_data"
     end
   end
 end

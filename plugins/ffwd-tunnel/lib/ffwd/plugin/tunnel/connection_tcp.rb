@@ -20,10 +20,6 @@ module FFWD::Plugin::Tunnel
       @protocol_instance.receive_line line
     end
 
-    def dispatch id, addr, data
-      @protocol_instance.dispatch id, addr, data
-    end
-
     def receive_binary_data data
       @protocol_instance.receive_binary_data data
     end

@@ -82,7 +82,7 @@ module FFWD::Processor
 
       log.debug "Starting timer"
 
-      @timer = EM.add_timer(@window) do
+      @timer = EM::Timer.new(@window) do
         @timer = nil
         digest!
       end

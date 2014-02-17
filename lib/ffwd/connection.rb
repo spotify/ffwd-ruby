@@ -15,7 +15,7 @@ module FFWD
     # send_data indirection.
     def send_data data
       if @datasink
-        @datasink << data
+        @datasink.send_data data
         return
       end
 

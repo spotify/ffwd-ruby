@@ -4,8 +4,8 @@ module FFWD::Tunnel
       @handle = handle
     end
 
-    def << data
-      @handle.dispatch data
+    def send_data data
+      @handle.send_data data
     end
   end
 end
