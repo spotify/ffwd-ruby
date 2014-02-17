@@ -3,10 +3,7 @@ require 'ffwd/reporter'
 module FFWD::Plugin::KairosDB
   class Output
     include FFWD::Reporter
-
-    setup_reporter :keys => [
-      :dropped_metrics, :sent_metrics, :failed_metrics
-    ]
+    setup_reporter :keys => [:dropped_metrics, :sent_metrics, :failed_metrics]
 
     attr_reader :log, :reporter_meta
 
@@ -112,9 +109,9 @@ module FFWD::Plugin::KairosDB
       groups = {}
 
       buffer.each do |metric|
-        group = (groups[metric.key] ||= {
-          :name => safe_string(metric.key), :tags => make_tags(metric),
-          :datapoints => []})
+        key = {:host => metric.host, :name => metric.key,
+               :attributes => metric.attributes}
+        group = (groups[key] ||= safe_entry(key).merge(:datapoints => []))
         group[:datapoints] << [(metric.time.to_f * 1000).to_i, metric.value]
       end
 
@@ -123,18 +120,25 @@ module FFWD::Plugin::KairosDB
 
     # Warning: These are the 'bad' characters I've been able to reverse
     # engineer so far.
-    def safe_string key
-      key = key.to_s
-      key = key.gsub " ", "/"
-      key.gsub ":", "_"
+    def safe_string string
+      string = string.to_s
+      string = string.gsub " ", "/"
+      string.gsub ":", "_"
+    end
+
+    def safe_entry entry
+      name = entry[:name]
+      host = entry[:host]
+      attributes = entry[:attributes]
+      {:name => safe_string(name), :tags => make_tags(host, attributes)}
     end
 
     # Warning: KairosDB ignores complete metrics if you use tags which have no
     # values, therefore I have not figured out a way to transport 'tags'.
-    def make_tags metric
-      tags = {"host" => safe_string(metric.host)}
+    def make_tags host, attributes
+      tags = {"host" => safe_string(host)}
 
-      metric.attributes.each do |key, value|
+      attributes.each do |key, value|
         tags[safe_string(key)] = safe_string(value)
       end
 
