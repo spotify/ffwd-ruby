@@ -1,3 +1,11 @@
+require 'beefcake'
+
+require 'riemann/query'
+require 'riemann/attribute'
+require 'riemann/state'
+require 'riemann/event'
+require 'riemann/message'
+
 module FFWD::Plugin::Riemann
   MAPPING = [
     [:key, :service, :service=],
@@ -30,7 +38,7 @@ module FFWD::Plugin::Riemann
       return if source.nil? or source.empty?
 
       e.attributes = source.map{|k, v|
-        k = k.dup unless k.nil?
+        k = k.to_s.dup unless k.nil?
         v = v.dup unless v.nil?
         ::Riemann::Attribute.new(:key => k, :value => v)
       }
@@ -68,6 +76,7 @@ module FFWD::Plugin::Riemann
           next
         end
 
+        v = v.to_s if v.is_a? Symbol
         e.send writer, v
       end
 
@@ -86,6 +95,7 @@ module FFWD::Plugin::Riemann
           next
         end
 
+        v = v.to_s if v.is_a? Symbol
         e.send writer, v
       end
 

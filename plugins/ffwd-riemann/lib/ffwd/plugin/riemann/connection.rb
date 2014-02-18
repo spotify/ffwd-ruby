@@ -21,6 +21,12 @@ module FFWD::Plugin::Riemann
     end
 
     def receive_object(m)
+      # handle no events in object.
+      if m.events.nil?
+        send_ok
+        return
+      end
+
       unless m.events.nil? or m.events.empty?
         events = m.events.map{|e| read_event(e)}
         events.each{|e| @core.input.event e}
