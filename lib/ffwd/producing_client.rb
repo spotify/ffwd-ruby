@@ -21,7 +21,20 @@ module FFWD
     ]
 
     def reporter_meta
-      @producer.reporter_meta
+      @reporter_meta ||= @producer.reporter_meta.merge(
+        :type => "producing_client_out")
+    end
+
+    def report!
+      super do |m|
+        yield m
+      end
+
+      return unless @producer_is_reporter
+
+      @producer.report! do |m|
+        yield m
+      end
     end
 
     def initialize channel, producer, flush_period, event_limit, metric_limit
@@ -34,6 +47,8 @@ module FFWD
       end
 
       @producer = producer
+      @producer_is_reporter = FFWD.is_reporter? producer
+
       @events = []
       @metrics = []
 

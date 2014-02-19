@@ -1,43 +1,36 @@
 require 'ffwd/logging'
 require 'ffwd/producing_client'
 
-require_relative 'zookeeper_client'
-require_relative 'zookeeper_functions'
 require_relative 'producer'
 
 module FFWD::Plugin::Kafka
   class Output < FFWD::ProducingClient::Producer
     include FFWD::Logging
-    include FFWD::Plugin::Kafka::ZookeeperFunctions
+    include FFWD::Reporter
+
+    setup_reporter :keys => [:kafka_routing_error, :kafka_routing_success]
 
     attr_reader :reporter_meta
 
     MAPPING = [:host, :ttl, :key, :time, :value, :tags, :attributes]
 
-    def initialize schema, zookeeper_url, producer, event_topic, metric_topic, brokers
-      unless zookeeper_url.nil?
-        @zookeeper = ZookeeperClient.new(zookeeper_url)
-      end
-
-      @schema = schema
+    def initialize producer, brokers, schema, router, partitioner
       @producer = producer
-      @event_topic = event_topic
-      @metric_topic = metric_topic
       @brokers = brokers
-      @reporter_meta = {
-        :type => "kafka_out", :producer => @producer,
-        :event_topic => @event_topic, :metric_topic => @metric_topic,
-      }
-
+      @schema = schema
+      @router = router
+      @partitioner = partitioner
+      @reporter_meta = {:producer_type => "kafka", :producer => @producer}
       @instance = nil
     end
 
     def setup
-      if @zookeeper
-        make_zk_kafka_producer
-      else
-        make_kafka_producer
+      if not @brokers or @brokers.empty?
+        log.error "No usable initial list of brokers"
+        return
       end
+
+      @instance = Producer.new @brokers, @producer
     end
 
     def teardown
@@ -52,55 +45,43 @@ module FFWD::Plugin::Kafka
         return nil
       end
 
+      expected_messages = events.size + metrics.size
       messages = []
-      messages += events.map{|e| make_event_message e}
-      messages += metrics.map{|e| make_metric_message e}
 
+      events.each do |e|
+        message = make_event_message e
+        next if message.nil?
+        messages << message
+      end
+
+      metrics.each do |e|
+        message = make_metric_message e
+        next if message.nil?
+        messages << message
+      end
+
+      if messages.size < expected_messages
+        increment :kafka_routing_error, expected_messages - messages.size
+      end
+
+      increment :kafka_routing_success, messages.size
       @instance.send_messages messages
     end
 
-    def make_zk_kafka_producer
-      req = zk_find_brokers log, @zookeeper
-
-      req.callback do |brokers|
-        if brokers.empty?
-          log.error "Zookeeper: Could not discover any brokers"
-        else
-          log.info "Zookeeper: Discovered brokers: #{brokers}"
-          brokers = brokers.map{|b| "#{b[:host]}:#{b[:port]}"}
-          @instance = Producer.new brokers, @producer
-        end
-      end
-
-      req.errback do |e|
-        # Do not log backtrace since this will be common when the zookeeper
-        # broker is not running.
-        if e.is_a? ZookeeperClient::ContinuationTimeoutError
-          log.error "Failed to find brokers, request timed out: #{e}"
-        else
-          log.error "Failed to find brokers", e
-        end
-
-        log.info "Retrying zookeeper request for brokers"
-        make_zk_kafka_producer
-      end
+    def make_event_message e
+      topic = @router.route_event e
+      return nil if topic.nil?
+      data = @schema.dump_event e
+      key = @partitioner.partition e
+      MessageToSend.new topic, data, key
     end
 
-    def make_kafka_producer
-      if not @brokers or @brokers.empty?
-        log.error "No usable initial list of brokers"
-        return
-      end
-
-      @instance = Producer.new @brokers, @producer
-    end
-
-    def make_event_message(e)
-      MessageToSend.new @event_topic, @schema.dump_event(e)
-    end
-
-    def make_metric_message(m)
-      MessageToSend.new @metric_topic, @schema.dump_metric(m)
+    def make_metric_message m
+      topic = @router.route_metric m
+      return nil if topic.nil?
+      data = @schema.dump_metric m
+      key = @partitioner.partition m
+      MessageToSend.new topic, data, key
     end
   end
 end

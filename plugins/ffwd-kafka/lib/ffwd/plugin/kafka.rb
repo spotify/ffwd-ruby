@@ -5,6 +5,8 @@ require 'ffwd/reporter'
 require 'ffwd/schema'
 
 require_relative 'kafka/output'
+require_relative 'kafka/partitioners'
+require_relative 'kafka/routers'
 
 module FFWD::Plugin
   module Kafka
@@ -13,24 +15,23 @@ module FFWD::Plugin
 
     register_plugin "kafka"
 
-    DEFAULT_ZOOKEEPER_URL = "localhost:2181"
     DEFAULT_PRODUCER = "ffwd"
-    DEFAULT_EVENT_TOPIC = "ffwd-events"
-    DEFAULT_METRIC_TOPIC = "ffwd-metrics"
+    DEFAULT_ROUTING_METHOD = :attribute
+    DEFAULT_ROUTING_KEY = :site
     DEFAULT_BROKERS = ["localhost:9092"]
-    DEFAULT_SCHEMA = 'default'
-    DEFAULT_CONTENT_TYPE = 'application/json'
+    DEFAULT_PARTITIONER = :host
+    DEFAULT_ROUTER = :attribute
 
     def self.setup_output opts, core
-      zookeeper_url = opts[:zookeeper_url] || DEFAULT_ZOOKEEPER_URL
       producer = opts[:producer] || DEFAULT_PRODUCER
-      event_topic = opts[:event_topic] || DEFAULT_EVENT_TOPIC
-      metric_topic = opts[:metric_topic] || DEFAULT_METRIC_TOPIC
       brokers = opts[:brokers] || DEFAULT_BROKERS
-
+      partitioner = FFWD::Plugin::Kafka.build_partitioner(
+        opts[:partitioner] || DEFAULT_PARTITIONER, opts)
+      router = FFWD::Plugin::Kafka.build_router(
+        opts[:router] || DEFAULT_ROUTER, opts)
       schema = FFWD.parse_schema opts
 
-      producer = Output.new schema, zookeeper_url, producer, event_topic, metric_topic, brokers
+      producer = Output.new producer, brokers, schema, router, partitioner
       FFWD.producing_client core.output, producer, opts
     end
   end
