@@ -43,6 +43,6 @@ describe FFWD::PluginChannel do
   end
 
   it "#reporter_meta should contain correct metadata" do
-    c.reporter_meta.should eq(:name => name, :type => "plugin_channel")
+    c.reporter_meta.should eq(:plugin_channel => name, :type => "plugin_channel")
   end
 end

@@ -24,6 +24,9 @@ describe FFWD::Processor::CountProcessor do
     metric.should_receive(:emit).with m1.merge(
       :key => "#{m1[:key]}.sum", :value => m1[:value] * 2, :source => m1[:key])
 
+    count.should_receive(:check_timer)
+    count.should_receive(:check_timer)
+
     count.process m1
     count.process m1
     count.digest! 0
