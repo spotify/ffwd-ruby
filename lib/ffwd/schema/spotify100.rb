@@ -13,7 +13,7 @@ module FFWD::Schema
       def self.dump_metric m
         d = {}
         d[:version] = VERSION
-        d[:time] = m.time.to_i if m.time
+        d[:time] = (m.time.to_f * 1000).to_i if m.time
         d[:key] = m.key if m.key
         d[:value] = m.value if m.value
         d[:host] = m.host if m.host
@@ -25,7 +25,7 @@ module FFWD::Schema
       def self.dump_event e
         d = {}
         d[:version] = VERSION
-        d[:time] = e.time.to_i if e.time
+        d[:time] = (e.time.to_f * 1000).to_i if e.time
         d[:key] = e.key if e.key
         d[:value] = e.value if e.value
         d[:host] = e.host if e.host
