@@ -23,8 +23,10 @@ module FFWD::Plugin::Kafka
     end
 
     def shutdown
+      return if @request
+
       @mutex.synchronize do
-        @producer.shutdown unless @request
+        @producer.shutdown
       end
     end
 
