@@ -15,9 +15,15 @@ module FFWD
     end
 
     setup_reporter :keys => [
+      # number of events/metrics that we attempted to dispatch but failed.
       :failed_events, :failed_metrics,
+      # number of events/metrics that were dropped because the output buffers
+      # are full.
       :dropped_events, :dropped_metrics,
-      :sent_events, :sent_metrics
+      # number of events/metrics successfully sent.
+      :sent_events, :sent_metrics,
+      # number of requests that take longer than the allowed period.
+      :slow_requests
     ]
 
     def reporter_meta
@@ -59,7 +65,7 @@ module FFWD
       @subs = []
 
       channel.starting do
-        @timer = EM::PeriodicTimer.new(@flush_period){flush!}
+        @timer = EM::PeriodicTimer.new(@flush_period){safer_flush!}
 
         @subs << channel.event_subscribe do |e|
           if @events.size >= @event_limit
@@ -97,6 +103,25 @@ module FFWD
 
         @producer.teardown
       end
+    end
+
+    # Apply some heuristics to determine if we can 'ignore' the current flush
+    # to prevent loss of data.
+    #
+    # Checks that if a request is pending; we have not breached the limit of
+    # allowed events.
+    def safer_flush!
+      if @request
+        increment :slow_requests
+
+        ignore_flush = (
+          @events.size < @event_limit or
+          @metrics.size < @metric_limit)
+
+        return if ignore_flush
+      end
+
+      flush!
     end
 
     def flush!
