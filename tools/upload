@@ -20,15 +20,6 @@ buildall() {
     return 0
 }
 
-GEMS_LOG="gems.log"
-
-host=$1
-
-if [[ -z $host ]]; then
-    echo "Usage: $0 <host>"
-    exit 1
-fi
-
 echo "Removing: *.gem"
 rm -f *.gem
 
@@ -39,5 +30,5 @@ fi
 
 for gem in *.gem; do
     echo "Uploading: $gem"
-    gem inabox -g $host $gem
+    gem push $gem
 done
