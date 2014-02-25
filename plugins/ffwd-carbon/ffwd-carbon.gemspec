@@ -9,7 +9,7 @@ Gem::Specification.new do |spec|
   spec.authors = ["Martin Parm"]
   spec.email = ["parmus@spotify.com"]
   spec.summary = %q{Carbon support for FFWD.}
-  spec.homepage = "https://github.com/spotify-ffwd/ffwd-carbon"
+  spec.homepage = "https://github.com/spotify/ffwd"
   spec.license = "Apache 2.0"
 
   spec.files = Dir.glob('lib/**/*.rb');

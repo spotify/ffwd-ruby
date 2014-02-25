@@ -9,7 +9,7 @@ Gem::Specification.new do |spec|
   spec.authors = ["John-John Tedro"]
   spec.email = ["udoprog@spotify.com"]
   spec.summary = %q{KairosDB support for FFWD.}
-  spec.homepage = "https://github.com/spotify-ffwd/ffwd-kairosdb"
+  spec.homepage = "https://github.com/spotify/ffwd"
   spec.license = "Apache 2.0"
 
   spec.files = Dir.glob('lib/**/*.rb');
