@@ -1,0 +1,43 @@
+#!/bin/bash
+
+rspec() {
+    echo "rspec: running..."
+
+    if ! bundle exec rspec; then
+        echo "rspec: failed!" >&2
+        return 1
+    fi
+
+    echo "rspec: ok!"
+    return 0
+}
+
+license() {
+    echo "license: Checking license..."
+
+    if ! tools/license -V; then
+        echo "license: version requirements failed!" >&2
+        return 1
+    fi
+
+    echo "license: ok!"
+    return 0
+}
+
+rspec_ok=0
+license_ok=0
+
+if ! rspec; then
+    rspec_ok=1
+fi
+
+if ! license; then
+    license_ok=1
+fi
+
+if [[ $rspec_ok -ne 0 || $license_ok -ne 0 ]]; then
+    echo "Build resulted in failures!" >&2
+    exit 1
+fi
+
+exit 0
