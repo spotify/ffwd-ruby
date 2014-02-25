@@ -25,7 +25,7 @@ end
 Adding this file to lib/ffwd/plugin/foo.rb will make FFWD automatically
 discover it.
 
-You can try this in the **ffwd-core** project and then test it with
+You can try this in the **ffwd** project and then test it with
 ```bin/ffwd --list-plugins```.
 
 ```bash

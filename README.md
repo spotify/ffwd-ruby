@@ -73,7 +73,7 @@ FFWD is available on rubygems so it can be installed through
 [gem](https://rubygems.org).
 
 ```bash
-$ gem install ffwd-core
+$ gem install ffwd
 ```
 
 ### Installing plugins
@@ -98,9 +98,9 @@ command.
 ```bash
 $ ffwd --list-plugins
 Available Plugins:
-Plugin 'log' (from gem: ffwd-core-<version>)
+Plugin 'log' (from gem: ffwd-<version>)
   supports: output
-Plugin 'json_line' (from gem: ffwd-core-<version>)
+Plugin 'json_line' (from gem: ffwd-<version>)
   supports: input
 Plugin 'tunnel' (from gem: ffwd-tunnel-<version>)
   supports: input
@@ -115,7 +115,7 @@ to remedy this.
 ## Contributing
 
 1. Fork FastForward (or a plugin) from
-   [github](https://github.com/spotify-ffwd) and clone your fork.
+   [github](https://github.com/spotify/ffwd) and clone your fork.
 2. Hack.
 3. Verify code by running any existing test-suite; ```bundle exec rspec```.
    Try to include tests for your changes.
