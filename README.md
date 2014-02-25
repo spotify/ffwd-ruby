@@ -1,5 +1,7 @@
 # FastForward &#9193;
 
+[![Build Status](https://travis-ci.org/spotify/ffwd.png)](https://travis-ci.org/spotify/ffwd)
+
 A highly flexible, multi-protocol events and metrics forwarder capable of
 merging and decorating events and metrics from a number of sources and
 multiplexing them to number of event and metric consumers.
