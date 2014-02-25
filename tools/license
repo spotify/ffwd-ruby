@@ -1,0 +1,84 @@
+#!/bin/bash
+# Check that all files has a license header.
+#
+# Modifies the file to have the specified license header if it does not exist.
+
+license_header() {
+    cat <<ENDL
+# \$LICENSE
+# Copyright 2013-2014 Spotify AB. All rights reserved.
+#
+# The contents of this file are licensed under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with the
+# License. You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
+
+ENDL
+}
+
+force=0
+verify_only=1
+exit_status=0
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+  "-f") force=1;
+      ;;
+  "-V") verify_only=0;
+      ;;
+  *) echo "Unknown option: $1"; exit 1;
+      ;;
+  esac
+
+  shift
+done
+
+while read -u 3 libdir; do
+  while read -u 4 file; do
+    license_file="${file}.license"
+    if ! grep '# $LICENSE' $file > /dev/null; then
+     echo "No license header found in file: $file"
+
+     if [[ $verify_only -ne 1 ]]; then
+       (
+         echo "$libdir: $file: Missing license header, could not find placeholder '# \$LICENSE'"
+         echo "Note: If you are the contributor of this file, make sure to add a license header that suits you!"
+         echo "      You can apply the default license by running:"
+         echo
+         echo "      #> tools/license"
+         echo
+       ) 1>&2
+       exit_status=1
+       continue
+     fi
+
+     if [[ $force -ne 1 ]]; then
+       read -p "Apply default (Spotify) license? [Y/n]: " q
+     else
+       echo "Changed forced (-f)!"
+       q="Y"
+     fi
+
+     if [[ $q == "Y" ]]; then
+       (
+         license_header
+         cat $file
+       ) > $license_file
+
+       mv $license_file $file
+       echo "$libdir: $file: modified"
+     else
+       echo "$libdir: $file: no action"
+     fi
+    fi
+  done 4< <(find $libdir -type f -name '*.rb')
+done 3< <(find -type d -name lib)
+
+exit $exit_status
