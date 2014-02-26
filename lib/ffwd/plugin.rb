@@ -18,15 +18,17 @@ require_relative 'logging'
 module FFWD
   module Plugin
     class Loaded
-      attr_reader :source, :name
+      attr_reader :source, :name, :description, :options
 
-      def initialize source, name, options
+      def initialize source, name, config
         @source = source
         @name = name
-        @mod = options[:mod]
-        @setup_input_method = load_method @mod, options[:setup_input_method_name]
-        @setup_output_method = load_method @mod, options[:setup_output_method_name]
-        @setup_tunnel_method = load_method @mod, options[:setup_tunnel_method_name]
+        @mod = config[:mod]
+        @description = config[:description]
+        @options = config[:options]
+        @setup_input_method = load_method @mod, config[:setup_input_method_name]
+        @setup_output_method = load_method @mod, config[:setup_output_method_name]
+        @setup_tunnel_method = load_method @mod, config[:setup_tunnel_method_name]
       end
 
       def capabilities
@@ -69,10 +71,10 @@ module FFWD
     class Setup
       attr_reader :name, :config
 
-      def initialize name, setup, config
+      def initialize name, config, setup
         @name = name
-        @setup = setup
         @config = config
+        @setup = setup
       end
 
       def setup *args
@@ -90,7 +92,11 @@ module FFWD
 
     module ClassMethods
       def register_plugin(name, opts={})
-        options = {:mod => self}
+        options = {
+          :mod => self,
+          :description => opts[:description],
+          :options => opts[:options] || []
+        }
 
         options[:setup_input_method_name] = (opts[:setup_input_method] || :setup_input)
         options[:setup_output_method_name] = (opts[:setup_output_method] || :setup_output)
@@ -119,31 +125,34 @@ module FFWD
     def self.load_plugins log, kind_name, config, kind
       result = []
 
-      if config.nil?
-        return result
-      end
+      return result if config.nil?
 
       config.each_with_index do |plugin_config, index|
         d = "#{kind_name} plugin ##{index}"
 
-        if (name = plugin_config[:type]).nil?
+        unless name = plugin_config[:type]
           log.error "#{d}: Missing :type attribute for '#{kind_name}'"
+          next
         end
 
-        if (plugin = FFWD::Plugin.loaded[name]).nil?
+        unless plugin = FFWD::Plugin.loaded[name]
           log.error "#{d}: Not an available plugin '#{name}'"
           next
         end
 
-        unless plugin.can?(kind)
+        unless setup = plugin.get(kind)
           log.error "#{d}: Not an #{kind_name} plugin '#{name}'"
           next
         end
 
-        result << Setup.new(name, plugin.get(kind), plugin_config)
+        result << Setup.new(name, plugin_config, setup)
       end
 
       return result
+    end
+
+    def self.option name, opts={}
+      {:name => name, :default => opts[:default], :help => opts[:help]}
     end
   end
 end

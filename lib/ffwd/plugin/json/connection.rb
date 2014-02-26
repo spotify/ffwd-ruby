@@ -18,11 +18,8 @@ require 'eventmachine'
 require 'ffwd/logging'
 require 'ffwd/connection'
 
-module FFWD::Plugin::JsonLine
-  class Connection < FFWD::Connection
-    include FFWD::Logging
-    include EM::Protocols::LineText2
-
+module FFWD::Plugin::JSON
+  module Connection
     EVENT_FIELDS = [
       ["key", :key],
       ["value", :value],
@@ -42,17 +39,12 @@ module FFWD::Plugin::JsonLine
       ["attributes", :attributes]
     ]
 
-    def self.plugin_type
-      "json_line_in"
-    end
-
-    def initialize bind, core, buffer_limit
+    def initialize bind, core
       @bind = bind
       @core = core
-      @buffer_limit = buffer_limit
     end
 
-    def receive_line data
+    def receive_json data
       data = JSON.load(data)
 
       unless type = data["type"]

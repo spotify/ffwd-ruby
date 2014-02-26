@@ -137,6 +137,67 @@ module FFWD
     plugins
   end
 
+  def self.dump_loaded_plugins
+    puts "Loaded Plugins:"
+
+    FFWD::Plugin.loaded.each do |name, plugin|
+      puts "  Plugin '#{name}'"
+      puts "    Source: #{plugin.source}"
+      puts "    Supports: #{plugin.capabilities.join(' ')}"
+      puts "    Description: #{plugin.description}" if plugin.description
+      unless plugin.options.empty?
+        puts "    Available Options:"
+        plugin.options.each do |opt|
+          puts "      :#{opt[:name]} (default: #{opt[:default].inspect})"
+          puts "        #{opt[:help]}" if opt[:help]
+        end
+      end
+    end
+  end
+
+  def self.dump_activated_plugins all_empty, plugins
+    puts "Activated Plugins:"
+
+    if all_empty
+      no_active_plugins_warning
+    else
+      plugins.each do |kind, kind_plugins|
+        puts "  #{kind}:"
+
+        if kind_plugins.empty?
+          puts "    (no active plugins)"
+          next
+        end
+
+        kind_plugins.each do |p|
+          puts "    #{p.name}: #{p.config}"
+        end
+      end
+    end
+  end
+
+  def self.no_active_plugins_warning
+    puts ""
+    puts "  NO ACTIVATED PLUGINS!"
+    puts ""
+    puts "  1) Did you specify a valid configuration?"
+    puts "  Example ways to configure:"
+    puts "    ffwd -c /etc/ffwd.conf"
+    puts "    ffwd -d /etc/ffwd.d/"
+    puts ""
+    puts "  2) Are your plugins loaded?"
+    puts "  Check with:"
+    puts "    ffwd -c .. --list-plugins"
+    puts ""
+    puts "  3) Did any errors happen when loading the plugins?"
+    puts "  Check with:"
+    puts "    ffwd -c .. --debug"
+    puts ""
+    puts "  4) If you think you've stumbled on a bug, report it to:"
+    puts "    https://github.com/spotify/ffwd"
+    puts ""
+  end
+
   def self.main args
     parse_options args
 
@@ -173,8 +234,12 @@ module FFWD
     end
 
     if config[:logging]
-      config[:logging].each do |key, value|
-        FFWD.log_config[key] = value
+      if config[:debug]
+        puts "Ignoring :logging directive because --debug in effect"
+      else
+        config[:logging].each do |key, value|
+          FFWD.log_config[key] = value
+        end
       end
     end
 
@@ -202,27 +267,14 @@ module FFWD
 
     plugins = setup_plugins config
 
+    all_empty = plugins.values.map(&:empty?).all?
+
     if opts[:list_plugins]
-      puts "Available Plugins:"
-
-      FFWD::Plugin.loaded.each do |name, plugin|
-        puts "Plugin '#{name}' (#{plugin.source})"
-        puts "  supports: #{plugin.capabilities.join(' ')}"
-      end
-
-      puts "Activated Plugins:"
-
-      plugins.each do |kind, kind_plugins|
-        puts "#{kind}:"
-
-        if kind_plugins.empty?
-          puts "  (no active)"
-        end
-
-        kind_plugins.each do |p|
-          puts "  #{p.name}: #{p.config}"
-        end
-      end
+      puts ""
+      dump_loaded_plugins
+      puts ""
+      dump_activated_plugins all_empty, plugins
+      puts ""
     end
 
     if opts[:list_schemas]
@@ -241,6 +293,11 @@ module FFWD
 
     if stop_early
       return 0
+    end
+
+    if all_empty
+      no_active_plugins_warning
+      return 1
     end
 
     core = FFWD::Core.new plugins, config
