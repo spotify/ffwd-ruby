@@ -38,10 +38,10 @@ main() {
 
     if [[ $rspec_ok -ne 0 || $license_ok -ne 0 ]]; then
         echo "Build resulted in failures!" >&2
-        return 0
+        return 1
     fi
 
-    return 1
+    return 0
 }
 
 unset BUNDLE_GEMFILE
