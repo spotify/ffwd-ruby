@@ -24,20 +24,26 @@ license() {
     return 0
 }
 
-rspec_ok=0
-license_ok=0
+main() {
+    rspec_ok=0
+    license_ok=0
 
-if ! rspec; then
-    rspec_ok=1
-fi
+    if ! rspec; then
+        rspec_ok=1
+    fi
 
-if ! license; then
-    license_ok=1
-fi
+    if ! license; then
+        license_ok=1
+    fi
 
-if [[ $rspec_ok -ne 0 || $license_ok -ne 0 ]]; then
-    echo "Build resulted in failures!" >&2
-    exit 1
-fi
+    if [[ $rspec_ok -ne 0 || $license_ok -ne 0 ]]; then
+        echo "Build resulted in failures!" >&2
+        return 0
+    fi
 
-exit 0
+    return 1
+}
+
+unset BUNDLE_GEMFILE
+main
+exit $?

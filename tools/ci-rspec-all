@@ -1,37 +1,37 @@
 #!/bin/bash
 
-bundle=$PWD/vendor/bundle
-exit_status=0
+main() {
+    bundle_path=$PWD/vendor/bundle
+    status=0
 
-bundle install --path $bundle
+    while read -u 3 gemfile; do
+        dir=$(dirname $gemfile)
 
-if ! bundle exec rspec; then
-    exit_status=1
-fi
+        if [[ ! -d $dir/spec ]]; then
+            continue
+        fi
 
-while read -u 3 gemfile; do
-    dir=$(dirname $gemfile)
+        echo "Running specs in: $dir"
 
-    if [[ ! -d $dir/spec ]]; then
-        continue
+        (
+            cd $dir
+            bundle install --path $bundle_path
+
+            if ! bundle exec rspec; then
+                status=1
+            fi
+        )
+    done 3< <(find -name vendor -prune -o -type f -name Gemfile -print)
+
+    if [[ $status -eq 0 ]]; then
+        echo "Tests SUCCESSFUL!"
+    else
+        echo "Tests FAILED!" >&2
     fi
 
-    echo "Running specs in: $dir"
+    return $status
+}
 
-    (
-        cd $dir
-        bundle install --path $bundle
-
-        if ! bundle exec rspec; then
-            exit_status=1
-        fi
-    )
-done 3< <(find plugins -name Gemfile)
-
-if [[ $exit_status -eq 0 ]]; then
-    echo "Tests SUCCESSFUL!"
-else
-    echo "Tests FAILED!" >&2
-fi
-
-exit $exit_status
+unset BUNDLE_GEMFILE
+main
+exit $?
