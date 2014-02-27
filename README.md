@@ -99,13 +99,25 @@ command.
 
 ```bash
 $ ffwd --list-plugins
-Available Plugins:
-Plugin 'log' (from gem: ffwd-<version>)
-  supports: output
-Plugin 'json_line' (from gem: ffwd-<version>)
-  supports: input
-Plugin 'tunnel' (from gem: ffwd-tunnel-<version>)
-  supports: input
+Loaded Plugins:
+  Plugin 'log'
+    Source: from gem: ffwd-<version>
+    Supports: output
+    Description: ...
+    Options:
+      ...
+  Plugin 'json'
+    Source: from gem: ffwd-<version>
+    Supports: input
+    Description: ...
+    Options:
+      ...
+  Plugin 'tunnel'
+    Source: from gem: ffwd-tunnel-<version>
+    Supports: input
+    Description: ...
+    Options:
+      ...
 ...
 ```
 
