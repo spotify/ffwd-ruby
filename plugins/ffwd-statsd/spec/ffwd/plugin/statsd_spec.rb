@@ -16,10 +16,12 @@ end
 
 describe FFWD::Plugin::Statsd::Connection do
   it "should ffwd frames to parser" do
-    input, output = double, double
-    c = described_class.new(nil, input, output)
+    bind = double
+    core = double(:input => double)
+    c = described_class.new(nil, bind, core)
     FFWD::Plugin::Statsd::Parser.should_receive(:parse).with(:data){:metric}
-    input.should_receive(:metric).with(:metric)
+    core.input.should_receive(:metric).with(:metric)
+    bind.should_receive(:increment).with(:received_metrics)
     c.receive_data :data
   end
 end

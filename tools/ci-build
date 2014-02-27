@@ -3,7 +3,7 @@
 rspec() {
     echo "rspec: running..."
 
-    if ! bundle exec rspec; then
+    if ! tools/ci-rspec-all; then
         echo "rspec: failed!" >&2
         return 1
     fi

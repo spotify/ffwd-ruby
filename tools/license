@@ -79,7 +79,7 @@ while read -u 3 libdir; do
      fi
     fi
   done 4< <(find $libdir -type f -name '*.rb')
-done 3< <(find -type d -name lib)
+done 3< <(find -name vendor -prune -o -type d -name lib -print)
 
 while read -u 3 gemspec; do
   dir=$(dirname $gemspec)
@@ -88,6 +88,6 @@ while read -u 3 gemspec; do
       echo "Missing LICENSE for project: $gemspec (expected $license_path)"
     exit_status=1
   fi
-done 3< <(find -type f -name '*.gemspec')
+done 3< <(find -name vendor -prune -o -type f -name '*.gemspec' -print)
 
 exit $exit_status
