@@ -40,7 +40,7 @@ module FFWD::Plugin::JSON
         :help => "Protocol to use when receiving messages. When :kind is :frame, this should be 'udp'.")
     ]
 
-  class LineConnection
+  class LineConnection < FFWD::Connection
     include FFWD::Logging
     include FFWD::Plugin::JSON::Connection
     include EM::Protocols::LineText2
@@ -54,7 +54,7 @@ module FFWD::Plugin::JSON
     end
   end
 
-  class FrameConnection
+  class FrameConnection < FFWD::Connection
     include FFWD::Logging
     include FFWD::Plugin::JSON::Connection
 
