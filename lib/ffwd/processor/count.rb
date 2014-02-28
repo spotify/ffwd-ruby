@@ -77,7 +77,7 @@ module FFWD::Processor
 
       @timer = EM::Timer.new(@period) do
         @timer = nil
-        digest!
+        digest! Time.now
       end
     end
 
