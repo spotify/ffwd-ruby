@@ -54,13 +54,13 @@ module FFWD::Plugin::JSON
 
       if type == "metric"
         @core.input.metric read_metric(data)
-        @bind.increment :received_metric
+        @bind.increment :received_metrics
         return
       end
 
       if type == "event"
         @core.input.event read_event(data)
-        @bind.increment :received_event
+        @bind.increment :received_events
         return
       end
 
