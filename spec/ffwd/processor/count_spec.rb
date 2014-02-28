@@ -22,7 +22,8 @@ describe FFWD::Processor::CountProcessor do
     Time.stub(:now).and_return(0)
 
     metric.should_receive(:emit).with m1.merge(
-      :key => "#{m1[:key]}.sum", :value => m1[:value] * 2, :source => m1[:key])
+      :key => m1[:key], :value => m1[:value] * 2, :source => m1[:key],
+      :attributes => nil, :tags => nil)
 
     count.should_receive(:check_timer)
     count.should_receive(:check_timer)
