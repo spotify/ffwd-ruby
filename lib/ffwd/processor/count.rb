@@ -54,19 +54,25 @@ module FFWD::Processor
     end
 
     def flush_caches! now
-      @cache.each do |key, entry|
+      @cache.each do |cache_key, entry|
+        key = entry[:key]
         count = entry[:count]
         last = entry[:last]
 
+        # OK to modify the hash being iterated over.
         if now - last > @timeout
-          @cache.delete key
+          @cache.delete cache_key
           next
         end
+
+        attributes = entry[:attributes]
+        tags = entry[:tags]
 
         entry[:count] = 0
 
         @emitter.metric.emit(
-          :key => "#{key}.sum", :value => count, :source => key)
+          :key => key, :value => count, :source => key,
+          :attributes => attributes, :tags => tags)
       end
     end
 
@@ -95,9 +101,14 @@ module FFWD::Processor
 
       now = Time.now
 
-      unless (entry = @cache[key])
+      cache_key = [key, (m[:attributes] || {})].hash
+
+      unless (entry = @cache[cache_key])
         return increment :dropped if @cache.size >= @cache_limit
-        entry = @cache[key] = {:count => 0, :last => now}
+        entry = @cache[cache_key] = {
+          :key => key,
+          :count => 0, :last => now, :tags => m[:tags],
+          :attributes => m[:attributes]}
       end
 
       increment :received
