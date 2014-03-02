@@ -145,15 +145,40 @@ module FFWD
 
   def self.dump_loaded_plugins
     FFWD::Plugin.loaded.each do |name, plugin|
-      puts "  Plugin '#{name}'"
+      unless description = plugin.description
+        description = "no description"
+      end
+
+      puts "  Plugin '#{name}' (#{description})"
       puts "    Source: #{plugin.source}"
-      puts "    Supports: #{plugin.capabilities.join(' ')}"
-      puts "    Description: #{plugin.description}" if plugin.description
+      puts "    Supported modes: #{plugin.capabilities.join(', ')}"
+
       unless plugin.options.empty?
         puts "    Available Options:"
         plugin.options.each do |opt|
-          puts "      :#{opt[:name]} (default: #{opt[:default].inspect})"
-          puts "        #{opt[:help]}" if opt[:help]
+          if modes = opt[:modes]
+            modes = modes.join(', ')
+          else
+            modes = "all modes"
+          end
+
+          puts "      :#{opt[:name]} (#{modes})"
+
+          unless (default = opt[:default]).nil?
+            puts "        Default: #{default.inspect}"
+          else
+            puts "        Default: (no default)"
+          end
+
+          if help = opt[:help]
+            if help.is_a? Array
+              help.each do |h|
+                puts "        #{h}"
+              end
+            else
+              puts "        #{help}"
+            end
+          end
         end
       end
     end

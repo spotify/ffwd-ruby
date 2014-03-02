@@ -24,11 +24,24 @@ module FFWD::Plugin
     include FFWD::Plugin
     include FFWD::Logging
 
-    register_plugin "carbon"
-
     DEFAULT_HOST = "localhost"
     DEFAULT_PORT = 2003
     DEFAULT_PROTOCOL = "tcp"
+
+    register_plugin "carbon",
+      :description => "A plugin for the carbon line protocol.",
+      :options => [
+        FFWD::Plugin.option(
+          :host, :default => DEFAULT_HOST, :modes => [:input],
+          :help => [
+            "Host to bind to."
+          ]),
+        FFWD::Plugin.option(
+          :port, :default => DEFAULT_PORT,
+          :help => [
+            "Port to bind to."
+          ]),
+      ]
 
     def self.setup_input opts, core
       opts[:host] ||= DEFAULT_HOST

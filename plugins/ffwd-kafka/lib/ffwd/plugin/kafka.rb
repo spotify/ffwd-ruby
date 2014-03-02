@@ -28,14 +28,40 @@ module FFWD::Plugin
     include FFWD::Plugin
     include FFWD::Logging
 
-    register_plugin "kafka"
-
     DEFAULT_PRODUCER = "ffwd"
-    DEFAULT_ROUTING_METHOD = :attribute
-    DEFAULT_ROUTING_KEY = :site
     DEFAULT_BROKERS = ["localhost:9092"]
     DEFAULT_PARTITIONER = :host
     DEFAULT_ROUTER = :attribute
+
+    register_plugin "kafka",
+      :description => "A plugin for the collectd binary protocol.",
+      :options => [
+        FFWD::Plugin.option(
+          :producer, :default => DEFAULT_PRODUCER,
+          :help => ["Name of the producer."]
+        ),
+        FFWD::Plugin.option(
+          :port, :default => DEFAULT_BROKERS,
+          :help => ["Brokers to connect to."]
+        ),
+        FFWD::Plugin.option(
+          :partitioner, :default => DEFAULT_PARTITIONER,
+          :help => [
+            "Partitioner to use, the partitioner decides what partition key is used for a specific message.",
+            ":host - Base partition key of the host of the event/metric.",
+            ":key - Base partition key of the key of the event/metric.",
+            ":attribute - Base partition key of a specific attribute of the event/metric."
+          ]
+        ),
+        FFWD::Plugin.option(
+          :router, :default => DEFAULT_ROUTER,
+          :help => [
+            "Router to use, the router decides which topic to use for a specific message." 
+          ]
+        ),
+      ] +
+      FFWD::Plugin::Kafka::AttributePartitioner::OPTIONS +
+      FFWD::Plugin::Kafka::AttributeRouter::OPTIONS
 
     def self.setup_output opts, core
       producer = opts[:producer] || DEFAULT_PRODUCER

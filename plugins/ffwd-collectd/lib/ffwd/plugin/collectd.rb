@@ -24,11 +24,28 @@ module FFWD::Plugin::Collectd
   include FFWD::Plugin
   include FFWD::Logging
 
-  register_plugin "collectd"
-
   DEFAULT_HOST = "localhost"
   DEFAULT_PORT = 25826
   DEFAULT_TYPES_DB = "/usr/share/collectd/types.db"
+
+  register_plugin "collectd",
+    :description => "A plugin for the collectd binary protocol.",
+    :options => [
+      FFWD::Plugin.option(
+        :host, :default => DEFAULT_HOST, :modes => [:input],
+        :help => ["Host to bind to."]
+      ),
+      FFWD::Plugin.option(
+        :port, :default => DEFAULT_PORT,
+        :help => ["Port to bind to."]
+      ),
+      FFWD::Plugin.option(
+        :types_db, :default => DEFAULT_TYPES_DB,
+        :help => [
+          "TypesDB to load containing collectd type definitions."
+        ]
+      ),
+    ]
 
   def self.setup_input opts, core
     opts[:host] ||= DEFAULT_HOST

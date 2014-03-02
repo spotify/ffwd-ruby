@@ -32,6 +32,15 @@ module FFWD::Plugin::Kafka
   class AttributePartitioner
     DEFAULT_ATTRIBUTE = :site
 
+    OPTIONS = [
+      FFWD::Plugin.option(
+        :attribute, :default => DEFAULT_ATTRIBUTE,
+        :help => [
+          "Attribute to use when the partitioner is set to :attribute."
+        ]
+      ),
+    ]
+
     def self.build opts
       attr = opts[:attribute] || DEFAULT_ATTRIBUTE
       new attr

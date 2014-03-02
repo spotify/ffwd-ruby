@@ -28,16 +28,26 @@ module FFWD::Plugin::JSON
   DEFAULT_HOST = "localhost"
   DEFAULT_PORT = 19000
   DEFAULT_PROTOCOL = "tcp"
+  DEFAULT_KIND = "line"
 
   register_plugin "json",
     :description => "A simple JSON protocol implementation",
     :options => [
       FFWD::Plugin.option(
-        :kind, :default => :line,
-        :help => "Kind of protocol to use, valid options are: :frame and :line."),
+        :kind, :default => DEFAULT_KIND,
+        :help => [
+          "Kind of protocol to use, valid options are 'frame' and 'line'.",
+          "'frame' means that the protocol is frame delimited, " +
+          "so each received datagram is received.",
+          "'line' means that the protocol is line-delimited, " +
+          "each line is assumed to be a JSON object."
+        ]),
       FFWD::Plugin.option(
         :protocol, :default => DEFAULT_PROTOCOL,
-        :help => "Protocol to use when receiving messages. When :kind is :frame, this should be 'udp'.")
+        :help => [
+          "Protocol to use when receiving messages.",
+          "When :kind is 'frame', this should be 'udp'."
+        ])
     ]
 
   class LineConnection < FFWD::Connection
@@ -67,31 +77,22 @@ module FFWD::Plugin::JSON
     end
   end
 
-  KINDS = {
-    :frame => FrameConnection,
-    :line => LineConnection,
-  }
+  KINDS = {"frame" => FrameConnection, "line" => LineConnection}
 
   def self.setup_input opts, core
+    protocol = FFWD.parse_protocol opts[:protocol] || DEFAULT_PROTOCOL
+    kind = (opts[:kind] || DEFAULT_KIND).to_s
+    raise "No such kind: #{kind}" unless connection = KINDS[kind]
     opts[:host] ||= DEFAULT_HOST
     opts[:port] ||= DEFAULT_PORT
-    protocol = FFWD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
-    kind = opts[:kind] || :line
-    unless connection = KINDS[kind]
-      raise "No such kind: #{kind}"
-    end
-
     protocol.bind opts, core, log, connection
   end
 
   def self.setup_tunnel opts, core, tunnel
+    protocol = FFWD.parse_protocol opts[:protocol] || "tcp"
+    kind = (opts[:kind] || DEFAULT_KIND).to_s
+    raise "No such kind: #{kind}" unless connection = KINDS[kind]
     opts[:port] ||= DEFAULT_PORT
-    protocol = FFWD.parse_protocol(opts[:protocol] || "tcp")
-    kind = opts[:kind] || :line
-    unless connection = KINDS[kind]
-      raise "No such kind: #{kind}"
-    end
-
     protocol.tunnel opts, core, tunnel, log, connection
   end
 end

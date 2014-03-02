@@ -92,17 +92,17 @@ module FFWD
 
     module ClassMethods
       def register_plugin(name, opts={})
-        options = {
+        config = {
           :mod => self,
           :description => opts[:description],
           :options => opts[:options] || []
         }
 
-        options[:setup_input_method_name] = (opts[:setup_input_method] || :setup_input)
-        options[:setup_output_method_name] = (opts[:setup_output_method] || :setup_output)
-        options[:setup_tunnel_method_name] = (opts[:setup_tunnel_method] || :setup_tunnel)
+        config[:setup_input_method_name] = (opts[:setup_input_method] || :setup_input)
+        config[:setup_output_method_name] = (opts[:setup_output_method] || :setup_output)
+        config[:setup_tunnel_method_name] = (opts[:setup_tunnel_method] || :setup_tunnel)
 
-        FFWD::Plugin.discovered[name] = options
+        FFWD::Plugin.discovered[name] = config
       end
     end
 
@@ -115,8 +115,8 @@ module FFWD
     end
 
     def self.load_discovered source
-      FFWD::Plugin.discovered.each do |name, options|
-        FFWD::Plugin.loaded[name] = Loaded.new source, name, options
+      FFWD::Plugin.discovered.each do |name, config|
+        FFWD::Plugin.loaded[name] = Loaded.new source, name, config
       end
 
       FFWD::Plugin.discovered.clear
@@ -152,7 +152,8 @@ module FFWD
     end
 
     def self.option name, opts={}
-      {:name => name, :default => opts[:default], :help => opts[:help]}
+      {:name => name, :default => opts[:default], :help => opts[:help],
+       :modes => opts[:modes]}
     end
   end
 end

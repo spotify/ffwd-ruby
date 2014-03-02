@@ -28,13 +28,13 @@ module FFWD::Plugin
     register_plugin "log",
       :description => "A simple plugin that outputs to the primary log.",
       :options => [
-        FFWD::Plugin.option(:prefix, :help => "Prefix for every line logged."),
+        FFWD::Plugin.option(:prefix, :help => [
+          "Prefix for every line logged."
+        ]),
       ]
 
-
     def self.setup_output opts, core
-      prefix = opts[:prefix]
-      Writer.new core, prefix
+      Writer.new core, opts.prefix
     end
   end
 end
