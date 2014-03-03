@@ -34,7 +34,7 @@ module FFWD::Plugin
       ]
 
     def self.setup_output opts, core
-      Writer.new core, opts.prefix
+      Writer.new core, opts[:prefix]
     end
   end
 end
