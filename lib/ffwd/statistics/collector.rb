@@ -22,6 +22,7 @@ module FFWD::Statistics
     include FFWD::Lifecycle
 
     DEFAULT_PERIOD = 10
+    DEFAULT_PREFIX = "ffwd"
 
     # Initialize the statistics collector.
     #
@@ -38,6 +39,7 @@ module FFWD::Statistics
       @reporters = {}
       @channel = channel
       @timer = nil
+      @prefix = opts[:prefix] || DEFAULT_PREFIX
 
       system = SystemStatistics.new(opts[:system] || {})
 
@@ -72,6 +74,7 @@ module FFWD::Statistics
     def generate! last, now
       if @system
         @system.collect @channel do |key, value|
+          key = "#{@prefix}.#{key}"
           @emitter.metric.emit(
             :key => key, :value => value,
             :tags => @tags, :attributes => @attributes)
@@ -81,8 +84,9 @@ module FFWD::Statistics
       @reporters.each do |id, reporter|
         reporter.report! do |d|
           attributes = FFWD.merge_hashes @attributes, d[:meta]
+          key = "#{@prefix}.#{d[:key]}"
           @emitter.metric.emit(
-            :key => d[:key], :value => d[:value],
+            :key => key, :value => d[:value],
             :tags => @tags, :attributes => attributes)
         end
       end
