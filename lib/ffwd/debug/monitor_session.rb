@@ -20,6 +20,7 @@ module FFWD::Debug
     attr_reader :id
 
     def initialize id, channel, type
+      @id = id
       @type = type
       @clients = {}
 
