@@ -146,15 +146,20 @@ module FFWD
         return
       end
 
+      # store buffer sizes for use in callbacks.
+      events_size = @events.size
+      metrics_size = @metrics.size
+
       @request.callback do
-        increment :sent_events, @events.size
-        increment :sent_metrics, @metrics.size
+        increment :sent_events, events_size
+        increment :sent_metrics, metrics_size
         @request = nil
       end
 
-      @request.errback do
-        increment :failed_events, @events.size
-        increment :failed_metrics, @metrics.size
+      @request.errback do |e|
+        log.error "Failed to produce", e
+        increment :failed_events, events_size
+        increment :failed_metrics, metrics_size
         @request = nil
       end
     rescue => e
