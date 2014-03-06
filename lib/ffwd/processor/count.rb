@@ -38,7 +38,7 @@ module FFWD::Processor
       @emitter = emitter
       @cache_limit = opts[:cache_limit] || 1000
       @timeout = opts[:timeout] || 300
-      @period = opts[:period] || 10
+      @period = opts[:period] || 30
       @cache = {}
       @timer = nil
 
