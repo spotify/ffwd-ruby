@@ -91,7 +91,7 @@ You can then install the plugin(s) you want.
 $ gem install ffwd-<plugin>
 ```
 
-You can check that the plugin is available to FFWD using the **--list-plugins**
+You can check that the plugin is available to FFWD using the **--plugins**
 command.
 
 ```bash
