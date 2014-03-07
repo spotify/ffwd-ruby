@@ -11,9 +11,6 @@ using a set of standard protocols.
 It is a single point of entry for any service to dispatch data in any protocol
 that happens to suit them with a simple endpoint.
 
-*FFWD is currently a prototype implemented to explore this design.
-Your mileage might vary.*
-
 * [Usage](#usage)
 * [Installation](#installation)
   * [Installing Plugins](#installing-plugins)
