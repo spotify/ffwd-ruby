@@ -16,7 +16,7 @@
 module FFWD
   module Plugin
     module KairosDB
-      VERSION = "0.1.3"
+      VERSION = "0.1.4"
     end
   end
 end
