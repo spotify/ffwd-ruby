@@ -48,6 +48,7 @@ module FFWD
       e[:ttl] ||= @ttl if @ttl
       e[:tags] = FFWD.merge_sets @tags, e[:tags]
       e[:attributes] = FFWD.merge_hashes @attributes, e[:attributes]
+      m[:value] = nil if m[:value] == Float::NAN
 
       @output.event Event.make(e)
     rescue => e

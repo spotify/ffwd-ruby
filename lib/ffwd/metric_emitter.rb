@@ -41,6 +41,7 @@ module FFWD
       m[:host] ||= @host if @host
       m[:tags] = FFWD.merge_sets @tags, m[:tags]
       m[:attributes] = FFWD.merge_hashes @attributes, m[:attributes]
+      m[:value] = nil if m[:value] == Float::NAN
 
       @output.metric Metric.make(m)
     rescue => e
