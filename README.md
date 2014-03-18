@@ -48,7 +48,7 @@ built-in reference [JSON-line protocol](/lib/ffwd/plugin/json_line.rb).
 
 ```bash
 $ echo "random.diceroll 4  `date +%s`" | nc -q0 localhost 2003
-$ echo '{"type": "metric", "key": "random.diceroll", "value": 6}' | nc -q0 localhost 3000
+$ echo '{"type": "metric", "key": "random.diceroll", "value": 6}' | nc -u -q0 localhost 19000
 ```
 
 You can try out more advanced protocols using the supplied sample client:
@@ -144,12 +144,12 @@ This is done by adding the following to your ffwd configuration.
 :debug: {}
 ```
 
-This will setup the component to listen on the default debug port (9999).
+This will setup the component to listen on the default debug port (19001).
 
 The traffic can now be sniffed with a tool like netcat.
 
 ```
-$ nc localhost 9999
+$ nc localhost 19001
 {"id":"core.output","type":"event","data": ...}
 {"id":"tunnel.input/127.0.0.1:55606","type":"event","data": ...}
 {"id":"core.output","type":"event","data": ...}
