@@ -48,7 +48,7 @@ built-in reference [JSON-line protocol](/lib/ffwd/plugin/json_line.rb).
 
 ```bash
 $ echo "random.diceroll 4  `date +%s`" | nc -q0 localhost 2003
-$ echo '{"type": "metric", "key": "random.diceroll", "value": 6}' | nc -u -q0 localhost 19000
+$ echo '{"type": "metric", "key": "random.diceroll", "value": 6}' | nc -q0 localhost 19000
 ```
 
 You can try out more advanced protocols using the supplied sample client:
