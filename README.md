@@ -44,7 +44,7 @@ You can now send events and metrics to it using one of the enabled input
 protocols.
 
 E.g. the carbon protocol (requires [ffwd-carbon](/plugins/ffwd-carbon)) or the
-built-in reference [JSON-line protocol](/lib/ffwd/plugin/json_line.rb).
+built-in reference [JSON protocol](/lib/ffwd/plugin/json.rb).
 
 ```bash
 $ echo "random.diceroll 4  `date +%s`" | nc -q0 localhost 2003
