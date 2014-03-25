@@ -95,7 +95,7 @@ You can check that the plugin is available to FFWD using the **--plugins**
 command.
 
 ```bash
-$ ffwd --list-plugins
+$ ffwd --plugins
 Loaded Plugins:
   Plugin 'log'
     Source: from gem: ffwd-<version>

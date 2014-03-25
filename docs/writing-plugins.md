@@ -26,10 +26,10 @@ Adding this file to lib/ffwd/plugin/foo.rb will make FFWD automatically
 discover it.
 
 You can try this in the **ffwd** project and then test it with
-```bin/ffwd --list-plugins```.
+```bin/ffwd --plugins```.
 
 ```bash
-$ bin/ffwd --list-plugins
+$ bin/ffwd --plugins
 ```
 
 Done right this should list your newly created plugin among the list of
