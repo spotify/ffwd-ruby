@@ -209,7 +209,7 @@ module FFWD
     puts ""
     puts "  2) Are your plugins loaded?"
     puts "  Check with:"
-    puts "    ffwd -c .. --list-plugins"
+    puts "    ffwd -c .. --plugins"
     puts ""
     puts "  3) Did any errors happen when loading the plugins?"
     puts "  Check with:"

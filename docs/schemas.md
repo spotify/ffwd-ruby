@@ -20,7 +20,7 @@ file.
     :content_type: "application/json"
 ```
 
-To list all availble schemas and content types, use **ffwd --list-schemas**.
+To list all availble schemas and content types, use **ffwd --schemas**.
 
 This assumes that *my-schema-v01* is provided by a component which has been
 loaded.
