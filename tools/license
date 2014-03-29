@@ -78,7 +78,7 @@ while read -u 3 libdir; do
        echo "$libdir: $file: no action"
      fi
     fi
-  done 4< <(find $libdir -type f -name '*.rb')
+  done 4< <(find $libdir -type f -name '*.rb' -a ! -name '*.pb.rb')
 done 3< <(find -name vendor -prune -o -type d -name lib -print)
 
 while read -u 3 gemspec; do

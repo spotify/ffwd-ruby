@@ -1,0 +1,60 @@
+package FFWD.Plugin.Protobuf.Protocol;
+
+option java_package = "com.spotify.ffwd";
+option java_outer_classname = "Protocol";
+
+message Metric {
+  // time in ms when metric was generated.
+  optional int64 time = 1;
+  // key of metric.
+  optional string key = 2;
+  // value of metric.
+  optional Value value = 3;
+  // host where metric originated.
+  optional string host = 4;
+  // source metric of the metric.
+  optional string source = 5;
+  // tags associated to metric.
+  repeated string tags = 6;
+  // attributes associated to metric.
+  repeated Attribute attributes = 7;
+}
+
+message Event {
+  // time in ms when the event was generated.
+  optional int64 time = 1;
+  // key of event.
+  optional string key = 2;
+  // value of event.
+  optional Value value = 3;
+  // host where event originated.
+  optional string host = 4;
+  // source event (if any).
+  optional string source = 5;
+  // indicated state of this event.
+  optional string state = 6;
+  // description of event.
+  optional string description = 7;
+  // time this event should be considered valid in seconds.
+  optional int64 ttl = 8;
+  // tags associated to event.
+  repeated string tags = 9;
+  // attributes associated to event.
+  repeated Attribute attributes = 10;
+}
+
+message Attribute {
+  required string key = 1;
+  optional string value = 2;
+}
+
+message Value {
+  optional sint64 value_sint64 = 1;
+  optional double value_d = 2;
+  optional float value_f = 3;
+}
+
+message Message {
+  optional Metric metric = 1;
+  optional Event event = 2;
+}

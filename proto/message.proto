@@ -1,0 +1,43 @@
+option java_package = "com.spotify.ffwd";
+option java_outer_classname = "Protocol";
+
+message Metric {
+  optional string key = 1;
+  optional string host = 2;
+  // time in ms
+  optional int64 time = 3;
+  repeated string tags = 4;
+  repeated Attribute attributes = 5;
+
+  optional Value value = 6;
+}
+
+message Event {
+  optional string key = 1;
+  optional string host = 2;
+  // time in ms.
+  optional int64 time = 3;
+  repeated string tags = 4;
+  repeated Attribute attributes = 5;
+
+  optional string state = 6;
+  optional string description = 7;
+  // time this event should be considered valid in seconds.
+  optional int64 ttl = 8;
+}
+
+message Attribute {
+  required string key = 1;
+  optional string value = 2;
+}
+
+message Value {
+  optional sint64 value_sint64 = 1;
+  optional double value_d = 2;
+  optional float value_f = 3;
+}
+
+message Message {
+  optional Metric metric = 1;
+  optional Event event = 2;
+}

@@ -1,0 +1,11 @@
+#!/bin/bash
+
+ROOT=$(dirname $(dirname $0))
+BUNDLE=$PWD/bundle
+
+(
+  cd $ROOT
+  bundle install --binstubs $BUNDLE/bin --path $BUNDLE/vendor
+)
+
+$BUNDLE/bin/rprotoc --out $ROOT/lib/ffwd/plugin/protobuf $ROOT/proto/protocol.proto
