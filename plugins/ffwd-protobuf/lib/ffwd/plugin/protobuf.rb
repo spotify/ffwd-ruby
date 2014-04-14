@@ -183,19 +183,16 @@ module FFWD::Plugin::Protobuf
     private
 
     def from_value value
-      if f = value.value_f
-        return f
+      case value.type
+        when P::Value::Type::SINT64
+          return value.value_sint64
+        when P::Value::Type::DOUBLE
+          return value.value_d
+        when P::Value::Type::FLOAT
+          return value.value_f
+        else
+          raise "No value set: #{value}"
       end
-
-      if d = value.value_d
-        return d
-      end
-
-      if l = value.value_sint64
-        return l
-      end
-
-      raise "No value set: #{value}"
     end
 
     def from_attributes attributes
