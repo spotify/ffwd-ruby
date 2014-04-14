@@ -49,9 +49,13 @@ message Attribute {
 }
 
 message Value {
-  optional sint64 value_sint64 = 1;
-  optional double value_d = 2;
-  optional float value_f = 3;
+  enum Type { SINT64 = 1; DOUBLE = 2; FLOAT = 3; }
+
+  required Type type = 1;
+
+  optional sint64 value_sint64 = 2;
+  optional double value_d = 3;
+  optional float value_f = 4;
 }
 
 message Message {
