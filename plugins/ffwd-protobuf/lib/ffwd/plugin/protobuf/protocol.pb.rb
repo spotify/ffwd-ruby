@@ -11,7 +11,7 @@
 #   // key of metric.
 #   optional string key = 2;
 #   // value of metric.
-#   optional Value value = 3;
+#   optional double value = 3;
 #   // host where metric originated.
 #   optional string host = 4;
 #   // source metric of the metric.
@@ -28,7 +28,7 @@
 #   // key of event.
 #   optional string key = 2;
 #   // value of event.
-#   optional Value value = 3;
+#   optional double value = 3;
 #   // host where event originated.
 #   optional string host = 4;
 #   // source event (if any).
@@ -48,16 +48,6 @@
 # message Attribute {
 #   required string key = 1;
 #   optional string value = 2;
-# }
-# 
-# message Value {
-#   enum Type { SINT64 = 1; DOUBLE = 2; FLOAT = 3; }
-# 
-#   required Type type = 1;
-# 
-#   optional sint64 value_sint64 = 2;
-#   optional double value_d = 3;
-#   optional float value_f = 4;
 # }
 # 
 # message Message {
@@ -80,7 +70,7 @@ module FFWD
           defined_in __FILE__
           optional :int64, :time, 1
           optional :string, :key, 2
-          optional :Value, :value, 3
+          optional :double, :value, 3
           optional :string, :host, 4
           optional :string, :source, 5
           repeated :string, :tags, 6
@@ -90,7 +80,7 @@ module FFWD
           defined_in __FILE__
           optional :int64, :time, 1
           optional :string, :key, 2
-          optional :Value, :value, 3
+          optional :double, :value, 3
           optional :string, :host, 4
           optional :string, :source, 5
           optional :string, :state, 6
@@ -103,19 +93,6 @@ module FFWD
           defined_in __FILE__
           required :string, :key, 1
           optional :string, :value, 2
-        end
-        class Value < ::Protobuf::Message
-          defined_in __FILE__
-          class Type < ::Protobuf::Enum
-            defined_in __FILE__
-            SINT64 = value(:SINT64, 1)
-            DOUBLE = value(:DOUBLE, 2)
-            FLOAT = value(:FLOAT, 3)
-          end
-          required :Type, :type, 1
-          optional :sint64, :value_sint64, 2
-          optional :double, :value_d, 3
-          optional :float, :value_f, 4
         end
         class Message < ::Protobuf::Message
           defined_in __FILE__
