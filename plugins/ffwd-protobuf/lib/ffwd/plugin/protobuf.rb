@@ -147,14 +147,14 @@ module FFWD::Plugin::Protobuf
 
     def receive_event e
       d = {}
-      d[:time] = Time.at(e.time.to_f / 1000) if e.time
-      d[:key] = e.key if e.key
-      d[:value] = from_value e.value if e.value
-      d[:host] = e.host if e.host
-      d[:source] = e.source if e.source
-      d[:state] = e.state if e.state
-      d[:description] = e.description if e.description
-      d[:ttl] = e.ttl if e.ttl
+      d[:time] = Time.at(e.time.to_f / 1000) if e.has_field?(:time)
+      d[:key] = e.key if e.has_field?(:key)
+      d[:value] = e.value if e.has_field?(:value)
+      d[:host] = e.host if e.has_field?(:host)
+      d[:source] = e.source if e.has_field?(:source)
+      d[:state] = e.state if e.has_field?(:state)
+      d[:description] = e.description if e.has_field?(:description)
+      d[:ttl] = e.ttl if e.has_field?(:ttl)
       d[:tags] = from_tags m.tags if m.tags
       d[:attributes] = from_attributes m.attributes if m.attributes
       @core.input.event d
@@ -166,11 +166,11 @@ module FFWD::Plugin::Protobuf
 
     def receive_metric m
       d = {}
-      d[:time] = Time.at(m.time.to_f / 1000) if m.time
-      d[:key] = m.key if m.key
-      d[:value] = from_value m.value if m.value
-      d[:host] = m.host if m.host
-      d[:source] = m.source if m.source
+      d[:time] = Time.at(m.time.to_f / 1000) if m.has_field?(:time)
+      d[:key] = m.key if m.has_field?(:key)
+      d[:value] = m.value if m.has_field?(:value)
+      d[:host] = m.host if m.has_field?(:host)
+      d[:source] = m.source if m.has_field?(:source)
       d[:tags] = from_tags m.tags if m.tags
       d[:attributes] = from_attributes m.attributes if m.attributes
       @core.input.metric d
@@ -181,19 +181,6 @@ module FFWD::Plugin::Protobuf
     end
 
     private
-
-    def from_value value
-      case value.type
-        when P::Value::Type::SINT64
-          return value.value_sint64
-        when P::Value::Type::DOUBLE
-          return value.value_d
-        when P::Value::Type::FLOAT
-          return value.value_f
-        else
-          raise "No value set: #{value}"
-      end
-    end
 
     def from_attributes attributes
       Hash[attributes.map{|a| [a.key, a.value]}]
