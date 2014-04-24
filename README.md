@@ -6,10 +6,30 @@ A highly flexible, multi-protocol events and metrics forwarder capable of
 merging and decorating events and metrics from a number of sources and
 multiplexing them to number of event and metric consumers.
 
-FFWD is a deamon meant to run on a single host and receive metrics and events
+FFWD is a agent meant to run on a single host and receive metrics and events
 using a set of standard protocols.
-It is a single point of entry for any service to dispatch data in any protocol
-that happens to suit them with a simple endpoint.
+It is meant to run on a system and listen to the default port of its
+supported protocols, this meshes well with any client that wants to send to it
+in that they typically require zero configuration.
+
+The following is an example client sending riemann events.
+
+```python
+import bernhard
+client = bernhard.Client(transport=bernhard.UDPTransport)
+
+client.send({'service': 'myservice', 'metric': 12, 'unit': 'B'})
+```
+
+FFWD takes care to add any _system-wide_ tags, like _site_, _host_ and the
+_role_ of the machine it is sent from. See the __core -> attributes__ section
+in the [Example Configuration](docs/simple.conf) for details.
+
+This allows for decoration of the received metrics and events to make them
+_semantic from the source_.
+
+This is reminiscent of the concepts described in the
+[Metrics 2.0 Specification](http://metrics20.org).
 
 * [Usage](#usage)
 * [Installation](#installation)
