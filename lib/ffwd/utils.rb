@@ -43,4 +43,8 @@ module FFWD
     stop = Time.now
     ((stop - start) * 1000).round(3)
   end
+
+  def self.dump2hex data
+    data.bytes.map { |byte| byte.to_s(16) }.join
+  end
 end

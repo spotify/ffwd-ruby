@@ -86,6 +86,10 @@ module FFWD
       @progname = klass.name
     end
 
+    def debug?
+      FFWD.log.debug?
+    end
+
     def debug message
       FFWD.log.debug(@progname){message}
     end

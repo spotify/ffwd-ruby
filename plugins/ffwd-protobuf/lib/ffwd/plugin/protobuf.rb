@@ -14,6 +14,7 @@
 # the License.
 
 require 'eventmachine'
+require 'em/protocols/frame_object_protocol'
 
 require 'ffwd/connection'
 require 'ffwd/handler'
@@ -119,7 +120,7 @@ module FFWD::Plugin::Protobuf
 
   class Input < FFWD::Connection
     include FFWD::Logging
-    include EM::Protocols::ObjectProtocol
+    include EM::Protocols::FrameObjectProtocol
 
     def initialize bind, core, log
       @bind = bind
@@ -136,25 +137,32 @@ module FFWD::Plugin::Protobuf
     end
 
     def receive_object message
-      if e = message.event
-        receive_event e
+      if message.has_field?(:event)
+        receive_event message.event
       end
 
-      if m = message.metric
-        receive_metric m
+      if message.has_field?(:metric)
+        receive_metric message.metric
+      end
+    end
+
+    def handle_exception datagram, e
+      @log.error("Failed to decode protobuf object", e)
+      if @log.debug?
+        @log.debug("FRAME: " + FFWD.dump2hex(datagram))
       end
     end
 
     def receive_event e
       d = {}
-      d[:time] = Time.at(e.time.to_f / 1000) if e.time
-      d[:key] = e.key if e.key
-      d[:value] = from_value e.value if e.value
-      d[:host] = e.host if e.host
-      d[:source] = e.source if e.source
-      d[:state] = e.state if e.state
-      d[:description] = e.description if e.description
-      d[:ttl] = e.ttl if e.ttl
+      d[:time] = Time.at(e.time.to_f / 1000) if e.has_field?(:time)
+      d[:key] = e.key if e.has_field?(:key)
+      d[:value] = e.value if e.has_field?(:value)
+      d[:host] = e.host if e.has_field?(:host)
+      d[:source] = e.source if e.has_field?(:source)
+      d[:state] = e.state if e.has_field?(:state)
+      d[:description] = e.description if e.has_field?(:description)
+      d[:ttl] = e.ttl if e.has_field?(:ttl)
       d[:tags] = from_tags m.tags if m.tags
       d[:attributes] = from_attributes m.attributes if m.attributes
       @core.input.event d
@@ -166,11 +174,11 @@ module FFWD::Plugin::Protobuf
 
     def receive_metric m
       d = {}
-      d[:time] = Time.at(m.time.to_f / 1000) if m.time
-      d[:key] = m.key if m.key
-      d[:value] = from_value m.value if m.value
-      d[:host] = m.host if m.host
-      d[:source] = m.source if m.source
+      d[:time] = Time.at(m.time.to_f / 1000) if m.has_field?(:time)
+      d[:key] = m.key if m.has_field?(:key)
+      d[:value] = m.value if m.has_field?(:value)
+      d[:host] = m.host if m.has_field?(:host)
+      d[:source] = m.source if m.has_field?(:source)
       d[:tags] = from_tags m.tags if m.tags
       d[:attributes] = from_attributes m.attributes if m.attributes
       @core.input.metric d
@@ -181,22 +189,6 @@ module FFWD::Plugin::Protobuf
     end
 
     private
-
-    def from_value value
-      if f = value.value_f
-        return f
-      end
-
-      if d = value.value_d
-        return d
-      end
-
-      if l = value.value_sint64
-        return l
-      end
-
-      raise "No value set: #{value}"
-    end
 
     def from_attributes attributes
       Hash[attributes.map{|a| [a.key, a.value]}]
@@ -209,10 +201,10 @@ module FFWD::Plugin::Protobuf
 
   DEFAULT_HOST = "localhost"
   DEFAULT_PORT = 19091
-  DEFAULT_PROTOCOL = 'tcp'
+  DEFAULT_PROTOCOL = 'udp'
 
-  OUTPUTS = {:tcp => Output, :udp => Output}
-  INPUTS = {:tcp => Input, :udp => Input}
+  OUTPUTS = {:udp => Output}
+  INPUTS = {:udp => Input}
 
   def self.setup_output opts, core
     opts[:host] ||= DEFAULT_HOST
