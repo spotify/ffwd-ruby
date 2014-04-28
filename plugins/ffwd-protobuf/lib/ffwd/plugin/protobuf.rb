@@ -14,6 +14,7 @@
 # the License.
 
 require 'eventmachine'
+require 'em/protocols/frame_object_protocol'
 
 require 'ffwd/connection'
 require 'ffwd/handler'
@@ -119,7 +120,7 @@ module FFWD::Plugin::Protobuf
 
   class Input < FFWD::Connection
     include FFWD::Logging
-    include EM::Protocols::ObjectProtocol
+    include EM::Protocols::FrameObjectProtocol
 
     def initialize bind, core, log
       @bind = bind
@@ -136,12 +137,19 @@ module FFWD::Plugin::Protobuf
     end
 
     def receive_object message
-      if e = message.event
-        receive_event e
+      if message.has_field?(:event)
+        receive_event message.event
       end
 
-      if m = message.metric
-        receive_metric m
+      if message.has_field?(:metric)
+        receive_metric message.metric
+      end
+    end
+
+    def handle_exception datagram, e
+      @log.error("Failed to decode protobuf object", e)
+      if @log.debug?
+        @log.debug("FRAME: " + FFWD.dump2hex(datagram))
       end
     end
 
@@ -193,10 +201,10 @@ module FFWD::Plugin::Protobuf
 
   DEFAULT_HOST = "localhost"
   DEFAULT_PORT = 19091
-  DEFAULT_PROTOCOL = 'tcp'
+  DEFAULT_PROTOCOL = 'udp'
 
-  OUTPUTS = {:tcp => Output, :udp => Output}
-  INPUTS = {:tcp => Input, :udp => Input}
+  OUTPUTS = {:udp => Output}
+  INPUTS = {:udp => Input}
 
   def self.setup_output opts, core
     opts[:host] ||= DEFAULT_HOST
