@@ -9,7 +9,7 @@ message Metric {
   // key of metric.
   optional string key = 2;
   // value of metric.
-  optional Value value = 3;
+  optional double value = 3;
   // host where metric originated.
   optional string host = 4;
   // source metric of the metric.
@@ -26,7 +26,7 @@ message Event {
   // key of event.
   optional string key = 2;
   // value of event.
-  optional Value value = 3;
+  optional double value = 3;
   // host where event originated.
   optional string host = 4;
   // source event (if any).
@@ -46,12 +46,6 @@ message Event {
 message Attribute {
   required string key = 1;
   optional string value = 2;
-}
-
-message Value {
-  optional sint64 value_sint64 = 1;
-  optional double value_d = 2;
-  optional float value_f = 3;
 }
 
 message Message {
