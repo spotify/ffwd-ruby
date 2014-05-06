@@ -57,11 +57,17 @@ module FFWD::Plugin::Riemann
   end
 
   class InputTCP < FFWD::Plugin::Riemann::Connection
-    include EM::Protocols::ObjectProtocol
+    include EM::Protocols::FrameObjectProtocol
+
+    def serializer
+      FFWD::Plugin::Riemann::Serializer
+    end
 
     def self.plugin_type
       "riemann_in"
     end
+
+    alias_method :receive_object, :receive_message
 
     def send_ok
       send_object(::Riemann::Message.new(
@@ -75,12 +81,16 @@ module FFWD::Plugin::Riemann
   end
 
   class InputUDP < FFWD::Plugin::Riemann::Connection
+    def serializer
+      FFWD::Plugin::Riemann::Serializer
+    end
+
     def self.plugin_type
       "riemann_in"
     end
 
     def receive_data(data)
-      receive_object serializer.load(data)
+      receive_message serializer.load(data)
     end
   end
 

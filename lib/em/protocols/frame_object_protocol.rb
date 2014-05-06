@@ -34,8 +34,6 @@ module EventMachine
 
       # @private
       def receive_data data
-        p data
-
         begin
           if data.size < 4
             raise "Received invalid datagram, datagram way too small"
@@ -54,7 +52,6 @@ module EventMachine
           return
         end
 
-        p obj
         receive_object obj
       end
 

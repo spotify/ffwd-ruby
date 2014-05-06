@@ -13,27 +13,16 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
+require 'em/protocols/frame_object_protocol'
+
 require 'ffwd/connection'
 
 require_relative 'shared'
+require_relative 'serializer'
 
 module FFWD::Plugin::Riemann
   class Connection < FFWD::Connection
     include FFWD::Plugin::Riemann::Shared
-
-    module Serializer
-      def self.dump(m)
-        m.encode.to_s
-      end
-
-      def self.load(data)
-        ::Riemann::Message.decode(data)
-      end
-    end
-
-    def serializer
-      FFWD::Plugin::Riemann::Connection::Serializer
-    end
 
     def initialize bind, core, log
       @bind = bind
@@ -41,7 +30,7 @@ module FFWD::Plugin::Riemann
       @log = log
     end
 
-    def receive_object(m)
+    def receive_message(m)
       # handle no events in object.
       if m.events.nil?
         send_ok
