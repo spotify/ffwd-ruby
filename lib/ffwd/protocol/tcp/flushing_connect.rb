@@ -17,7 +17,7 @@ require_relative '../../reporter'
 
 module FFWD::TCP
   # A TCP connection implementation that buffers events and metrics in batches
-  # over a time window and calls 'send_all' on the connection.
+  # over a time interval and calls 'send_all' on the connection.
   class FlushingConnect
     include FFWD::Reporter
 
@@ -30,6 +30,7 @@ module FFWD::TCP
 
     attr_reader :log
 
+    # reporter metadata is inherited from the provided connection.
     def reporter_meta
       @c.reporter_meta
     end
@@ -80,11 +81,22 @@ module FFWD::TCP
       end
     end
 
+    # Call try_flush! if we have data in buffers.
+    # If exception is caught, call fail_flush which will report diagnostics and
+    # statistics.
     def flush!
       if @event_buffer.empty? and @metric_buffer.empty?
         return
       end
 
+      try_flush! Time.now
+    rescue => e
+      fail_flush! e
+    end
+
+    private
+
+    def try_flush! now
       unless @c.writable?
         increment :dropped_events, @event_buffer.size
         increment :dropped_metrics, @metric_buffer.size
@@ -94,10 +106,14 @@ module FFWD::TCP
       @c.send_all @event_buffer, @metric_buffer
       increment :sent_events, @event_buffer.size
       increment :sent_metrics, @metric_buffer.size
-    rescue => e
-      log.error "Failed to flush buffers", e
+    ensure
+      @event_buffer.clear
+      @metric_buffer.clear
+    end
 
-      log.error "The following data could not be flushed:"
+    def fail_flush! e
+      log.error "Failed to flush buffers", e
+      log.error "The following data could NOT be sent:"
 
       @event_buffer.each_with_index do |event, i|
         log.error "##{i}: #{event.to_h}"
@@ -109,12 +125,7 @@ module FFWD::TCP
 
       increment :failed_events, @event_buffer.size
       increment :failed_metrics, @metric_buffer.size
-    ensure
-      @event_buffer.clear
-      @metric_buffer.clear
     end
-
-    private
 
     def setup_consumer buffer, buffer_limit, flush_limit, statistics_key
       proc do |e|
