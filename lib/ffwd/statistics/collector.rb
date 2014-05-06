@@ -36,6 +36,7 @@ module FFWD::Statistics
       @period = opts[:period] || DEFAULT_PERIOD
       @tags = opts[:tags] || []
       @attributes = opts[:attributes] || {}
+      @interval = opts[:interval] || 1
       @reporters = {}
       @channel = channel
       @timer = nil
@@ -82,11 +83,13 @@ module FFWD::Statistics
       end
 
       @reporters.each do |id, reporter|
-        reporter.report! do |d|
+        reporter.report! now, @interval do |d|
           attributes = FFWD.merge_hashes @attributes, d[:meta]
           key = "#{@prefix}.#{d[:key]}"
+          time = d[:time]
+
           @emitter.metric.emit(
-            :key => key, :value => d[:value],
+            :key => key, :value => d[:value], :time => time,
             :tags => @tags, :attributes => attributes)
         end
       end

@@ -46,14 +46,14 @@ module FFWD
         :type => "producing_client_out")
     end
 
-    def report!
+    def report! now, interval=1
       super do |m|
         yield m
       end
 
       return unless @producer_is_reporter
 
-      @producer.report! do |m|
+      @producer.report! now, interval do |m|
         yield m
       end
     end

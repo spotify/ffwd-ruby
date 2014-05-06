@@ -60,9 +60,9 @@ module FFWD
       end
     end
 
-    def report!
+    def report! now, interval=1
       @reporters.each do |reporter|
-        reporter.report! do |d|
+        reporter.report! now, interval do |d|
           yield d
         end
       end
