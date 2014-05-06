@@ -23,6 +23,7 @@ license_header() {
 ENDL
 }
 
+root=$(dirname $(dirname $0))
 force=0
 verify_only=1
 exit_status=0
@@ -79,7 +80,7 @@ while read -u 3 libdir; do
      fi
     fi
   done 4< <(find $libdir -type f -name '*.rb' -a ! -name '*.pb.rb')
-done 3< <(find -name vendor -prune -o -type d -name lib -print)
+done 3< <(find $root -name vendor -prune -o -type d -name lib -print)
 
 while read -u 3 gemspec; do
   dir=$(dirname $gemspec)
@@ -88,6 +89,6 @@ while read -u 3 gemspec; do
       echo "Missing LICENSE for project: $gemspec (expected $license_path)"
     exit_status=1
   fi
-done 3< <(find -name vendor -prune -o -type f -name '*.gemspec' -print)
+done 3< <(find $root -name vendor -prune -o -type f -name '*.gemspec' -print)
 
 exit $exit_status

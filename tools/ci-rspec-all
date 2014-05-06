@@ -1,7 +1,8 @@
 #!/bin/bash
 
 main() {
-    bundle_path=$PWD/vendor/bundle
+    root=$1
+    bundle_path=$root/vendor/bundle
     status=0
 
     while read -u 3 gemfile; do
@@ -21,7 +22,7 @@ main() {
                 status=1
             fi
         )
-    done 3< <(find -name vendor -prune -o -type f -name Gemfile -print)
+    done 3< <(find $root -name vendor -prune -o -type f -name Gemfile -print)
 
     if [[ $status -eq 0 ]]; then
         echo "Tests SUCCESSFUL!"
@@ -32,6 +33,7 @@ main() {
     return $status
 }
 
+root=$(dirname $(dirname $0))
 unset BUNDLE_GEMFILE
-main
+main "$root"
 exit $?
