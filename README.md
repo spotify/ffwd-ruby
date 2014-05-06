@@ -18,7 +18,7 @@ The following is an example client sending riemann events.
 import bernhard
 client = bernhard.Client(transport=bernhard.UDPTransport)
 
-client.send({'service': 'myservice', 'metric': 12, 'unit': 'B'})
+client.send({'service': 'myservice', 'metric': 12, 'unit': 'B/s'})
 ```
 
 FFWD takes care to add any _system-wide_ tags, like _site_, _host_ and the
@@ -48,6 +48,8 @@ Other focused topics.
 * [FFWD vs. collectd](docs/vs-collectd.md)
 * [JSON Reference Protocol](docs/json-protocol.md)
   &mdash; Documentation about the reference protcol implementation.
+* [Statistics](docs/statistics.md) &mdash; Documentation about internally
+  generated statistics.
 
 ## Usage
 
@@ -144,6 +146,16 @@ At this point you will probably discover that FFWD does not support your
 favorite plugin.
 Reading our [writing plugins guide](docs/writing-plugins.md) should enable you
 to remedy this.
+
+## Statistics
+
+FFWD reports internal statistics allowing for an insight into what is going on.
+
+All statistics are reported as internally generated metrics with a rich set of
+tags.
+
+For details in which statistics are available, see [the Statistics
+documentation](docs/statistics.md).
 
 ## Contributing
 
