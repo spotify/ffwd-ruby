@@ -13,17 +13,31 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
+require 'ffwd/handler'
+
 require_relative 'shared'
 
 module FFWD::Plugin::Riemann
-  module Output
+  class Output < FFWD::Handler
+    include FFWD::Plugin::Riemann::Shared
+
+    def initialize connection, chunk_size
+      super connection
+      @chunk_size = chunk_size
+    end
+
     def send_all events, metrics
       all_events = []
       all_events += events.map{|e| make_event e} unless events.empty?
       all_events += metrics.map{|m| make_metric m} unless metrics.empty?
-      return if all_events.empty?
-      m = make_message :events => all_events
-      send_data encode(m)
+
+      if all_events.empty?
+        return
+      end
+
+      split_chunks(all_events) do |chunked_events|
+        send_data encode(make_message :events => chunked_events)
+      end
     end
 
     def send_event event
@@ -38,10 +52,22 @@ module FFWD::Plugin::Riemann
       send_data encode(m)
     end
 
+    # When output plugins received data, assume that it is receiving an ACK.
     def receive_data data
       message = read_message data
       return if message.ok
       @bad_acks = (@bad_acks || 0) + 1
+    end
+
+    private
+
+    def split_chunks all_events
+      if @chunk_size.nil?
+        yield all_events
+        return
+      end
+
+      return all_events.each_slice(@chunk_size)
     end
   end
 end

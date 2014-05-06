@@ -22,8 +22,6 @@ require 'riemann/state'
 require 'riemann/event'
 require 'riemann/message'
 
-require 'ffwd/connection'
-require 'ffwd/handler'
 require 'ffwd/logging'
 require 'ffwd/plugin'
 require 'ffwd/protocol'
@@ -38,10 +36,7 @@ module FFWD::Plugin::Riemann
 
   register_plugin "riemann"
 
-  class OutputTCP < FFWD::Handler
-    include FFWD::Plugin::Riemann::Shared
-    include FFWD::Plugin::Riemann::Output
-
+  class OutputTCP < FFWD::Plugin::Riemann::Output
     def self.plugin_type
       "riemann_out"
     end
@@ -51,10 +46,7 @@ module FFWD::Plugin::Riemann
     end
   end
 
-  class OutputUDP < FFWD::Handler
-    include FFWD::Plugin::Riemann::Shared
-    include FFWD::Plugin::Riemann::Output
-
+  class OutputUDP < FFWD::Plugin::Riemann::Output
     def self.plugin_type
       "riemann_out"
     end
@@ -64,10 +56,8 @@ module FFWD::Plugin::Riemann
     end
   end
 
-  class InputTCP < FFWD::Connection
+  class InputTCP < FFWD::Plugin::Riemann::Connection
     include EM::Protocols::ObjectProtocol
-    include FFWD::Plugin::Riemann::Shared
-    include FFWD::Plugin::Riemann::Connection
 
     def self.plugin_type
       "riemann_in"
@@ -84,10 +74,7 @@ module FFWD::Plugin::Riemann
     end
   end
 
-  class InputUDP < FFWD::Connection
-    include FFWD::Plugin::Riemann::Shared
-    include FFWD::Plugin::Riemann::Connection
-
+  class InputUDP < FFWD::Plugin::Riemann::Connection
     def self.plugin_type
       "riemann_in"
     end
@@ -100,6 +87,7 @@ module FFWD::Plugin::Riemann
   DEFAULT_HOST = "localhost"
   DEFAULT_PORT = 5555
   DEFAULT_PROTOCOL = 'tcp'
+  DEFAULT_CHUNK_SIZE = 100
 
   OUTPUTS = {:tcp => OutputTCP, :udp => OutputUDP}
   INPUTS = {:tcp => InputTCP, :udp => InputUDP}
@@ -114,7 +102,9 @@ module FFWD::Plugin::Riemann
       raise "No type for protocol family: #{protocol.family}"
     end
 
-    protocol.connect opts, core, log, type
+    chunk_size = opts[:chunk_size] || DEFAULT_CHUNK_SIZE
+
+    protocol.connect opts, core, log, type, chunk_size
   end
 
   def self.setup_input opts, core

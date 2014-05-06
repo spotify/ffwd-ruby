@@ -13,8 +13,14 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
+require 'ffwd/connection'
+
+require_relative 'shared'
+
 module FFWD::Plugin::Riemann
-  module Connection
+  class Connection < FFWD::Connection
+    include FFWD::Plugin::Riemann::Shared
+
     module Serializer
       def self.dump(m)
         m.encode.to_s

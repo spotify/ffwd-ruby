@@ -18,14 +18,8 @@ require_relative 'connection'
 module FFWD
   # Handlers are used by output plugins based of the protocol stack.
   class Handler < FFWD::Connection
-    def self.new signature, parent, *args
-      instance = super(signature, *args)
-
-      instance.instance_eval do
-        @parent = parent
-      end
-
-      instance
+    def initialize parent
+      @parent = parent
     end
 
     def unbind
