@@ -67,7 +67,9 @@ module FFWD::Plugin::Riemann
         return
       end
 
-      return all_events.each_slice(@chunk_size)
+      all_events.each_slice(@chunk_size) do |slice|
+        yield slice
+      end
     end
   end
 end

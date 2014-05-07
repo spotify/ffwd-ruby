@@ -57,7 +57,7 @@ module FFWD::Plugin::Riemann
   end
 
   class InputTCP < FFWD::Plugin::Riemann::Connection
-    include EM::Protocols::FrameObjectProtocol
+    include EM::Protocols::ObjectProtocol
 
     def serializer
       FFWD::Plugin::Riemann::Serializer
