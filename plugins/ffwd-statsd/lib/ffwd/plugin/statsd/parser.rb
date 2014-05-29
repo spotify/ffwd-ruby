@@ -14,9 +14,12 @@
 # the License.
 
 module FFWD::Plugin::Statsd
+  class ParserError < Exception; end
+
   module Parser
     COUNT = "count"
     HISTOGRAM = "histogram"
+    RATE = "rate"
 
     def self.gauge name, value
       {:proc => nil, :key => name, :value => value}
@@ -26,21 +29,39 @@ module FFWD::Plugin::Statsd
       {:proc => COUNT, :key => name, :value => value}
     end
 
+    def self.meter name, value
+      {:proc => RATE, :key => name, :value => value}
+    end
+
     def self.timing name, value
       {:proc => HISTOGRAM, :key => name, :value => value}
     end
 
-    def self.parse line
-      name, value = line.split ':', 2
-      raise "invalid frame" if value.nil?
-      value, type = value.split '|', 2
-      raise "invalid frame" if type.nil?
-      type, sample_rate = type.split '|@', 2
+    def self.parse m
+      name, value = m.split ':', 2
 
-      return nil if type.nil? or type.empty?
-      return nil if value.nil? or value.empty?
+      if value.nil?
+        raise ParserError.new("Missing value")
+      end
 
-      value = value.to_f unless value.nil?
+      value, type_block = value.split '|', 2
+
+      if type_block.nil?
+        raise ParserError.new("Missing type")
+      end
+
+      type, sample_rate = type_block.split '|@', 2
+
+      if type.nil? or type.empty?
+        raise ParserError.new("Missing type")
+      end
+
+      if value.nil? or value.empty?
+        raise ParserError.new("Missing value")
+      end
+
+      value = value.to_f
+
       sample_rate = sample_rate.to_f unless sample_rate.nil?
 
       value /= sample_rate unless sample_rate.nil?
@@ -53,12 +74,16 @@ module FFWD::Plugin::Statsd
         return count(name, value)
       end
 
-      if type == "ms"
+      if type == "m"
+        return meter(name, value)
+      end
+
+      if type == "ms" or type == "h"
         return timing(name, value)
       end
 
-      log.warning "Not supported type: #{type}"
-      return nil
+      raise ParserError.new(
+        "Received message of unsupported type '#{type}'")
     end
   end
 end

@@ -28,16 +28,28 @@ module FFWD::Plugin::Statsd
   DEFAULT_HOST = "localhost"
   DEFAULT_PORT = 8125
 
+  INPUTS = {:tcp => Connection::TCP, :udp => Connection::UDP}
+
   def self.setup_input opts, core
     opts[:host] ||= DEFAULT_HOST
     opts[:port] ||= DEFAULT_PORT
     protocol = FFWD.parse_protocol(opts[:protocol] || "udp")
-    protocol.bind opts, core, log, Connection
+
+    unless connection = INPUTS[protocol.family]
+      raise "No connection for protocol family: #{protocol.family}"
+    end
+
+    protocol.bind opts, core, log, connection
   end
 
   def self.setup_tunnel opts, core, tunnel
     opts[:port] ||= DEFAULT_PORT
     protocol = FFWD.parse_protocol(opts[:protocol] || "tcp")
-    protocol.tunnel opts, core, tunnel, log, Connection
+
+    unless connection = INPUTS[protocol.family]
+      raise "No connection for protocol family: #{protocol.family}"
+    end
+
+    protocol.tunnel opts, core, tunnel, log, connection
   end
 end
