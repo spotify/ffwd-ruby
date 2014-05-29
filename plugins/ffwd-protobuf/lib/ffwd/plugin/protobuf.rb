@@ -24,38 +24,17 @@ require 'ffwd/protocol'
 require 'ffwd/event'
 require 'ffwd/metric'
 
-require_relative 'protobuf/protocol.pb'
+require_relative 'protobuf/serializer'
 
 module FFWD::Plugin::Protobuf
   include FFWD::Plugin
   include FFWD::Logging
 
-  P = ::FFWD::Plugin::Protobuf::Protocol
-
   register_plugin "protobuf"
 
-  module Serializer
-    def self.dump m
-      m.serialize_to_string
-    end
-
-    def self.load string
-      m = P::Message.new
-      m.parse_from_string string
-      return m
-    end
-  end
-
-  class Output < FFWD::Handler
-    include EM::Protocols::ObjectProtocol
-    include Serializer
-
+  class OutputUDP < FFWD::Handler
     def self.plugin_type
-      "protobuf_out"
-    end
-
-    def serializer
-      Serializer
+      "protobuf_udp_out"
     end
 
     def send_all events, metrics
@@ -69,56 +48,15 @@ module FFWD::Plugin::Protobuf
     end
 
     def send_event event
-      message = P::Message.new
-      e = P::Event.new
-      e.time = (event.time.to_f * 1000).to_i if event.time
-      e.key = event.key if event.key
-      e.value = to_value event.value if event.value
-      e.host = event.host if event.host
-      e.source = event.source if event.source
-      e.state = event.state if event.state
-      e.description = event.description if event.description
-      e.ttl = event.ttl if event.ttl
-      e.tags = to_tags event.tags if event.tags
-      e.attributes = to_attributes event.attributes if event.attributes
-      message.event = e
-      send_object message
+      parent.send_data Serializer.dump_event(event)
     end
 
     def send_metric metric
-      message = P::Message.new
-      m = P::Metric.new
-      m.time = (metric.time.to_f * 1000).to_i if metric.time
-      m.key = metric.key if metric.key
-      m.value = to_value metric.value if metric.value
-      m.host = metric.host if metric.host
-      m.source = metric.source if metric.source
-      m.tags = to_tags metric.tags if metric.tags
-      m.attributes = to_attributes metric.attributes if metric.attributes
-      message.metric = m
-      send_object message
-    end
-
-    private
-
-    def to_value value
-      v = P::Value.new
-      v.value_d = value
-      return v
-    end
-
-    def to_attributes attributes
-      attributes.map do |key, value|
-        P::Attribute.new(:key => key, :value => value)
-      end
-    end
-
-    def to_tags tags
-      Array.new tags
+      parent.send_data Serializer.dump_metric(metric)
     end
   end
 
-  class Input < FFWD::Connection
+  class InputUDP < FFWD::Connection
     include FFWD::Logging
     include EM::Protocols::FrameObjectProtocol
 
@@ -132,70 +70,26 @@ module FFWD::Plugin::Protobuf
       "protobuf_in"
     end
 
-    def serializer
-      Serializer
-    end
+    def receive_data datagram
+      Serializer.load(datagram) do |type, data|
+        if type == :event
+          @core.input.event data
+          @bind.increment :received_events
+          next
+        end
 
-    def receive_object message
-      if message.has_field?(:event)
-        receive_event message.event
+        if type == :metric
+          @core.input.metric data
+          @bind.increment :received_metrics
+          next
+        end
       end
+    rescue => e
+      @log.error "Failed to receive data", e
 
-      if message.has_field?(:metric)
-        receive_metric message.metric
-      end
-    end
-
-    def handle_exception datagram, e
-      @log.error("Failed to decode protobuf object", e)
       if @log.debug?
-        @log.debug("FRAME: " + FFWD.dump2hex(datagram))
+        @log.debug("DUMP: " + FFWD.dump2hex(datagram))
       end
-    end
-
-    def receive_event e
-      d = {}
-      d[:time] = Time.at(e.time.to_f / 1000) if e.has_field?(:time)
-      d[:key] = e.key if e.has_field?(:key)
-      d[:value] = e.value if e.has_field?(:value)
-      d[:host] = e.host if e.has_field?(:host)
-      d[:source] = e.source if e.has_field?(:source)
-      d[:state] = e.state if e.has_field?(:state)
-      d[:description] = e.description if e.has_field?(:description)
-      d[:ttl] = e.ttl if e.has_field?(:ttl)
-      d[:tags] = from_tags m.tags if m.tags
-      d[:attributes] = from_attributes m.attributes if m.attributes
-      @core.input.event d
-      @bind.increment :received_events
-    rescue => e
-      @log.error "Failed to receive event", e
-      @bind.increment :failed_events
-    end
-
-    def receive_metric m
-      d = {}
-      d[:time] = Time.at(m.time.to_f / 1000) if m.has_field?(:time)
-      d[:key] = m.key if m.has_field?(:key)
-      d[:value] = m.value if m.has_field?(:value)
-      d[:host] = m.host if m.has_field?(:host)
-      d[:source] = m.source if m.has_field?(:source)
-      d[:tags] = from_tags m.tags if m.tags
-      d[:attributes] = from_attributes m.attributes if m.attributes
-      @core.input.metric d
-      @bind.increment :received_metrics
-    rescue => e
-      @log.error "Failed to receive event", e
-      @bind.increment :failed_metrics
-    end
-
-    private
-
-    def from_attributes attributes
-      Hash[attributes.map{|a| [a.key, a.value]}]
-    end
-
-    def from_tags tags
-      Array.new tags
     end
   end
 
@@ -203,8 +97,8 @@ module FFWD::Plugin::Protobuf
   DEFAULT_PORT = 19091
   DEFAULT_PROTOCOL = 'udp'
 
-  OUTPUTS = {:udp => Output}
-  INPUTS = {:udp => Input}
+  OUTPUTS = {:udp => OutputUDP}
+  INPUTS = {:udp => InputUDP}
 
   def self.setup_output opts, core
     opts[:host] ||= DEFAULT_HOST
@@ -212,11 +106,11 @@ module FFWD::Plugin::Protobuf
 
     protocol = FFWD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
 
-    unless type = OUTPUTS[protocol.family]
+    unless handler = OUTPUTS[protocol.family]
       raise "No type for protocol family: #{protocol.family}"
     end
 
-    protocol.connect opts, core, log, type
+    protocol.connect opts, core, log, handler
   end
 
   def self.setup_input opts, core

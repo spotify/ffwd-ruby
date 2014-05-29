@@ -20,6 +20,8 @@ module FFWD::UDP
   class Connect
     include FFWD::Reporter
 
+    RESOLVE_TIMEOUT = 10
+
     attr_reader :reporter_meta, :log
 
     setup_reporter :keys => [
@@ -38,20 +40,21 @@ module FFWD::UDP
       @c = nil
       @peer = "#{host}:#{port}"
       @reporter_meta = {
-        :type => @handler.name, :peer => peer
+        :type => @handler.plugin_type, :peer => @peer
       }
 
       info = "udp://#{@peer}"
 
       subs = []
 
-      r = FFWD.retry :timeout => resolve_timeout do |a|
+      r = FFWD.retry :timeout => RESOLVE_TIMEOUT do |a|
         unless @host_ip
           @host_ip = resolve_ip @host
           raise "Could not resolve: #{@host}" if @host_ip.nil?
         end
 
-        @c = EM.open_datagram_socket(@bind_host, nil)
+        @c = EM.open_datagram_socket(@bind_host, nil, @handler, self)
+
         log.info "Setup of output to #{info} successful"
 
         subs << core.output.event_subscribe{|e| handle_event e}
@@ -74,6 +77,14 @@ module FFWD::UDP
       end
     end
 
+    def send_data data
+      return unless @c
+      @c.send_datagram data, @host_ip, @port
+    end
+
+    def unbind; end
+    def connection_completed; end
+
     private
 
     def handle_event event
@@ -82,8 +93,7 @@ module FFWD::UDP
         return
       end
 
-      data = @handler.serialize_event event
-      @c.send_datagram data, @host_ip, @port
+      @c.send_event event
       increment :sent_events, 1
     end
 
@@ -93,8 +103,7 @@ module FFWD::UDP
         return
       end
 
-      data = @handler.serialize_metric metric
-      @c.send_datagram data, @host_ip, @port
+      @c.send_metric metric
       increment :sent_metrics, 1
     end
 

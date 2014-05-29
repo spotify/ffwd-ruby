@@ -18,6 +18,8 @@ require_relative 'connection'
 module FFWD
   # Handlers are used by output plugins based of the protocol stack.
   class Handler < FFWD::Connection
+    attr_accessor :parent
+
     def self.new signature, parent, *args
       instance = super(signature, *args)
 
@@ -36,6 +38,7 @@ module FFWD
       @parent.connection_completed
     end
 
+    def close; end
     def send_all events, metrics; end
     def send_event event; end
     def send_metric metric; end
