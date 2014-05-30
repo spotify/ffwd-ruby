@@ -5,24 +5,50 @@ main() {
     bundle_path=$root/vendor/bundle
     status=0
 
+    if [[ -d $bundle_path ]]; then
+        echo "# removing: $bundle_path"
+        rm -rf $bundle_path
+    fi
+
+    (
+        set -e
+        echo "# core: Testing FFWD"
+        bundle install --path $bundle_path
+        bundle exec rspec
+
+        echo "# core: Installing FFWD for plugins"
+        rm -f $root/*.gem
+
+        bundle exec gem build $root/ffwd.gemspec
+        bundle exec gem install $root/ffwd-*.gem
+        exit 0
+    )
+
+    if [[ $? -ne 0 ]]; then
+        echo "# core: testing failed"
+        return 1
+    fi
+
     while read -u 3 gemfile; do
         dir=$(dirname $gemfile)
 
         if [[ ! -d $dir/spec ]]; then
+            echo "# $dir: no specs... :("
             continue
         fi
 
-        echo "Running specs in: $dir"
+        echo "# $dir: specs found! :)"
 
         (
+            set -e
             cd $dir
             bundle install --path $bundle_path
-
-            if ! bundle exec rspec; then
-                status=1
-            fi
+            bundle exec rspec
+            exit 0
         )
-    done 3< <(find $root -name vendor -prune -o -type f -name Gemfile -print)
+
+        status=$?
+    done 3< <(find $root/plugins -name vendor -prune -o -type f -name Gemfile -print)
 
     if [[ $status -eq 0 ]]; then
         echo "Tests SUCCESSFUL!"
@@ -33,7 +59,7 @@ main() {
     return $status
 }
 
-root=$(dirname $(dirname $0))
+root=$(readlink -f $(dirname $(dirname $0)))
 unset BUNDLE_GEMFILE
 main "$root"
 exit $?
