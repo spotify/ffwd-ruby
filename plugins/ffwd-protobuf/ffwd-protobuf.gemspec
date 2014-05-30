@@ -20,7 +20,7 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "ruby_protobuf"
 
-  spec.add_development_dependency "ffwd"
+  spec.add_development_dependency "ffwd", FFWD::Plugin::Protobuf::VERSION
   spec.add_development_dependency "rspec"
   spec.add_development_dependency "rspec-mocks"
 end

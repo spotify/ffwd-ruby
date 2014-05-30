@@ -18,5 +18,5 @@ Gem::Specification.new do |spec|
 
   spec.require_paths = ["lib"]
 
-  spec.add_development_dependency "ffwd"
+  spec.add_development_dependency "ffwd", FFWD::Plugin::Carbon::VERSION
 end

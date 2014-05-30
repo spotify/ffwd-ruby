@@ -20,5 +20,5 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "poseidon"
 
-  spec.add_development_dependency "ffwd"
+  spec.add_development_dependency "ffwd", FFWD::Plugin::Kafka::VERSION
 end
