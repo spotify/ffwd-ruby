@@ -18,7 +18,7 @@ Gem::Specification.new do |spec|
 
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "ruby_protobuf"
+  spec.add_dependency "beefcake"
 
   spec.add_development_dependency "ffwd", FFWD::Plugin::Protobuf::VERSION
   spec.add_development_dependency "rspec"

@@ -9,5 +9,19 @@ BUNDLE=$PWD/bundle
 )
 
 for proto in $ROOT/proto/*.proto; do
-    $BUNDLE/bin/rprotoc --out $ROOT/lib/ffwd $proto
+    n=$(basename $proto | sed -e 's/protocol\([0-9]\+\).proto/\1/')
+
+    (
+        set -e
+        export BEEFCAKE_NAMESPACE="FFWD::Protocol${n}"
+        export PATH="$BUNDLE/bin:$PATH"
+        protoc --beefcake_out $ROOT/lib/ffwd $proto
+    )
+
+    if [[ $? -ne 0 ]]; then
+        echo "Failed to generate: ${proto}"
+        exit 1
+    fi
 done
+
+exit 0

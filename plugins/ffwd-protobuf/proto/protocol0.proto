@@ -1,4 +1,4 @@
-package FFWD.Protocol0;
+package ffwd.protocol0;
 
 option java_package = "com.spotify.ffwd.protocol0";
 
