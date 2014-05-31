@@ -1,0 +1,10 @@
+# Uncomment the following to enable debugging with default settings.
+# :debug: {}
+:debug:
+  # Host to bind debug port to.
+  :host: "127.0.0.1"
+  :port: 19001
+  # Time to wait to attempt to rebind if initial binding fails.
+  :rebind_timeout: 10
+  # Protocol to use.
+  :protocol: "tcp"

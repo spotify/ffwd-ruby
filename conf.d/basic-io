@@ -1,0 +1,17 @@
+:input:
+  - :type: "riemann"
+    :protocol: "tcp"
+  - :type: "statsd"
+  - :type: "statsd"
+    :protocol: "tcp"
+  - :type: "collectd"
+  - :type: "json"
+    :kind: :frame
+  - :type: "carbon"
+    :protocol: "tcp"
+
+:output:
+  - :type: "log"
+  - :type: "kairosdb"
+  - :type: "kafka"
+    :schema: "spotify 1.0.0"

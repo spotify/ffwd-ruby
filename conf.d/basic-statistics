@@ -1,0 +1,6 @@
+:statistics:
+  :period: 1
+  :attributes:
+    :metric_type: "statistics"
+  :tags:
+    - "statistics"

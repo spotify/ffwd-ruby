@@ -1,15 +1,3 @@
-:debug: {}
-
-:core:
-  :host: "tunnel.conf"
-
-:statistics:
-  :period: 5
-
-:input:
-  - :type: "tunnel"
-    :protocol: "tcp"
-
 :tunnel:
   - :type: "json_line"
     :protocol: "tcp"
@@ -21,6 +9,3 @@
     :protocol: "udp"
   - :type: "carbon"
     :protocol: "tcp"
-
-:plugin_directories:
-  - "./plugins"

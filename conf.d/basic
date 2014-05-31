@@ -1,0 +1,28 @@
+:core:
+  # The host field of metrics and events, if omitted.
+  :host: "simple.example.com"
+  # Any received metric or event will be further decorated with the following
+  # attributes and tags.
+  :attributes:
+    host: "simple.example.com"
+    site: "local"
+    role: "exampleserver"
+  :tags:
+    - "ffwd"
+  # Only events will be decorated with the following metadata.
+  :event:
+    :attributes:
+      data_type: "event"
+    :tags:
+      - "event"
+  # Only metrics will be decorated with the following metadata.
+  :metric:
+    :attributes:
+      data_type: "metric"
+    :tags:
+      - "metric"
+  # Set a memory limit (only works on Linux) after which the system will
+  # sacrifice itself to prevent damaging other services.
+  :memory:
+    # Limit to 128M
+    :limit: 128
