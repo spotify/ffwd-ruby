@@ -16,6 +16,7 @@
 require 'eventmachine'
 
 require_relative '../tunnel'
+require_relative '../utils'
 
 require_relative 'tcp/bind'
 require_relative 'tcp/plain_connect'
@@ -74,18 +75,19 @@ module FFWD::TCP
 
     outbound_limit = opts[:outbound_limit] || DEFAULT_OUTBOUND_LIMIT
     flush_period = opts[:flush_period] || DEFAULT_FLUSH_PERIOD
+    ignored = (opts[:ignored] || []).map{|v| Utils.check_ignored v}
 
     connection = Connection.new log, host, port, handler, args, outbound_limit
 
     if flush_period == 0
-      PlainConnect.new core, log, connection
+      PlainConnect.new core, log, ignored, connection
     else
       event_limit = opts[:event_limit] || DEFAULT_EVENT_LIMIT
       metric_limit = opts[:metric_limit] || DEFAULT_METRIC_LIMIT
       flush_limit = opts[:flush_limit] || DEFAULT_FLUSH_LIMIT
 
       FlushingConnect.new(
-        core, log, connection,
+        core, log, ignored, connection,
         flush_period, event_limit, metric_limit, flush_limit
       )
     end

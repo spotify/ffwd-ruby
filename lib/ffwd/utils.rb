@@ -47,4 +47,18 @@ module FFWD
   def self.dump2hex data
     data.bytes.map { |byte| byte.to_s(16) }.join
   end
+
+  def self.check_ignored v
+    v = v.to_s
+
+    if v.downcase == "metrics"
+      return :metrics
+    end
+
+    if v.downcase == "events"
+      return :events 
+    end
+
+    raise "Invalid data kind '#{v}', should be one of: 'metrics' or 'events'"
+  end
 end

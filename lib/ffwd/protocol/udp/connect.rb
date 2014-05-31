@@ -29,7 +29,7 @@ module FFWD::UDP
       :sent_events, :sent_metrics
     ]
 
-    def initialize core, log, host, port, handler
+    def initialize core, log, ignored, host, port, handler
       @log = log
       @host = host
       @port = port
@@ -45,7 +45,7 @@ module FFWD::UDP
 
       info = "udp://#{@peer}"
 
-      subs = []
+      @subs = []
 
       r = FFWD.retry :timeout => RESOLVE_TIMEOUT do |a|
         unless @host_ip
@@ -55,8 +55,8 @@ module FFWD::UDP
 
         @c = EM.open_datagram_socket(@bind_host, nil, @handler, self)
 
-        subs << core.output.event_subscribe{|e| handle_event e}
-        subs << core.output.metric_subscribe{|m| handle_metric m}
+        @subs << core.output.event_subscribe{|e| handle_event e}
+        @subs << core.output.metric_subscribe{|m| handle_metric m}
         log.info "Connect to #{info} (attempt #{a})"
       end
 
@@ -72,7 +72,7 @@ module FFWD::UDP
           @c = nil
         end
 
-        subs.each(&:unsubscribe).clear
+        @subs.each(&:unsubscribe).clear
       end
     end
 

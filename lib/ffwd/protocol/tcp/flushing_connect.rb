@@ -35,48 +35,45 @@ module FFWD::TCP
     end
 
     def initialize(
-      core, log, connection,
+      core, log, ignored, connection,
       flush_period, event_limit, metric_limit, flush_limit
     )
       @log = log
       @c = connection
 
-      @flush_period = flush_period
-      @event_limit = event_limit
-      @event_flush_limit = flush_limit * event_limit
-      @metric_limit = metric_limit
-      @metric_flush_limit = flush_limit * metric_limit
-
       @event_buffer = []
       @metric_buffer = []
       @timer = nil
-
-      subs = []
+      @subs = []
 
       core.starting do
-        log.info "Flushing every #{@flush_period}s"
-        @timer = EM::PeriodicTimer.new(@flush_period){flush!}
-
-        event_consumer = setup_consumer(
-          @event_buffer, @event_limit, @event_flush_limit, :dropped_events)
-        metric_consumer = setup_consumer(
-          @metric_buffer, @metric_limit, @metric_flush_limit, :dropped_metrics)
-
-        subs << core.output.event_subscribe(&event_consumer)
-        subs << core.output.metric_subscribe(&metric_consumer)
-
         @c.connect
+
+        log.info "Flushing every #{flush_period}s"
+        @timer = EM::PeriodicTimer.new(flush_period){flush!}
+
+        unless ignored.include? :events
+          event_consumer = setup_consumer(
+            @event_buffer, flush_limit, event_limit, :dropped_events)
+          @subs << core.output.event_subscribe(&event_consumer)
+        end
+
+        unless ignored.include? :metrics
+          metric_consumer = setup_consumer(
+            @metric_buffer, flush_limit, metric_limit, :dropped_metrics)
+          @subs << core.output.metric_subscribe(&metric_consumer)
+        end
       end
 
       core.stopping do
-        subs.each(&:unsubscribe).clear
+        @c.disconnect
 
         if @timer
           @timer.cancel
           @timer = nil
         end
 
-        @c.disconnect
+        @subs.each(&:unsubscribe).clear
       end
     end
 
@@ -116,9 +113,12 @@ module FFWD::TCP
 
     private
 
-    def setup_consumer buffer, buffer_limit, flush_limit, statistics_key
+    def setup_consumer buffer, drop, flush, statistics_key
+      drop_limit = drop
+      flush_limit = drop * flush
+
       proc do |e|
-        if buffer.size >= buffer_limit
+        if buffer.size >= drop_limit
           increment statistics_key, 1
           next
         end

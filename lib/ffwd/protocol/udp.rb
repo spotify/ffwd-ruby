@@ -15,10 +15,11 @@
 
 require 'eventmachine'
 
+require_relative '../utils'
+require_relative '../tunnel'
+
 require_relative 'udp/connect'
 require_relative 'udp/bind'
-
-require_relative '../tunnel'
 
 module FFWD::UDP
   def self.family
@@ -30,7 +31,8 @@ module FFWD::UDP
   def self.connect opts, core, log, handler
     raise "Missing required key :host" if (host = opts[:host]).nil?
     raise "Missing required key :port" if (port = opts[:port]).nil?
-    Connect.new core, log, host, port, handler
+    ignored = (opts[:ignored] || []).map{|v| Utils.check_ignored v}
+    Connect.new core, log, ignored, host, port, handler
   end
 
   def self.bind opts, core, log, connection, *args

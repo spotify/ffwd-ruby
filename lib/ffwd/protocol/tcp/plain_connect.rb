@@ -33,7 +33,7 @@ module FFWD::TCP
 
     INITIAL_TIMEOUT = 2
 
-    def initialize core, log, connection
+    def initialize core, log, ignored, connection
       @log = log
       @c = connection
 
@@ -41,8 +41,14 @@ module FFWD::TCP
 
       core.starting do
         @c.connect
-        subs << core.output.event_subscribe{|e| handle_event e}
-        subs << core.output.metric_subscribe{|e| handle_metric e}
+
+        unless ignored.include? :events
+          subs << core.output.event_subscribe{|e| handle_event e}
+        end
+
+        unless ignored.include? :metrics
+          subs << core.output.metric_subscribe{|e| handle_metric e}
+        end
       end
 
       core.stopping do
