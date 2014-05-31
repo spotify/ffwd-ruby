@@ -23,7 +23,7 @@ client.send({'service': 'myservice', 'metric': 12, 'unit': 'B/s'})
 
 FFWD takes care to add any _system-wide_ tags, like _site_, _host_ and the
 _role_ of the machine it is sent from. See the __core -> attributes__ section
-in the [Example Configuration](docs/simple.conf) for details.
+in the [basic example configuration](conf.d/basic) for details.
 
 This allows for decoration of the received metrics and events to make them
 _semantic from the source_.
@@ -60,7 +60,7 @@ supplied example configuration.
 
 ```bash
 $ bundle install
-$ bin/ffwd -c docs/simple.conf
+$ bin/ffwd -c conf.d/basic -c conf.d/basic-io
 ```
 
 This will start up an instance that periodically reports statistics about
