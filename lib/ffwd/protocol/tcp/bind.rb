@@ -46,7 +46,7 @@ module FFWD::TCP
       end
 
       r.error do |a, t, e|
-        log.error "Failed to bind #{info} (attempt #{a}), retry in #{t}s", e
+        log.warning "Bind on #{info} failed, retry ##{a} in #{t}s: #{e}"
       end
 
       r.depend_on core

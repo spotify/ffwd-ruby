@@ -70,7 +70,7 @@ module FFWD
       c = load_yaml entry_path
 
       if c.nil?
-        log.warn "Ignoring: #{entry_path} (invalid yaml)"
+        log.warning "Ignoring: #{entry_path} (invalid yaml)"
         next
       end
 

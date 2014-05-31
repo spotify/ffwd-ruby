@@ -55,14 +55,13 @@ module FFWD::UDP
 
         @c = EM.open_datagram_socket(@bind_host, nil, @handler, self)
 
-        log.info "Setup of output to #{info} successful"
-
         subs << core.output.event_subscribe{|e| handle_event e}
         subs << core.output.metric_subscribe{|m| handle_metric m}
+        log.info "Connect to #{info} (attempt #{a})"
       end
 
       r.error do |a, t, e|
-        log.error "Setup of output to #{info} failed (attempt #{a}), retry in #{t}s", e
+        log.warning "Connect to #{info} failed, retry ##{a} in #{t}s: #{e}"
       end
 
       r.depend_on core

@@ -22,10 +22,13 @@ module FFWD
   class Retrier
     include FFWD::Lifecycle
 
+    MAX_FACTOR = 7
+
     def initialize timeout, &block
       @block = block
       @timer = nil
       @timeout = timeout
+      @max_timeout = timeout * 2**MAX_FACTOR
       @current_timeout = @timeout
       @attempt = 0
       @error_callbacks = []
@@ -56,7 +59,7 @@ module FFWD
       end
 
       @timer = EM::Timer.new(@current_timeout) do
-        @current_timeout *= 2
+        @current_timeout *= 2 unless @current_timeout >= @max_timeout
         @timer = nil
         try_block
       end

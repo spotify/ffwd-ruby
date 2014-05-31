@@ -31,14 +31,15 @@ module FFWD::Debug
       @host = host
       @port = port
       @peer = "#{@host}:#{@port}"
+      info = "tcp://#{@peer}"
 
       r = FFWD.retry :timeout => rebind_timeout do |attempt|
         EM.start_server @host, @port, Connection, self
-        log.info "Bind on tcp://#{@peer} (attempt #{attempt})"
+        log.info "Bind on #{info} (attempt #{attempt})"
       end
 
       r.error do |a, t, e|
-        log.error "Failed to bind tcp://#{@peer} (attempt #{a}), retry in #{t}s", e
+        log.warning "Bind on #{info} failed, retry ##{a} in #{t}s: #{e}"
       end
 
       r.depend_on self
