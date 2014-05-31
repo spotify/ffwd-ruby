@@ -47,7 +47,9 @@ Other focused topics.
 * [Schemas](docs/schemas.md)
 * [FFWD vs. collectd](docs/vs-collectd.md)
 * [JSON Reference Protocol](docs/json-protocol.md)
-  &mdash; Documentation about the reference protcol implementation.
+  &mdash; Documentation about the JSON reference protocol.
+* [Protobuf Protocol](docs/protobuf-protocol.md)
+  &mdash; Documentation about the protobuf protocol.
 * [Statistics](docs/statistics.md) &mdash; Documentation about internally
   generated statistics.
 
