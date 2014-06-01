@@ -21,7 +21,7 @@ module FFWD
     attr_accessor :parent
 
     def self.new signature, parent, *args
-      instance = super(signature, *args)
+      instance = super(signature, parent, *args)
 
       instance.instance_eval do
         @parent = parent

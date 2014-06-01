@@ -46,18 +46,25 @@ module FFWD::Plugin::Kafka
       ),
     ]
 
-    def self.build opts
-      metric_pattern = opts[:metric_pattern] || DEFAULT_METRIC_PATTERN
-      event_pattern = opts[:event_pattern] || DEFAULT_EVENT_PATTERN
-      attr = opts[:attribute] || DEFAULT_ATTRIBUTE
+    def self.prepare config
+      config[:metric_pattern] ||= DEFAULT_METRIC_PATTERN
+      config[:event_pattern] ||= DEFAULT_EVENT_PATTERN
+      config[:attribute] ||= DEFAULT_ATTRIBUTE
+      config
+    end
+
+    def self.build config
+      metric_pattern = config[:metric_pattern] || DEFAULT_METRIC_PATTERN
+      event_pattern = config[:event_pattern] || DEFAULT_EVENT_PATTERN
+      attr = config[:attribute] || DEFAULT_ATTRIBUTE
       new(metric_pattern, event_pattern, attr)
     end
 
-    def initialize metric_pattern, event_pattern, attr
-      @metric_pattern = metric_pattern
-      @event_pattern = event_pattern
-      @attr = attr.to_sym
-      @attr_s = attr.to_s
+    def initialize config
+      @metric_pattern = config[:metric_pattern]
+      @event_pattern = config[:event_pattern]
+      @attr = config[:attribute]
+      @attr_s = @attr.to_s
     end
 
     def value d
@@ -79,11 +86,17 @@ module FFWD::Plugin::Kafka
     end
   end
 
-  def self.build_router type, opts
-    if type == :attribute
-      return AttributeRouter.build opts
-    end
+  DEFAULT_ROUTER = :attribute
 
+  def self.prepare_router config
+    type = (config[:type] ||= DEFAULT_ROUTER)
+    return AttributeRouter.prepare config if type == :attribute
+    raise "Unsupported router type: #{type}"
+  end
+
+  def self.build_router config
+    type = config[:type]
+    return AttributeRouter.new config if type == :attribute
     raise "Unsupported router type: #{type}"
   end
 end

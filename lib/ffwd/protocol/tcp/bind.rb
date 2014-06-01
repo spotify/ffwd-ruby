@@ -35,25 +35,26 @@ module FFWD::TCP
       :failed_events, :failed_metrics
     ]
 
-    attr_reader :reporter_meta
+    attr_reader :log, :reporter_meta
 
-    def initialize core, log, host, port, connection, args, config
-      @config = config
+    def initialize core, log, host, port, connection, config
+      @log = log
       @peer = "#{host}:#{port}"
       @reporter_meta = {
         :type => connection.plugin_type,
         :listen => @peer, :family => 'tcp'
       }
 
-      @sig = nil
+      @server = nil
 
       info = "tcp://#{@peer}"
       rebind_timeout = config[:rebind_timeout]
 
       r = FFWD.retry :timeout => rebind_timeout do |a|
-        @sig = EM.start_server host, port, connection, self, core, *args
+        @server = EM.start_server host, port, connection, self, core, config
+
         log.info "Bind on #{info} (attempt #{a})"
-        log.info "  config: #{@config.inspect}"
+        log.info "  config: #{config.inspect}"
       end
 
       r.error do |a, t, e|
@@ -63,12 +64,12 @@ module FFWD::TCP
       r.depend_on core
 
       core.stopping do
-        log.info "Unbinding #{info}"
-
-        if @sig
-          EM.stop_server @sig
-          @sig = nil
+        if @server
+          EM.stop_server @server
+          @server = nil
         end
+
+        log.info "Unbound #{info}"
       end
     end
   end

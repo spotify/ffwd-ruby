@@ -17,7 +17,6 @@ require 'eventmachine'
 require 'base64'
 
 require_relative 'tunnel/connection_tcp'
-require_relative 'tunnel/binary_protocol'
 
 require 'ffwd/logging'
 require 'ffwd/plugin'
@@ -49,6 +48,6 @@ module FFWD::Plugin::Tunnel
       raise "No connection for protocol family: #{protocol.family}"
     end
 
-    protocol.bind config, log, connection, BinaryProtocol
+    protocol.bind config, log, connection
   end
 end

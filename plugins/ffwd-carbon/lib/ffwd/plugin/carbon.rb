@@ -43,12 +43,31 @@ module FFWD::Plugin
           ]),
       ]
 
+    class InputTCP < FFWD::Plugin::Carbon::Connection
+      def self.plugin_type
+        "carbon_tcp_in"
+      end
+    end
+
+    class InputUDP < FFWD::Plugin::Carbon::Connection
+      def self.plugin_type
+        "carbon_udp_in"
+      end
+    end
+
+    INPUTS = {:tcp => InputTCP, :udp => InputUDP}
+
     def self.setup_input config
       config[:host] ||= DEFAULT_HOST
       config[:port] ||= DEFAULT_PORT
       config[:protocol] ||= DEFAULT_PROTOCOL
       protocol = FFWD.parse_protocol config[:protocol]
-      protocol.bind config, log, Connection
+
+      unless connection = INPUTS[protocol.family]
+        raise "Not supported protocol: #{protocol}"
+      end
+
+      protocol.bind config, log, connection
     end
   end
 end

@@ -34,26 +34,26 @@ module FFWD::UDP
       :failed_events, :failed_metrics
     ]
 
-    attr_reader :reporter_meta
+    attr_reader :reporter_meta, :log, :config
 
-    def initialize core, log, host, port, connection, args, config
+    def initialize core, log, host, port, connection, config
+      @log = log
       @peer = "#{host}:#{port}"
       @reporter_meta = {
         :type => connection.plugin_type,
         :listen => @peer, :family => 'udp'
       }
-      @config = config
 
-      rebind_timeout = @config[:rebind_timeout]
+      rebind_timeout = config[:rebind_timeout]
 
-      @c = nil
+      @socket = nil
 
       info = "udp://#{@peer}"
 
       r = FFWD.retry :timeout => rebind_timeout do |a|
-        @c = EM.open_datagram_socket host, port, connection, self, core, *args
+        @socket = EM.open_datagram_socket host, port, connection, self, core, config
         log.info "Bind on #{info} (attempt #{a})"
-        log.info "  config: #{@config.inspect}"
+        log.info "  config: #{config.inspect}"
       end
 
       r.error do |a, t, e|
@@ -63,12 +63,12 @@ module FFWD::UDP
       r.depend_on core
 
       core.stopping do
-        log.info "Unbinding #{info}"
-
-        if @c
-          @c.unbind
-          @c = nil
+        if @socket
+          @socket.unbind
+          @socket = nil
         end
+
+        log.info "Unbound #{info}"
       end
     end
   end

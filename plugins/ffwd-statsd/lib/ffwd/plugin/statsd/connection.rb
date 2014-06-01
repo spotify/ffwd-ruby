@@ -13,63 +13,30 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
-require 'ffwd/logging'
 require 'ffwd/connection'
 
 require_relative 'parser'
 
 module FFWD::Plugin::Statsd
-  module Connection
-    module ConnectionBase
-      def receive_statsd_frame(data)
-        metric = Parser.parse(data)
-        return if metric.nil?
-        @core.input.metric metric
-        @bind.increment :received_metrics
-      rescue ParserError => e
-        log.error "Invalid frame '#{data}': #{e}"
-        @bind.increment :failed_metrics
-      rescue => e
-        log.error "Error when parsing metric '#{data}'", e
-        @bind.increment :failed_metrics
-      end
+  class Connection < FFWD::Connection
+    def initialize bind, core, config
+      @bind = bind
+      @core = core
     end
 
-    class UDP < FFWD::Connection
-      include ConnectionBase
-      include FFWD::Logging
+    protected
 
-      def initialize bind, core
-        @bind = bind
-        @core = core
-      end
-
-      def self.plugin_type
-        "statsd_udp_in"
-      end
-
-      def receive_data data
-        receive_statsd_frame data
-      end
-    end
-
-    class TCP < FFWD::Connection
-      include ConnectionBase
-      include FFWD::Logging
-      include EM::Protocols::LineText2
-
-      def initialize bind, core
-        @bind = bind
-        @core = core
-      end
-
-      def self.plugin_type
-        "statsd_tcp_in"
-      end
-
-      def receive_line(data)
-        receive_statsd_frame data
-      end
+    def receive_statsd_frame(data)
+      metric = Parser.parse(data)
+      return if metric.nil?
+      @core.input.metric metric
+      @bind.increment :received_metrics
+    rescue ParserError => e
+      log.error "Invalid frame '#{data}': #{e}"
+      @bind.increment :failed_metrics
+    rescue => e
+      log.error "Error when parsing metric '#{data}'", e
+      @bind.increment :failed_metrics
     end
   end
 end

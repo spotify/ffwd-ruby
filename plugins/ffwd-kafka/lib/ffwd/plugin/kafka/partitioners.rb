@@ -41,14 +41,14 @@ module FFWD::Plugin::Kafka
       ),
     ]
 
-    def self.build opts
-      attr = opts[:attribute] || DEFAULT_ATTRIBUTE
-      new attr
+    def self.prepare config
+      config[:attribute] ||= DEFAULT_ATTRIBUTE
+      config
     end
 
-    def initialize attr
-      @attr = attr.to_sym
-      @attr_s = attr.to_s
+    def initialize config
+      @attr = config[:attribute].to_sym
+      @attr_s = config[:attribute].to_s
     end
 
     # currently there is an issue where you can store both symbols and string
@@ -62,15 +62,19 @@ module FFWD::Plugin::Kafka
     end
   end
 
-  def self.build_partitioner type, opts
-    if type == :host
-      return HostPartitioner
-    end
+  DEFAULT_PARTITIONER = :host
 
-    if type == :key
-      return KeyPartitioner
-    end
+  def self.prepare_partitioner config
+    type = (config[:type] ||= DEFAULT_PARTITIONER)
+    return config if type == :host
+    return config if type == :key
+    AttributePartitioner.prepare config
+  end
 
-    return AttributePartitioner.build opts
+  def self.build_partitioner config
+    type = config[:type]
+    return HostPartitioner if type == :host
+    return KeyPartitioner if type == :key
+    return AttributePartitioner.new config
   end
 end

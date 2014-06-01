@@ -34,12 +34,11 @@ module FFWD::TCP
       opts
     end
 
-    def initialize log, host, port, handler, args, config
+    def initialize log, host, port, handler, config
       @log = log
       @host = host
       @port = port
       @handler = handler
-      @args = args
       @config = config
 
       @tcp_outbound_limit = config[:tcp_outbound_limit]
@@ -56,14 +55,14 @@ module FFWD::TCP
 
     # Start attempting to connect.
     def connect
-      @c = EM.connect @host, @port, @handler, self, *@args
+      @c = EM.connect @host, @port, @handler, self, @config
       log.info "Connect to tcp://#{@host}:#{@port}"
       log.info "  config: #{@config.inspect}"
     end
 
     # Explicitly disconnect and discard any reconnect attempts..
     def disconnect
-      log.info "Disconnecting from tcp://#{@host}:#{@port} #{@config.inspect}"
+      log.info "Disconnecting from tcp://#{@host}:#{@port}"
       @closing = true
 
       @c.close_connection if @c

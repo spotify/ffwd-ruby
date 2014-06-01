@@ -28,24 +28,19 @@ module FFWD::Plugin
     include FFWD::Plugin
     include FFWD::Logging
 
-    DEFAULT_PRODUCER = "ffwd"
-    DEFAULT_BROKERS = ["localhost:9092"]
-    DEFAULT_PARTITIONER = :host
-    DEFAULT_ROUTER = :attribute
-
     register_plugin "kafka",
       :description => "A plugin for the collectd binary protocol.",
       :options => [
         FFWD::Plugin.option(
-          :producer, :default => DEFAULT_PRODUCER,
+          :producer, :default => FFWD::Plugin::Kafka::Output::DEFAULT_PRODUCER,
           :help => ["Name of the producer."]
         ),
         FFWD::Plugin.option(
-          :port, :default => DEFAULT_BROKERS,
+          :port, :default => FFWD::Plugin::Kafka::Output::DEFAULT_BROKERS,
           :help => ["Brokers to connect to."]
         ),
         FFWD::Plugin.option(
-          :partitioner, :default => DEFAULT_PARTITIONER,
+          :partitioner, :default => FFWD::Plugin::Kafka::DEFAULT_PARTITIONER,
           :help => [
             "Partitioner to use, the partitioner decides what partition key is used for a specific message.",
             ":host - Base partition key of the host of the event/metric.",
@@ -54,7 +49,7 @@ module FFWD::Plugin
           ]
         ),
         FFWD::Plugin.option(
-          :router, :default => DEFAULT_ROUTER,
+          :router, :default => FFWD::Plugin::Kafka::DEFAULT_ROUTER,
           :help => [
             "Router to use, the router decides which topic to use for a specific message." 
           ]
@@ -67,20 +62,19 @@ module FFWD::Plugin
       attr_reader :config
 
       def initialize config
-        @config = Hash[config]
-        @config[:producer] ||= DEFAULT_PRODUCER
-        @config[:brokers] ||= DEFAULT_BROKERS
-        @config[:partitioner] ||= DEFAULT_PARTITIONER
-        @config[:router] ||= DEFAULT_ROUTER
+        @config = Output.prepare Hash[config]
+        @config = FFWD.prepare_schema @config
+        @config[:partitioner] = FFWD::Plugin::Kafka.prepare_partitioner(
+          @config[:partitioner] || {})
+        @config[:router] = FFWD::Plugin::Kafka.prepare_router(
+          @config[:router] || {})
       end
 
       def connect core
-        producer = @config[:producer]
-        brokers = @config[:brokers]
-        partitioner = FFWD::Plugin::Kafka.build_partitioner @config[:partitioner], @config
-        router = FFWD::Plugin::Kafka.build_router @config[:router], @config
+        partitioner = FFWD::Plugin::Kafka.build_partitioner @config[:partitioner]
+        router = FFWD::Plugin::Kafka.build_router @config[:router]
         schema = FFWD.parse_schema @config
-        output = Output.new producer, brokers, schema, router, partitioner
+        output = Output.new schema, router, partitioner, @config
         FFWD.producing_client core.output, output, @config
       end
     end

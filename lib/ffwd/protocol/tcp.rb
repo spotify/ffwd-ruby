@@ -28,11 +28,10 @@ module FFWD::TCP
   class SetupOutput
     attr_reader :config
 
-    def initialize config, log, handler, args
+    def initialize config, log, handler
       @config = Hash[config]
       @log = log
       @handler = handler
-      @args = args
 
       @config = Connection.prepare @config
 
@@ -49,39 +48,38 @@ module FFWD::TCP
       raise "Missing required option :host" if (host = @config[:host]).nil?
       raise "Missing required option :port" if (port = @config[:port]).nil?
 
-      c = Connection.new @log, host, port, @handler, @args, @config
+      c = Connection.new @log, host, port, @handler, @config
       @type.new core, @log, c, @config
     end
   end
 
-  def self.connect config, log, handler, *args
-    SetupOutput.new config, log, handler, args
+  def self.connect config, log, handler
+    SetupOutput.new config, log, handler
   end
 
   class SetupInput
     attr_reader :config
 
-    def initialize config, log, connection, args
+    def initialize config, log, connection
       @config = Hash[config]
       @log = log
       @connection = connection
-      @args = args
     end
 
     def bind core
       raise "Missing required option :host" if (host = @config[:host]).nil?
       raise "Missing required option :port" if (port = @config[:port]).nil?
       @config = Bind.prepare Hash[@config]
-      Bind.new core, @log, host, port, @connection, @args, @config
+      Bind.new core, @log, host, port, @connection, @config
     end
 
     def tunnel core, plugin
       raise "Missing required option :port" if (port = @config[:port]).nil?
-      FFWD::Tunnel::TCP.new port, core, plugin, @log, @connection, @args
+      FFWD::Tunnel::TCP.new port, core, plugin, @log, @connection
     end
   end
 
-  def self.bind config, log, connection, *args
-    SetupInput.new config, log, connection, args
+  def self.bind config, log, connection
+    SetupInput.new config, log, connection
   end
 end

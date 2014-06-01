@@ -15,6 +15,8 @@
 
 require 'ffwd/connection'
 
+require_relative 'binary_protocol'
+
 module FFWD::Plugin::Tunnel
   class ConnectionTCP < FFWD::Connection
     include FFWD::Logging
@@ -24,10 +26,10 @@ module FFWD::Plugin::Tunnel
       "tunnel_in_tcp"
     end
 
-    def initialize bind, core, tunnel_protocol
+    def initialize bind, core, config
       @bind = bind
       @core = core
-      @tunnel_protocol = tunnel_protocol
+      @tunnel_protocol = BinaryProtocol
       @protocol_instance = nil
     end
 

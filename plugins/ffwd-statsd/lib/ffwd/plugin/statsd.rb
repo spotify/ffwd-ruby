@@ -29,7 +29,29 @@ module FFWD::Plugin::Statsd
   DEFAULT_PORT = 8125
   DEFAULT_PROTOCOL = "udp"
 
-  INPUTS = {:tcp => Connection::TCP, :udp => Connection::UDP}
+  class InputUDP < FFWD::Plugin::Statsd::Connection
+    def self.plugin_type
+      "statsd_udp_in"
+    end
+
+    def receive_data data
+      receive_statsd_frame data
+    end
+  end
+
+  class InputTCP < FFWD::Plugin::Statsd::Connection
+    include EM::Protocols::LineText2
+
+    def self.plugin_type
+      "statsd_tcp_in"
+    end
+
+    def receive_line(data)
+      receive_statsd_frame data
+    end
+  end
+
+  INPUTS = {:tcp => InputTCP, :udp => InputUDP}
 
   def self.setup_input config
     config[:host] ||= DEFAULT_HOST

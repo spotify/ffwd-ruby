@@ -6,8 +6,7 @@ main() {
     status=0
 
     if [[ -d $bundle_path ]]; then
-        echo "# removing: $bundle_path"
-        rm -rf $bundle_path
+        echo "# WARNING: $bundle_path exists!"
     fi
 
     (

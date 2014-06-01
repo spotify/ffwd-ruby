@@ -18,7 +18,6 @@ require 'ffwd/protocol'
 require 'ffwd/logging'
 
 require_relative 'collectd/connection'
-require_relative 'collectd/types_db'
 
 module FFWD::Plugin::Collectd
   include FFWD::Plugin
@@ -47,13 +46,31 @@ module FFWD::Plugin::Collectd
       ),
     ]
 
+  class InputTCP < FFWD::Plugin::Collectd::Connection
+    def self.plugin_type
+      "collectd_tcp_in"
+    end
+  end
+
+  class InputUDP < FFWD::Plugin::Collectd::Connection
+    def self.plugin_type
+      "collectd_udp_in"
+    end
+  end
+
+  INPUTS = {:tcp => InputTCP, :udp => InputUDP}
+
   def self.setup_input config
     config[:host] ||= DEFAULT_HOST
     config[:port] ||= DEFAULT_PORT
     config[:types_db] ||= DEFAULT_TYPES_DB
     config[:protocol] ||= "udp"
-    types_db = TypesDB.open config[:types_db]
     protocol = FFWD.parse_protocol config[:protocol]
-    protocol.bind config, log, Connection, types_db
+
+    unless connection = INPUTS[protocol.family]
+      raise "Not a supported protocol: #{protocol}"
+    end
+
+    protocol.bind config, log, connection
   end
 end

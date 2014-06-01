@@ -129,6 +129,6 @@ module FFWD::Plugin::Riemann
       raise "No connection for protocol family: #{protocol.family}"
     end
 
-    protocol.bind config, log, connection, log
+    protocol.bind config, log, connection
   end
 end

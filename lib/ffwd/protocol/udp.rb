@@ -27,49 +27,47 @@ module FFWD::UDP
   class SetupOutput
     attr_reader :config
 
-    def initialize config, log, handler, args
+    def initialize config, log, handler
       @config = config
       @log = log
       @handler = handler
-      @args = args
       @config = Connect.prepare Hash[@config]
     end
 
     def connect core
       raise "Missing required key :host" if (host = @config[:host]).nil?
       raise "Missing required key :port" if (port = @config[:port]).nil?
-      Connect.new core, log, host, port, handler, @config
+      Connect.new core, @log, host, port, @handler, @config
     end
   end
 
-  def self.connect config, log, handler, *args
-    SetupOutput.new config, log, handler, args
+  def self.connect config, log, handler
+    SetupOutput.new config, log, handler
   end
 
   class SetupInput
     attr_reader :config
 
-    def initialize config, log, connection, args
+    def initialize config, log, connection
       @config = config
       @log = log
       @connection = connection
-      @args = args
     end
 
     def bind core
       raise "Missing required key :host" if (host = @config[:host]).nil?
       raise "Missing required key :port" if (port = @config[:port]).nil?
       @config = Bind.prepare Hash[@config]
-      Bind.new core, @log, host, port, @connection, @args, @config
+      Bind.new core, @log, host, port, @connection, @config
     end
 
     def tunnel core, plugin
       raise "Missing required key :port" if (port = @config[:port]).nil?
-      FFWD::Tunnel::UDP.new port, core, plugin, @log, @connection, @args
+      FFWD::Tunnel::UDP.new port, core, plugin, @log, @connection, @config
     end
   end
 
-  def self.bind config, log, connection, *args
-    SetupInput.new config, log, connection, args
+  def self.bind config, log, connection
+    SetupInput.new config, log, connection
   end
 end

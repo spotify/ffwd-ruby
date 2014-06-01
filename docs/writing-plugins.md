@@ -50,11 +50,21 @@ module FFWD::Plugin
   module Foo
     # ...
 
-    class Input
+    class InputSetup
+      attr_reader config
+
+      def initialize config
+        @config = config
+        @config[:period] ||= 10
+      end
+
+      def bind core
+        # ...
+      end
     end
 
-    def self.setup_input opts, core
-      Input.new
+    def self.setup_input config
+      InputSetup.new config
     end
   end
 end
@@ -74,11 +84,13 @@ module FFWD::Plugin
     # ...
 
     class Input
-      def initialize core
+      def initialize core, config
+        period = config[:period]
+
         @timer = nil
 
         core.input.starting do
-          @timer = EM::PeriodicTimer.new(10) do
+          @timer = EM::PeriodicTimer.new(period) do
             input.metric :key => "foo", :value => 10
           end
         end
@@ -92,8 +104,16 @@ module FFWD::Plugin
       end
     end
 
-    def self.setup_input opts, core
-      Input.new core
+    class InputSetup
+      # ...
+
+      def bind core
+        Input.new core, @config
+      end
+    end
+
+    def self.setup_input config
+      InputSetup.new config
     end
   end
 end
@@ -136,9 +156,9 @@ module FFWD::Plugin
       include FFWD::Logging
       include EM::Protocols::LineText2
 
-      def initialize core, metric_key
+      def initialize bind, core, config
         @core = core
-        @metric_key = metric_key
+        @metric_key = config[:metric_key]
       end
 
       def receive_line line
@@ -151,11 +171,12 @@ module FFWD::Plugin
     DEFAULT_PORT = 4567
     DEFAULT_METRIC_KEY = "foo"
 
-    def self.setup_input opts, core
-      opts[:port] ||= DEFAULT_PORT
-      metric_key = opts[:metric_key] || DEFAULT_METRIC_KEY
-      protocol = FFWD.parse_protocol(opts[:protocol] || "tcp")
-      protocol.bind opts, core, log, Connection, metric_key
+    def self.setup_input config
+      config[:port] ||= DEFAULT_PORT
+      config[:protocol] ||= "tcp"
+      config[:metric_key] ||= DEFAULT_METRIC_KEY
+      protocol = FFWD.parse_protocol config[:protocol]
+      protocol.bind config, log, Connection
     end
   end
 end

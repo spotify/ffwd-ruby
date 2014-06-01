@@ -29,12 +29,21 @@ module FFWD::Plugin::Kafka
 
     MAPPING = [:host, :ttl, :key, :time, :value, :tags, :attributes]
 
-    def initialize producer, brokers, schema, router, partitioner
-      @producer = producer
-      @brokers = brokers
+    DEFAULT_PRODUCER = "ffwd"
+    DEFAULT_BROKERS = ["localhost:9092"]
+
+    def self.prepare config
+      config[:producer] ||= DEFAULT_PRODUCER
+      config[:brokers] ||= DEFAULT_BROKERS
+      config
+    end
+
+    def initialize schema, router, partitioner, config
       @schema = schema
       @router = router
       @partitioner = partitioner
+      @producer = config[:producer]
+      @brokers = config[:brokers]
       @reporter_meta = {:producer_type => "kafka", :producer => @producer}
       @instance = nil
     end

@@ -29,10 +29,10 @@ module FFWD::Plugin::Riemann
       FFWD::Plugin::Riemann::Connection::Serializer
     end
 
-    def initialize bind, core, log
+    def initialize bind, core, config
       @bind = bind
       @core = core
-      @log = log
+      @config = config
     end
 
     def receive_object(m)
@@ -51,7 +51,7 @@ module FFWD::Plugin::Riemann
       send_ok
     rescue => e
       @bind.increment :failed_events, m.events.size
-      @log.error "Failed to receive object", e
+      @bind.log.error "Failed to receive object", e
       send_error e
     end
 

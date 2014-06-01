@@ -37,6 +37,10 @@ module FFWD::Plugin::Protobuf
       "protobuf_udp_out"
     end
 
+    def initialize connect, config
+      @connect = connect
+    end
+
     def send_all events, metrics
       events.each do |event|
         send_event event
@@ -48,11 +52,11 @@ module FFWD::Plugin::Protobuf
     end
 
     def send_event event
-      parent.send_data Serializer.dump_event(event)
+      @connect.send_data Serializer.dump_event(event)
     end
 
     def send_metric metric
-      parent.send_data Serializer.dump_metric(metric)
+      @connect.send_data Serializer.dump_metric(metric)
     end
   end
 
@@ -60,10 +64,9 @@ module FFWD::Plugin::Protobuf
     include FFWD::Logging
     include EM::Protocols::FrameObjectProtocol
 
-    def initialize bind, core, log
+    def initialize bind, core, config
       @bind = bind
       @core = core
-      @log = log
     end
 
     def self.plugin_type
@@ -85,10 +88,10 @@ module FFWD::Plugin::Protobuf
         end
       end
     rescue => e
-      @log.error "Failed to receive data", e
+      log.error "Failed to receive data", e
 
-      if @log.debug?
-        @log.debug("DUMP: " + FFWD.dump2hex(datagram))
+      if log.debug?
+        log.debug("DUMP: " + FFWD.dump2hex(datagram))
       end
     end
   end
@@ -125,6 +128,6 @@ module FFWD::Plugin::Protobuf
       raise "No connection for protocol family: #{protocol.family}"
     end
 
-    protocol.bind config, log, connection, log
+    protocol.bind config, log, connection
   end
 end

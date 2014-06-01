@@ -13,27 +13,19 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
-require 'eventmachine'
-
-require 'ffwd/logging'
 require 'ffwd/connection'
 
 module FFWD::Plugin
   module Carbon
     class Connection < FFWD::Connection
-      include FFWD::Logging
       include EM::Protocols::LineText2
 
-      def self.plugin_type
-        "carbon_in"
-      end
-
-      def initialize bind, core
+      def initialize bind, core, config
         @bind = bind
         @core = core
       end
 
-      def parse(line)
+      def parse line
         path, value, timestamp = line.split ' ', 3
         raise "invalid frame" if timestamp.nil?
 
@@ -45,13 +37,13 @@ module FFWD::Plugin
         return {:key => path, :value => value, :time => time}
       end
 
-      def receive_line(ln)
-        metric = parse(ln)
+      def receive_line line
+        metric = parse line
         return if metric.nil?
         @core.input.metric metric
         @bind.increment :received_metrics
       rescue => e
-        log.error "Failed to receive data", e
+        @bind.log.error "Failed to receive data", e
       end
     end
   end

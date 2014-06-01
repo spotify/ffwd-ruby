@@ -22,9 +22,16 @@ module FFWD
   DEFUALT_SCHEMA = 'default'
   DEFAULT_CONTENT_TYPE = 'application/json'
 
-  def self.parse_schema opts, support=SCHEMA_DEFAULT_SUPPORT
-    name = opts[:schema] || DEFUALT_SCHEMA
-    content_type = opts[:content_type] || DEFAULT_CONTENT_TYPE
+  def self.prepare_schema config
+    config[:schema] ||= DEFUALT_SCHEMA
+    config[:content_type] ||= DEFAULT_CONTENT_TYPE
+    config
+  end
+
+  def self.parse_schema config, support=SCHEMA_DEFAULT_SUPPORT
+    name = config[:schema]
+    content_type = config[:content_type]
+
     key = [name, content_type]
 
     schema = FFWD::Schema.loaded[key]

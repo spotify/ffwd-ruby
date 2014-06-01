@@ -19,7 +19,9 @@ require 'ffwd/logging'
 require 'ffwd/connection'
 
 module FFWD::Plugin::JSON
-  module Connection
+  class Connection < FFWD::Connection
+    include FFWD::Logging
+
     EVENT_FIELDS = [
       ["key", :key],
       ["value", :value],
@@ -39,7 +41,7 @@ module FFWD::Plugin::JSON
       ["attributes", :attributes]
     ]
 
-    def initialize bind, core
+    def initialize bind, core, config
       @bind = bind
       @core = core
     end

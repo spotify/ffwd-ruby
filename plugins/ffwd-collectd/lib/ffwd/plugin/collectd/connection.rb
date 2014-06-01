@@ -13,23 +13,17 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
-require 'ffwd/logging'
 require 'ffwd/connection'
 
 require_relative 'parser'
+require_relative 'types_db'
 
 module FFWD::Plugin::Collectd
   class Connection < FFWD::Connection
-    include FFWD::Logging
-
-    def self.plugin_type
-      "collectd_in"
-    end
-
-    def initialize bind, core, types_db
+    def initialize bind, core, config
       @bind = bind
       @core = core
-      @types_db = types_db
+      @types_db = TypesDB.open config[:types_db]
     end
 
     def receive_data(data)
@@ -77,7 +71,7 @@ module FFWD::Plugin::Collectd
         end
       end
     rescue => e
-      log.error "Failed to receive data", e
+      @bind.log.error "Failed to receive data", e
     end
   end
 end

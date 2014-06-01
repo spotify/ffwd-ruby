@@ -50,9 +50,7 @@ module FFWD::Plugin::JSON
         ])
     ]
 
-  class LineConnection < FFWD::Connection
-    include FFWD::Logging
-    include FFWD::Plugin::JSON::Connection
+  class LineConnection < FFWD::Plugin::JSON::Connection
     include EM::Protocols::LineText2
 
     def self.plugin_type
@@ -64,10 +62,7 @@ module FFWD::Plugin::JSON
     end
   end
 
-  class FrameConnection < FFWD::Connection
-    include FFWD::Logging
-    include FFWD::Plugin::JSON::Connection
-
+  class FrameConnection < FFWD::Plugin::JSON::Connection
     def self.plugin_type
       "json_frame_in"
     end
