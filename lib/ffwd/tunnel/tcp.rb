@@ -50,10 +50,12 @@ module FFWD::Tunnel
             instance.unbind
           end
         end
+
+        @log.info "Tunneling tcp/#{@port}"
       end
 
       stopping do
-        log.info "Stopped tunneling tcp/#{@port}"
+        @log.info "Stopped tunneling tcp/#{@port}"
       end
     end
   end

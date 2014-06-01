@@ -92,12 +92,14 @@ module FFWD::Statistics
       end
     end
 
-    def register id, reporter
-      @reporters[id] = reporter
-    end
+    def register id, lifecycle, reporter
+      licecycle.starting do
+        @reporters[id] = reporter
+      end
 
-    def unregister id
-      @reporters.delete id
+      licecycle.stopping do
+        @reporters.delete id
+      end
     end
   end
 end

@@ -25,8 +25,11 @@ module FFWD
     attr_reader :tunnel_plugins, :statistics, :debug, :processors
     attr_reader :tags, :attributes
 
-    def initialize(input, output, tunnel_plugins, statistics, debug,
-                   processors, opts)
+    def initialize(
+      input, output,
+      tunnel_plugins, statistics, debug,
+      processors, opts
+    )
       @input = input
       @output = output
       @tunnel_plugins = tunnel_plugins

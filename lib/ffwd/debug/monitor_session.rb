@@ -17,10 +17,7 @@ require_relative '../lifecycle'
 
 module FFWD::Debug
   class MonitorSession
-    attr_reader :id
-
-    def initialize id, channel, type
-      @id = id
+    def initialize channel, type
       @type = type
       @clients = {}
 
@@ -31,7 +28,7 @@ module FFWD::Debug
           data = @type.serialize_event event
 
           begin
-            send JSON.dump(:id => @id, :type => :event, :data => data)
+            send JSON.dump(:id => channel.id, :type => :event, :data => data)
           rescue => e
             log.error "Failed to serialize event", e
             return
@@ -42,7 +39,7 @@ module FFWD::Debug
           data = @type.serialize_metric metric
 
           begin
-            send JSON.dump(:id => @id, :type => :metric, :data => data)
+            send JSON.dump(:id => channel.id, :type => :metric, :data => data)
           rescue => e
             log.error "Failed to serialize metric", e
             return

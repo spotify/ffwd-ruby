@@ -38,25 +38,24 @@ module FFWD
       @emitter = emitter
       @processors = processors
       @reporters = reporters
-
-      subs = []
+      @subs = []
 
       @processors.each do |name, p|
         p.depend_on input
       end
 
       input.starting do
-        subs << input.metric_subscribe do |m|
+        @subs << input.metric_subscribe do |m|
           process_metric m
         end
 
-        subs << input.event_subscribe do |e|
+        @subs << input.event_subscribe do |e|
           process_event e
         end
       end
 
       input.stopping do
-        subs.each(&:unsubscribe).clear
+        @subs.each(&:unsubscribe).clear
       end
     end
 

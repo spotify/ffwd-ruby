@@ -13,8 +13,6 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
-require_relative '../logging'
-require_relative '../utils'
 require_relative '../metric_emitter'
 require_relative '../event_emitter'
 

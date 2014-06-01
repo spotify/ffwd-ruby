@@ -62,21 +62,25 @@ module FFWD::Debug
     end
 
     # Setup monitor hooks for the specified input and output channel.
-    def monitor id, channel, type
-      if session = @sessions[id]
-        log.error "Session already monitored: #{id}"
-        return
-      end
+    def monitor channel, type
+      channel.starting do
+        if session = @sessions[channel.id]
+          log.error "Session already monitored: #{channel.id}"
+          return
+        end
 
-      session = @sessions[id] = MonitorSession.new id, channel, type
+        session = MonitorSession.new channel, type
 
-      # provide the session to the already connected clients.
-      @clients.each do |peer, client|
-        session.register peer, client
+        # provide the session to any already connected clients.
+        @clients.each do |peer, client|
+          session.register peer, client
+        end
+
+        @sessions[channel.id] = session
       end
 
       channel.stopping do
-        @sessions.delete id
+        @sessions.delete channel.id
       end
     end
   end

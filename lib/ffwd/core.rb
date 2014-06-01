@@ -46,8 +46,8 @@ module FFWD
       @core_opts = opts[:core] || {}
       @processors = FFWD::Processor.load_processors(opts[:processor] || {})
 
-      @output_channel = FFWD::PluginChannel.build 'output'
-      @input_channel = FFWD::PluginChannel.build 'input'
+      @output_channel = FFWD::PluginChannel.build 'core.output'
+      @input_channel = FFWD::PluginChannel.build 'core.input'
 
       @system_channel = Channel.new log, "system_channel"
 
@@ -66,8 +66,8 @@ module FFWD
 
       if @debug_opts
         @debug = FFWD::Debug.setup @debug_opts
-        @debug.monitor "core.input", @input_channel, FFWD::Debug::Input
-        @debug.monitor "core.output", @output_channel, FFWD::Debug::Output
+        @debug.monitor @input_channel, FFWD::Debug::Input
+        @debug.monitor @output_channel, FFWD::Debug::Output
         @debug.depend_on self
       end
 
@@ -98,7 +98,7 @@ module FFWD
         reporters = [@input_channel, @output_channel, @processor]
         reporters += @input_instances.select{|i| FFWD.is_reporter?(i)}
         reporters += @output_instances.select{|i| FFWD.is_reporter?(i)}
-        @statistics.register "core", Core::Reporter.new(reporters)
+        @statistics.register "core", self, Core::Reporter.new(reporters)
       end
 
       # Make the core-related channels depend on core.

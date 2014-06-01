@@ -22,110 +22,11 @@ require 'ffwd/plugin_channel'
 require 'ffwd/tunnel/plugin'
 require 'ffwd/utils'
 
+require_relative 'bind_tcp'
+require_relative 'bind_udp'
+
 module FFWD::Plugin::Tunnel
   class BinaryProtocol < FFWD::Tunnel::Plugin
-    class BindUDP
-      class Handle < FFWD::Tunnel::Plugin::Handle
-        attr_reader :addr
-
-        def initialize bind, addr
-          @bind = bind
-          @addr = addr
-        end
-
-        def send_data data
-          @bind.send_data @addr, data
-        end
-      end
-
-      def initialize port, family, tunnel, block
-        @port = port
-        @family = family
-        @tunnel = tunnel
-        @block = block
-      end
-
-      def send_data addr, data
-        @tunnel.send_data Socket::SOCK_DGRAM, @family, @port, addr, data
-      end
-
-      def data! addr, data
-        handle = Handle.new self, addr
-        @block.call handle, data
-      end
-    end
-
-    class BindTCP
-      class Handle < FFWD::Tunnel::Plugin::Handle
-        attr_reader :addr
-
-        def initialize bind, addr
-          @bind = bind
-          @addr = addr
-          @close = nil
-          @data = nil
-        end
-
-        def send_data data
-          @bind.send_data @addr, data
-        end
-
-        def close &block
-          @close = block
-        end
-
-        def data &block
-          @data = block
-        end
-
-        def recv_close
-          return if @close.nil?
-          @close.call
-          @close = nil
-          @data = nil
-        end
-
-        def recv_data data
-          return if @data.nil?
-          @data.call data
-        end
-      end
-
-      def initialize port, family, tunnel, block
-        @port = port
-        @family = family
-        @tunnel = tunnel
-        @block = block
-        @handles = {}
-      end
-
-      def open addr
-        raise "Already open: #{addr}" if @handles[addr]
-        handle = @handles[addr] = Handle.new self, addr
-        @block.call handle
-      end
-
-      def close addr
-        raise "Not open: #{addr}" unless handle = @handles[addr]
-        handle.recv_close
-        @handles.delete addr
-      end
-
-      def data addr, data
-        return if data.empty?
-
-        unless handle = @handles[addr]
-          raise "Not available: #{addr}"
-        end
-
-        handle.recv_data data
-      end
-
-      def send_data addr, data
-        @tunnel.send_data Socket::SOCK_STREAM, @family, @port, addr, data
-      end
-    end
-
     include FFWD::Logging
     include FFWD::Lifecycle
 
@@ -155,62 +56,42 @@ module FFWD::Plugin::Tunnel
       @c = c
       @tcp_bind = {}
       @udp_bind = {}
-      @input = FFWD::PluginChannel.build 'tunnel_input'
 
-      @metadata = nil
-      @processor = nil
-      @channel_id = nil
-      @statistics_id = nil
       @header = nil
+      @parent = core
+    end
 
-      starting do
-        raise "no metadata" if @metadata.nil?
-
-        if host = @metadata[:host]
-          @statistics_id = "tunnel/#{host}"
-          @channel_id = "tunnel.input/#{host}"
-        else
-          @statistics_id = "tunnel/#{@c.get_peer}"
-          @channel_id = "tunnel.input/#{@c.get_peer}"
-        end
-
-        # setup a small core
-        emitter = FFWD::Core::Emitter.build @core.output, @metadata
-        @processor = FFWD::Core::Processor.build @input, emitter, @core.processors
-
-        @reporter = FFWD::Core::Reporter.new [@input, @processor]
-
-        if @core.debug
-          @core.debug.monitor @channel_id, @input, FFWD::Debug::Input
-        end
-
-        if @core.statistics
-          @core.statistics.register @statistics_id, @reporter
-        end
+    def setup metadata
+      unless id = metadata[:host]
+        id = @c.get_peer
       end
 
-      stopping do
-        if @core.statistics and @statistics_id
-          @core.statistics.unregister @statistics_id
-          @statistics_id = nil
-        end
+      input = FFWD::PluginChannel.build "tunnel.input/#{id}"
+      core = @parent.reconnect input
 
-        @metadata = nil
-        @processor = nil
-        @channel_id = nil
-        @tcp_bind = {}
-        @udp_bind = {}
+      # setup a small core
+      emitter = FFWD::Core::Emitter.build core.output, metadata
+      processor = FFWD::Core::Processor.build input, emitter, core.processors
+
+      if core.debug
+        core.debug.monitor input, FFWD::Debug::Input
       end
 
-      @core = core.reconnect @input
-
-      @core.tunnel_plugins.each do |t|
-        instance = t.setup @core, self
-        instance.depend_on self
+      if core.statistics
+        reporters = [input, processor]
+        reporter = FFWD::Core::Reporter.new reporters
+        core.statistics.register "tunnel/#{id}", self, reporter
       end
 
-      @input.depend_on self
-      @core.depend_on self
+      core.tunnel_plugins.each do |t|
+        i = t.setup core, self
+        i.depend_on self
+      end
+
+      input.depend_on self
+      core.depend_on self
+
+      start
     end
 
     def tcp port, &block
@@ -226,8 +107,8 @@ module FFWD::Plugin::Tunnel
     def read_metadata data
       d = {}
 
-      d[:tags] = FFWD.merge_sets @core.tags, data["tags"]
-      d[:attributes] = FFWD.merge_sets @core.attributes, data["attributes"]
+      d[:tags] = FFWD.merge_sets @parent.tags, data["tags"]
+      d[:attributes] = FFWD.merge_sets @parent.attributes, data["attributes"]
 
       if host = data["host"]
         d[:host] = host
@@ -259,8 +140,7 @@ module FFWD::Plugin::Tunnel
     end
 
     def receive_metadata data
-      @metadata = read_metadata data
-      start
+      setup read_metadata(data)
       send_config
     end
 
@@ -355,7 +235,6 @@ module FFWD::Plugin::Tunnel
 
     def tunnel_state header, addr, state
       if header.protocol == Socket::SOCK_DGRAM
-        # ignored
         log.error "UDP does not handle: #{state}"
         return
       end
