@@ -6,13 +6,13 @@ A flexible system event and metric forwarding agent.
 It is a intended to run on locally and receive metrics and events through a set
 of widely used standard protocols.
 
-By running on the local system it is easily accessible to received pushed
-data from any monitored application.
+By running locally it is readily available to receive pushed data from
+monitored applications running on the system.
 
 FFWD takes care to forward the data with any _system-wide_ tags or attributes.
-This is metadata that describes the origin of the data, like _site_, and
-_role_. This allows for decoration of the received metrics and events to make
-them _semantic from the source_.
+This is metadata that describes the origin of the data, like _site_ and
+_role_. This allows for decoration of the received data to make it
+_semantic from the source_.
 This concept is described further in [Metrics 2.0](http://metrics20.org).
 
 * [Usage](#usage)

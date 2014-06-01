@@ -60,8 +60,7 @@ module FFWD::Plugin::Collectd
     opts[:port] ||= DEFAULT_PORT
     opts[:types_db] ||= DEFAULT_TYPES_DB
     protocol = FFWD.parse_protocol(opts[:protocol] || "udp")
-    protocol.tunnel log, opts, Connection
     types_db = TypesDB.open opts[:types_db]
-    protocol.bind opts, core, tunnel, log, Connection, types_db
+    protocol.tunnel opts, core, tunnel, log, Connection, types_db
   end
 end

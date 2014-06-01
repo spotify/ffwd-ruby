@@ -16,3 +16,8 @@
     :protocol: "udp"
   - :type: "collectd"
   - :type: "protobuf"
+
+:input:
+  # Only enable the tunneling plugin.
+  # Connect using: plugins/ffwd-tunnel/bin/ffwd-tunnel-agent
+  - :type: "tunnel"

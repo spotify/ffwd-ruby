@@ -112,6 +112,8 @@ module FFWD::Plugin::Tunnel
       end
 
       def data addr, data
+        return if data.empty?
+
         unless handle = @handles[addr]
           raise "Not available: #{addr}"
         end
