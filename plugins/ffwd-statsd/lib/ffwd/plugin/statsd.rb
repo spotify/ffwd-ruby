@@ -30,7 +30,7 @@ module FFWD::Plugin::Statsd
 
   INPUTS = {:tcp => Connection::TCP, :udp => Connection::UDP}
 
-  def self.setup_input opts, core
+  def self.setup_input opts
     opts[:host] ||= DEFAULT_HOST
     opts[:port] ||= DEFAULT_PORT
     protocol = FFWD.parse_protocol(opts[:protocol] || "udp")
@@ -39,17 +39,6 @@ module FFWD::Plugin::Statsd
       raise "No connection for protocol family: #{protocol.family}"
     end
 
-    protocol.bind opts, core, log, connection
-  end
-
-  def self.setup_tunnel opts, core, tunnel
-    opts[:port] ||= DEFAULT_PORT
-    protocol = FFWD.parse_protocol(opts[:protocol] || "tcp")
-
-    unless connection = INPUTS[protocol.family]
-      raise "No connection for protocol family: #{protocol.family}"
-    end
-
-    protocol.tunnel opts, core, tunnel, log, connection
+    protocol.bind opts, log, connection
   end
 end

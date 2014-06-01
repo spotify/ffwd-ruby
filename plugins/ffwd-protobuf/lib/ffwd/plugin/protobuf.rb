@@ -100,20 +100,20 @@ module FFWD::Plugin::Protobuf
   OUTPUTS = {:udp => OutputUDP}
   INPUTS = {:udp => InputUDP}
 
-  def self.setup_output opts, core
+  def self.setup_output opts
     opts[:host] ||= DEFAULT_HOST
     opts[:port] ||= DEFAULT_PORT
 
     protocol = FFWD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
 
     unless handler = OUTPUTS[protocol.family]
-      raise "No type for protocol family: #{protocol.family}"
+      raise "No handler for protocol family: #{protocol.family}"
     end
 
-    protocol.connect opts, core, log, handler
+    protocol.connect opts, log, handler
   end
 
-  def self.setup_input opts, core
+  def self.setup_input opts
     opts[:host] ||= DEFAULT_HOST
     opts[:port] ||= DEFAULT_PORT
     protocol = FFWD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
@@ -122,17 +122,6 @@ module FFWD::Plugin::Protobuf
       raise "No connection for protocol family: #{protocol.family}"
     end
 
-    protocol.bind opts, core, log, connection, log
-  end
-
-  def self.setup_tunnel opts, core, tunnel
-    opts[:port] ||= DEFAULT_PORT
-    protocol = FFWD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
-
-    unless connection = INPUTS[protocol.family]
-      raise "No connection for protocol family: #{protocol.family}"
-    end
-
-    protocol.tunnel opts, core, tunnel, log, connection, log
+    protocol.bind opts, log, connection, log
   end
 end

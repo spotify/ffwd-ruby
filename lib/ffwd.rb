@@ -134,13 +134,13 @@ module FFWD
     plugins = {}
 
     plugins[:tunnel] = FFWD::Plugin.load_plugins(
-      log, "Tunnel", config[:tunnel], :tunnel)
+      log, "Tunnel", config[:tunnel], :input, :tunnel)
 
     plugins[:input] = FFWD::Plugin.load_plugins(
-      log, "Input", config[:input], :input)
+      log, "Input", config[:input], :input, :bind)
 
     plugins[:output] = FFWD::Plugin.load_plugins(
-      log, "Output", config[:output], :output)
+      log, "Output", config[:output], :output, :connect)
 
     plugins
   end

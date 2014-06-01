@@ -14,15 +14,33 @@
 # the License.
 
 require_relative '../lifecycle'
+require_relative '../logging'
 
 require_relative 'system_statistics'
 
 module FFWD::Statistics
   class Collector
     include FFWD::Lifecycle
+    include FFWD::Logging
 
     DEFAULT_PERIOD = 10
     DEFAULT_PREFIX = "ffwd"
+
+    def self.build emitter, channel, opts={}
+      period = opts[:period] || DEFAULT_PERIOD
+      tags = opts[:tags] || []
+      attributes = opts[:attributes] || {}
+      prefix = opts[:prefix] || DEFAULT_PREFIX
+      system = SystemStatistics.new(opts[:system] || {})
+
+      system = if system.check
+        system
+      else
+        nil
+      end
+
+      new(emitter, channel, period, prefix, tags, attributes, system)
+    end
 
     # Initialize the statistics collector.
     #
@@ -31,27 +49,19 @@ module FFWD::Statistics
     # channel - A side-channel used by the SystemStatistics component
     # to report information about the system. Messages sent on this channel
     # help Core decide if it should seppuku.
-    def initialize log, emitter, channel, opts={}
+    def initialize emitter, channel, period, prefix, tags, attributes, system
       @emitter = emitter
-      @period = opts[:period] || DEFAULT_PERIOD
-      @tags = opts[:tags] || []
-      @attributes = opts[:attributes] || {}
+      @period = period
+      @prefix = prefix
+      @tags = tags
+      @attributes = attributes
+      @system = system
+
       @reporters = {}
       @channel = channel
       @timer = nil
-      @prefix = opts[:prefix] || DEFAULT_PREFIX
-
-      system = SystemStatistics.new(opts[:system] || {})
-
-      if system.check
-        @system = system
-      else
-        @system = nil
-      end
 
       starting do
-        log.info "Started statistics collection"
-
         @last = Time.now
 
         @timer = EM::PeriodicTimer.new @period do
@@ -59,15 +69,17 @@ module FFWD::Statistics
           generate! @last, now
           @last = now
         end
+
+        log.info "Started statistics collection"
       end
 
       stopping do
-        log.info "Stopped statistics collection"
-
         if @timer
           @timer.cancel
           @timer = nil
         end
+
+        log.info "Stopped statistics collection"
       end
     end
 
@@ -92,12 +104,12 @@ module FFWD::Statistics
       end
     end
 
-    def register id, lifecycle, reporter
-      licecycle.starting do
+    def register lifecycle, id, reporter
+      lifecycle.starting do
         @reporters[id] = reporter
       end
 
-      licecycle.stopping do
+      lifecycle.stopping do
         @reporters.delete id
       end
     end

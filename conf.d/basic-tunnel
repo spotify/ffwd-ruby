@@ -16,6 +16,8 @@
     :protocol: "udp"
   - :type: "collectd"
   - :type: "protobuf"
+  - :type: "tunnel"
+    :port: 9001
 
 :input:
   # Only enable the tunneling plugin.

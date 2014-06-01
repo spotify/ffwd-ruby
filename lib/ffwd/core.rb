@@ -23,13 +23,14 @@ require_relative 'logging'
 require_relative 'plugin_channel'
 require_relative 'processor'
 require_relative 'protocol'
-require_relative 'statistics'
 require_relative 'utils'
 
 require_relative 'core/emitter'
 require_relative 'core/interface'
 require_relative 'core/processor'
 require_relative 'core/reporter'
+
+require_relative 'statistics/collector'
 
 module FFWD
   class Core
@@ -75,7 +76,8 @@ module FFWD
       @statistics = nil
 
       if config = @statistics_opts
-        @statistics = FFWD::Statistics.setup @emitter, @system_channel, config
+        @statistics = FFWD::Statistics::Collector.build(
+          @emitter, @system_channel, config)
         @statistics.depend_on self
       end
 
@@ -86,19 +88,19 @@ module FFWD
 
       @interface.depend_on self
 
-      @input_instances = @input_plugins.map do |plugin|
-        plugin.setup @interface
+      @input_instances = @input_plugins.map do |factory|
+        factory.call @interface
       end
 
-      @output_instances = @output_plugins.map do |plugin|
-        plugin.setup @interface
+      @output_instances = @output_plugins.map do |factory|
+        factory.call @interface
       end
 
       unless @statistics.nil?
         reporters = [@input_channel, @output_channel, @processor]
         reporters += @input_instances.select{|i| FFWD.is_reporter?(i)}
         reporters += @output_instances.select{|i| FFWD.is_reporter?(i)}
-        @statistics.register "core", self, Core::Reporter.new(reporters)
+        @statistics.register self, "core", Core::Reporter.new(reporters)
       end
 
       # Make the core-related channels depend on core.

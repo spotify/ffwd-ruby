@@ -41,6 +41,39 @@ module FFWD::TCP
   # Default initial timeout when binding fails.
   DEFAULT_REBIND_TIMEOUT = 10
 
+  class SetupOutput
+    def initialize opts, log, handler, args
+      @opts = opts
+      @log = log
+      @handler = handler
+      @args = args
+    end
+
+    def connect core
+      raise "Missing required option :host" if (host = @opts[:host]).nil?
+      raise "Missing required option :port" if (port = @opts[:port]).nil?
+
+      outbound_limit = @opts[:outbound_limit] || DEFAULT_OUTBOUND_LIMIT
+      flush_period = @opts[:flush_period] || DEFAULT_FLUSH_PERIOD
+      ignored = (@opts[:ignored] || []).map{|v| Utils.check_ignored v}
+
+      connection = Connection.new @log, host, port, @handler, @args, outbound_limit
+
+      if flush_period == 0
+        PlainConnect.new core, @log, ignored, connection
+      else
+        event_limit = @opts[:event_limit] || DEFAULT_EVENT_LIMIT
+        metric_limit = @opts[:metric_limit] || DEFAULT_METRIC_LIMIT
+        flush_limit = @opts[:flush_limit] || DEFAULT_FLUSH_LIMIT
+
+        FlushingConnect.new(
+          core, @log, ignored, connection,
+          flush_period, event_limit, metric_limit, flush_limit
+        )
+      end
+    end
+  end
+
   # Establish an outbound tcp connection.
   #
   # opts - Option hash.
@@ -62,65 +95,48 @@ module FFWD::TCP
   #     If this percentage is reached, the connection will attempt to forcibly
   #     flush all buffered events and metrics prior to the end of the flushing
   #     period.
-  # core - The core interface associated with this connection.
   # log - The logger to use for this connection.
   # handler - An implementation of FFWD::Handler containing the connection
   # logic.
   # args - Arguments passed to the handler when a new instance is created.
-  def self.connect opts, core, log, handler, *args
-    raise "Missing required option :host" if (host = opts[:host]).nil?
-    raise "Missing required option :port" if (port = opts[:port]).nil?
+  def self.connect opts, log, handler, *args
+    SetupOutput.new opts, log, handler, args
+  end
 
-    outbound_limit = opts[:outbound_limit] || DEFAULT_OUTBOUND_LIMIT
-    flush_period = opts[:flush_period] || DEFAULT_FLUSH_PERIOD
-    ignored = (opts[:ignored] || []).map{|v| Utils.check_ignored v}
+  class SetupInput
+    def initialize opts, log, connection, args
+      @opts = opts
+      @log = log
+      @connection = connection
+      @args = args
+    end
 
-    connection = Connection.new log, host, port, handler, args, outbound_limit
+    # Bind and listen for a TCP connection.
+    #
+    # opts - Option hash.
+    #   :host - The host to bind to.
+    #   :port - The port to bind to.
+    #   :rebind_timeout - The initial timeout to use when rebinding the
+    #   connection.
+    # core - The core interface associated with this connection.
+    # log - The logger to use for this connection.
+    # connection - An implementation of FFWD::Connection containing the
+    # connection logic.
+    # args - Arguments passed to the connection when a new instance is created.
+    def bind core
+      raise "Missing required option :host" if (host = @opts[:host]).nil?
+      raise "Missing required option :port" if (port = @opts[:port]).nil?
+      rebind_timeout = @opts[:rebind_timeout] || DEFAULT_REBIND_TIMEOUT
+      Bind.new core, @log, host, port, @connection, @args, rebind_timeout
+    end
 
-    if flush_period == 0
-      PlainConnect.new core, log, ignored, connection
-    else
-      event_limit = opts[:event_limit] || DEFAULT_EVENT_LIMIT
-      metric_limit = opts[:metric_limit] || DEFAULT_METRIC_LIMIT
-      flush_limit = opts[:flush_limit] || DEFAULT_FLUSH_LIMIT
-
-      FlushingConnect.new(
-        core, log, ignored, connection,
-        flush_period, event_limit, metric_limit, flush_limit
-      )
+    def tunnel core, plugin
+      raise "Missing required option :port" if (port = @opts[:port]).nil?
+      FFWD::Tunnel::TCP.new port, core, plugin, @log, @connection, @args
     end
   end
 
-  # Bind and listen for a TCP connection.
-  #
-  # opts - Option hash.
-  #   :host - The host to bind to.
-  #   :port - The port to bind to.
-  #   :rebind_timeout - The initial timeout to use when rebinding the
-  #   connection.
-  # core - The core interface associated with this connection.
-  # log - The logger to use for this connection.
-  # connection - An implementation of FFWD::Connection containing the
-  # connection logic.
-  # args - Arguments passed to the connection when a new instance is created.
-  def self.bind opts, core, log, connection, *args
-    raise "Missing required option :host" if (host = opts[:host]).nil?
-    raise "Missing required option :port" if (port = opts[:port]).nil?
-    rebind_timeout = opts[:rebind_timeout] || DEFAULT_REBIND_TIMEOUT
-    Bind.new core, log, host, port, connection, args, rebind_timeout
-  end
-
-  # Set up a TCP tunnel.
-  #
-  # opts - Option hash.
-  #   :port - The port to bind to on the remote side.
-  # core - The core interface associated with this connection.
-  # log - The logger to use for this connection.
-  # connection - An implementation of FFWD::Connection containing the
-  # connection logic.
-  # args - Arguments passed to the connection when a new instance is created.
-  def self.tunnel opts, core, plugin, log, connection, *args
-    raise "Missing required option :port" if (port = opts[:port]).nil?
-    FFWD::Tunnel::TCP.new port, core, plugin, log, connection, args
+  def self.bind opts, log, connection, *args
+    SetupInput.new opts, log, connection, args
   end
 end

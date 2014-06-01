@@ -43,17 +43,11 @@ module FFWD::Plugin
           ]),
       ]
 
-    def self.setup_input opts, core
+    def self.setup_input opts
       opts[:host] ||= DEFAULT_HOST
       opts[:port] ||= DEFAULT_PORT
       protocol = FFWD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
-      protocol.bind opts, core, log, Connection
-    end
-
-    def self.setup_tunnel opts, core, tunnel
-      opts[:port] ||= DEFAULT_PORT
-      protocol = FFWD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
-      protocol.tunnel opts, core, tunnel, log, Connection
+      protocol.bind opts, log, Connection
     end
   end
 end

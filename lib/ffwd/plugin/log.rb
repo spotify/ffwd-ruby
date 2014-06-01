@@ -33,8 +33,18 @@ module FFWD::Plugin
         ]),
       ]
 
-    def self.setup_output opts, core
-      Writer.new core, opts[:prefix]
+    class Setup
+      def initialize opts
+        @opts = opts
+      end
+
+      def connect core
+        Writer.new core, @opts[:prefix]
+      end
+    end
+
+    def self.setup_output opts
+      Setup.new opts
     end
   end
 end

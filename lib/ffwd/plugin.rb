@@ -28,7 +28,6 @@ module FFWD
         @options = config[:options]
         @setup_input_method = load_method @mod, config[:setup_input_method_name]
         @setup_output_method = load_method @mod, config[:setup_output_method_name]
-        @setup_tunnel_method = load_method @mod, config[:setup_tunnel_method_name]
       end
 
       def capabilities
@@ -42,10 +41,6 @@ module FFWD
           capabilities << "output"
         end
 
-        if not @setup_tunnel_method.nil?
-          capabilities << "tunnel"
-        end
-
         return capabilities
       end
 
@@ -56,7 +51,6 @@ module FFWD
       def get(kind)
         return @setup_input_method if kind == :input
         return @setup_output_method if kind == :output
-        return @setup_tunnel_method if kind == :tunnel
         return nil
       end
 
@@ -69,16 +63,16 @@ module FFWD
     end
 
     class Setup
-      attr_reader :name, :config
+      attr_reader :config, :name
 
-      def initialize name, config, setup
-        @name = name
+      def initialize method, config, name
+        @method = method
         @config = config
-        @setup = setup
+        @name = name
       end
 
-      def setup *args
-        @setup.call @config, *args
+      def call *args
+        @method.call(*args)
       end
     end
 
@@ -100,7 +94,6 @@ module FFWD
 
         config[:setup_input_method_name] = (opts[:setup_input_method] || :setup_input)
         config[:setup_output_method_name] = (opts[:setup_output_method] || :setup_output)
-        config[:setup_tunnel_method_name] = (opts[:setup_tunnel_method] || :setup_tunnel)
 
         FFWD::Plugin.discovered[name] = config
       end
@@ -122,7 +115,7 @@ module FFWD
       FFWD::Plugin.discovered.clear
     end
 
-    def self.load_plugins log, kind_name, config, kind
+    def self.load_plugins log, kind_name, config, kind, m
       result = []
 
       return result if config.nil?
@@ -145,7 +138,14 @@ module FFWD
           next
         end
 
-        result << Setup.new(name, plugin_config, setup)
+        factory = setup.call plugin_config
+
+        unless factory.respond_to? m
+          log.error "#{d}: Plugin '#{name}' does not support '#{m.to_s}'"
+          next
+        end
+
+        result << Setup.new(factory.method(m), plugin_config, name)
       end
 
       return result

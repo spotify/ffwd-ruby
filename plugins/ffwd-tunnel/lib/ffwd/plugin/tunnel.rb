@@ -38,20 +38,15 @@ module FFWD::Plugin::Tunnel
     :tcp => ConnectionTCP
   }
 
-  def self.setup_input opts, core
+  def self.setup_input opts
     opts[:host] ||= DEFAULT_HOST
     opts[:port] ||= DEFAULT_PORT
     protocol = FFWD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
-    protocol_type = opts[:protocol_type] || DEFAULT_PROTOCOL_TYPE
 
     unless connection = CONNECTIONS[protocol.family]
       raise "No connection for protocol family: #{protocol.family}"
     end
 
-    if core.tunnel_plugins.empty?
-      raise "Nothing requires tunneling"
-    end
-
-    protocol.bind opts, core, log, connection, BinaryProtocol
+    protocol.bind opts, log, connection, BinaryProtocol
   end
 end

@@ -79,12 +79,17 @@ module FFWD::Plugin::JSON
 
   KINDS = {"frame" => FrameConnection, "line" => LineConnection}
 
-  def self.setup_input opts, core
-    kind = (opts[:kind] || DEFAULT_KIND).to_s
-    raise "No such kind: #{kind}" unless connection = KINDS[kind]
-    protocol = FFWD.parse_protocol opts[:protocol] || DEFAULT_PROTOCOL[kind]
+  def self.setup_input opts
     opts[:host] ||= DEFAULT_HOST
     opts[:port] ||= DEFAULT_PORT
+
+    kind = (opts[:kind] || DEFAULT_KIND).to_s
+
+    unless connection = KINDS[kind]
+      raise "No such protocol kind: #{kind}"
+    end
+
+    protocol = FFWD.parse_protocol opts[:protocol] || DEFAULT_PROTOCOL[kind]
 
     if connection == FrameConnection and protocol != FFWD::UDP
       log.warning "When using :frame kind, you should use the UDP protocol." +
@@ -96,14 +101,6 @@ module FFWD::Plugin::JSON
                   "Not #{protocol.family.to_s.upcase}"
     end
 
-    protocol.bind opts, core, log, connection
-  end
-
-  def self.setup_tunnel opts, core, tunnel
-    protocol = FFWD.parse_protocol opts[:protocol] || "tcp"
-    kind = (opts[:kind] || DEFAULT_KIND).to_s
-    raise "No such kind: #{kind}" unless connection = KINDS[kind]
-    opts[:port] ||= DEFAULT_PORT
-    protocol.tunnel opts, core, tunnel, log, connection
+    protocol.bind opts, log, connection
   end
 end

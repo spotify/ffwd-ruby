@@ -43,6 +43,8 @@ module FFWD::Plugin::Tunnel
       peer = get_peername
       port, ip = Socket.unpack_sockaddr_in(peer)
       "#{ip}:#{port}"
+    rescue
+      nil
     end
 
     def post_init

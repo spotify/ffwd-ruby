@@ -80,12 +80,11 @@ module FFWD::Plugin::Tunnel
       if core.statistics
         reporters = [input, processor]
         reporter = FFWD::Core::Reporter.new reporters
-        core.statistics.register "tunnel/#{id}", self, reporter
+        core.statistics.register self, "tunnel/#{id}", reporter
       end
 
-      core.tunnel_plugins.each do |t|
-        i = t.setup core, self
-        i.depend_on self
+      core.tunnel_plugins.each do |factory|
+        factory.call(core, self).depend_on self
       end
 
       input.depend_on self
