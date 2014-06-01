@@ -13,10 +13,8 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
-require 'eventmachine'
-
 require_relative '../utils'
-require_relative '../tunnel'
+require_relative '../tunnel/udp'
 
 require_relative 'udp/connect'
 require_relative 'udp/bind'
@@ -44,7 +42,6 @@ module FFWD::UDP
 
   def self.tunnel opts, core, plugin, log, connection, *args
     raise "Missing required key :port" if (port = opts[:port]).nil?
-    FFWD.tunnel self.family, port, core, plugin, log, connection, args
+    FFWD::Tunnel::UDP.new port, core, plugin, log, connection, args
   end
 end
-

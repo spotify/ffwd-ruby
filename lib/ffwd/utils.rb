@@ -50,15 +50,8 @@ module FFWD
 
   def self.check_ignored v
     v = v.to_s
-
-    if v.downcase == "metrics"
-      return :metrics
-    end
-
-    if v.downcase == "events"
-      return :events 
-    end
-
-    raise "Invalid data kind '#{v}', should be one of: 'metrics' or 'events'"
+    return :metrics if v.downcase == "metrics"
+    return :events if v.downcase == "events"
+    raise "Invalid ignore kind '#{v}', should be one of: 'metrics' or 'events'"
   end
 end
