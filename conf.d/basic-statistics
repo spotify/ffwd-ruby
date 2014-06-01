@@ -1,5 +1,5 @@
 :statistics:
-  :period: 1
+  :period: 10
   :attributes:
     :metric_type: "statistics"
   :tags:

@@ -95,6 +95,8 @@ module FFWD
       end
 
       o.on "-c", "--config <path>", "Load the specified configuration file." do |path|
+        puts "WARNING: Deprecated option '-c #{path}'."
+        puts "         Use positional argument to specify configuration!"
         opts[:config_paths] << path
       end
 
@@ -220,7 +222,11 @@ module FFWD
   end
 
   def self.main args
-    parse_options args
+    positional = parse_options(args)
+
+    positional.each do |path|
+      opts[:config_paths] << path
+    end
 
     if opts[:show_version]
       puts "ffwd version: #{FFWD::VERSION}"

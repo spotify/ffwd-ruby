@@ -1,0 +1,18 @@
+:tunnel:
+  # TEXT protocols.
+  - :type: "statsd"
+  - :type: "statsd"
+    :protocol: "tcp"
+  - :type: "json"
+    :kind: :frame
+  - :type: "json"
+    :kind: :line
+  - :type: "carbon"
+    :protocol: "tcp"
+  # BINARY protocols.
+  - :type: "riemann"
+    :protocol: "tcp"
+  - :type: "riemann"
+    :protocol: "udp"
+  - :type: "collectd"
+  - :type: "protobuf"

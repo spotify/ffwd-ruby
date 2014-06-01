@@ -81,7 +81,7 @@ module FFWD::Processor
       @cache = {}
 
       starting do
-        log.info "Starting histogram processor on a window of #{@window}s"
+        log.info "Starting histogram processor (window: #{@window}s)"
       end
 
       stopping do

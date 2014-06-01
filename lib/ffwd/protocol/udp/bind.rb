@@ -36,12 +36,12 @@ module FFWD::UDP
         :listen => @peer, :family => 'udp'
       }
 
-      @sig = nil
+      @c = nil
 
       info = "udp://#{@peer}"
 
       r = FFWD.retry :timeout => rebind_timeout do |a|
-        @sig = EM.open_datagram_socket host, port, connection, self, core, *args
+        @c = EM.open_datagram_socket host, port, connection, self, core, *args
         log.info "Bind on #{info} (attempt #{a})"
       end
 
@@ -54,9 +54,9 @@ module FFWD::UDP
       core.stopping do
         log.info "Unbinding #{info}"
 
-        if @sig
-          @sig.unbind
-          @sig = nil
+        if @c
+          @c.unbind
+          @c = nil
         end
       end
     end

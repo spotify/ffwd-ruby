@@ -25,6 +25,8 @@ module FFWD::Plugin::Log
       subs = []
 
       core.output.starting do
+        log.info "Started (prefix: '#{@p}')"
+
         subs << core.output.event_subscribe do |e|
           log.info "Event: #{@p}#{e.to_h}"
         end
@@ -35,6 +37,8 @@ module FFWD::Plugin::Log
       end
 
       core.output.stopping do
+        log.info "Stopped"
+
         subs.each(&:unsubscribe).clear
       end
     end

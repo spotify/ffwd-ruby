@@ -1,0 +1,4 @@
+# Enabled output logging.
+
+:output:
+  - :type: "log"

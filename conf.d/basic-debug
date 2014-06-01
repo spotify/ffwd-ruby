@@ -1,5 +1,8 @@
+# Enables the debugging port.
+
 # Uncomment the following to enable debugging with default settings.
-# :debug: {}
+#:debug: {}
+
 :debug:
   # Host to bind debug port to.
   :host: "127.0.0.1"

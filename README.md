@@ -2,34 +2,18 @@
 
 [![Build Status](https://travis-ci.org/spotify/ffwd.svg?branch=master)](https://travis-ci.org/spotify/ffwd)
 
-A highly flexible, multi-protocol events and metrics forwarder capable of
-merging and decorating events and metrics from a number of sources and
-multiplexing them to number of event and metric consumers.
+A flexible system event and metric forwarding agent.
+It is a intended to run on locally and receive metrics and events through a set
+of widely used standard protocols.
 
-FFWD is a agent meant to run on a single host and receive metrics and events
-using a set of standard protocols.
-It is meant to run on a system and listen to the default port of its
-supported protocols, this meshes well with any client that wants to send to it
-in that they typically require zero configuration.
+By running on the local system it is easily accessible to received pushed
+data from any monitored application.
 
-The following is an example client sending riemann events.
-
-```python
-import bernhard
-client = bernhard.Client(transport=bernhard.UDPTransport)
-
-client.send({'service': 'myservice', 'metric': 12, 'unit': 'B/s'})
-```
-
-FFWD takes care to add any _system-wide_ tags, like _site_, _host_ and the
-_role_ of the machine it is sent from. See the __core -> attributes__ section
-in the [basic example configuration](conf.d/basic) for details.
-
-This allows for decoration of the received metrics and events to make them
-_semantic from the source_.
-
-This is reminiscent of the concepts described in the
-[Metrics 2.0 Specification](http://metrics20.org).
+FFWD takes care to forward the data with any _system-wide_ tags or attributes.
+This is metadata that describes the origin of the data, like _site_, and
+_role_. This allows for decoration of the received metrics and events to make
+them _semantic from the source_.
+This concept is described further in [Metrics 2.0](http://metrics20.org).
 
 * [Usage](#usage)
 * [Installation](#installation)
@@ -60,37 +44,22 @@ supplied example configuration.
 
 ```bash
 $ bundle install
-$ bin/ffwd -c conf.d/basic -c conf.d/basic-io
+$ bin/ffwd conf.d/basic conf.d/in-multi conf.d/out-log
 ```
 
-This will start up an instance that periodically reports statistics about
-itself.
+FFWD can take and overlay multiple configuration files, you can inspect the
+examples available in [./conf.d](/conf.d) and activate any of those by adding
+more `<path>` arguments.
 
 You can now send events and metrics to it using one of the enabled input
 protocols.
+See [./conf.d/in-multi](/conf.d/in-multi) for examples on how.
 
-E.g. the carbon protocol (requires [ffwd-carbon](/plugins/ffwd-carbon)) or the
-built-in reference [JSON protocol](/lib/ffwd/plugin/json.rb).
-
-```bash
-$ echo "random.diceroll 4  `date +%s`" | nc -q0 localhost 2003
-$ echo '{"type": "metric", "key": "random.diceroll", "value": 6}' | nc -q0 localhost 19000
-```
-
-You can try out more advanced protocols using the supplied sample client:
-[docs/client-test.rb](docs/client-test.rb).
-
-```bash
-$ ruby docs/client-test.rb
-```
-
-If you have the log output plugin enabled, you should see these metrics written
-to the log.
-
-FFWD has support for multi-tenancy (multiple guests reporting into the same
-FFWD agent).
+FFWD also has support for multi-tenancy where multiple clients reporting into the
+same agent with different metadata.
 For more information, see
-[Tunneling and multi-tenancy](docs/tunneling-and-multi-tenancy.md)
+[Tunneling and multi-tenancy](docs/tunneling-and-multi-tenancy.md) and the
+accompanied [./conf.d/basic-tunnel](/conf.d/basic-tunnel) configuration.
 
 ## Installation
 

@@ -38,12 +38,12 @@ module FFWD::Processor
       @emitter = emitter
       @cache_limit = opts[:cache_limit] || 1000
       @timeout = opts[:timeout] || 300
-      @period = opts[:period] || 30
+      @window = opts[:window] || 30
       @cache = {}
       @timer = nil
 
       starting do
-        log.info "Starting count processor on a window of #{@period}s"
+        log.info "Starting count processor (window: #{@window}s)"
       end
 
       stopping do
@@ -81,7 +81,7 @@ module FFWD::Processor
 
       log.debug "Starting timer"
 
-      @timer = EM::Timer.new(@period) do
+      @timer = EM::Timer.new(@window) do
         @timer = nil
         digest! Time.now
       end

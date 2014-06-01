@@ -58,7 +58,7 @@ module FFWD::Processor
       @cache = Hash.new
 
       starting do
-        log.info "Starting rate processor (ttl: #{@ttl})"
+        log.info "Starting rate processor (ttl: #{@ttl}s)"
         @timer = EM.add_periodic_timer(@ttl){expire!} unless @ttl.nil?
       end
 
