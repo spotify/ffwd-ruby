@@ -22,6 +22,14 @@ module FFWD::TCP
   class Bind
     include FFWD::Reporter
 
+    # Default initial timeout when binding fails.
+    DEFAULT_REBIND_TIMEOUT = 10
+
+    def self.prepare opts
+      opts[:rebind_timeout] ||= DEFAULT_REBIND_TIMEOUT
+      opts
+    end
+
     setup_reporter :keys => [
       :received_events, :received_metrics,
       :failed_events, :failed_metrics
@@ -29,7 +37,8 @@ module FFWD::TCP
 
     attr_reader :reporter_meta
 
-    def initialize core, log, host, port, connection, args, rebind_timeout
+    def initialize core, log, host, port, connection, args, config
+      @config = config
       @peer = "#{host}:#{port}"
       @reporter_meta = {
         :type => connection.plugin_type,
@@ -39,10 +48,12 @@ module FFWD::TCP
       @sig = nil
 
       info = "tcp://#{@peer}"
+      rebind_timeout = config[:rebind_timeout]
 
       r = FFWD.retry :timeout => rebind_timeout do |a|
         @sig = EM.start_server host, port, connection, self, core, *args
         log.info "Bind on #{info} (attempt #{a})"
+        log.info "  config: #{@config.inspect}"
       end
 
       r.error do |a, t, e|

@@ -44,13 +44,22 @@ module FFWD::Processor
     # :ttl - Allowed age of items in cache in seconds.
     # If this is nil, items will never expire, so old elements will not be
     # expunged until data type is restarted.
-    def initialize emitter, opts={}
+    def self.prepare config={}
+      config[:precision] ||= 3
+      config[:cache_limit] ||= 10000
+      config[:min_age] ||= 0.5
+      config[:ttl] ||= 600
+      config
+    end
+
+    def initialize emitter, config={}
       @emitter = emitter
 
-      @precision = opts[:precision] || 3
-      @limit = opts[:cache_limit] || 10000
-      @min_age = opts[:min_age] || 0.5
-      @ttl = opts[:ttl] || 600
+      @precision = config[:precision]
+      @limit = config[:cache_limit]
+      @min_age = config[:min_age]
+      @ttl = config[:ttl]
+
       # keep a reference to the expire cache to prevent having to allocate it
       # all the time.
       @expire = Hash.new
@@ -58,8 +67,9 @@ module FFWD::Processor
       @cache = Hash.new
 
       starting do
-        log.info "Starting rate processor (ttl: #{@ttl}s)"
         @timer = EM.add_periodic_timer(@ttl){expire!} unless @ttl.nil?
+        log.info "Started"
+        log.info "  config: #{config.inspect}"
       end
 
       stopping do

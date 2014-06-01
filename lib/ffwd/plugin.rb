@@ -138,14 +138,19 @@ module FFWD
           next
         end
 
-        factory = setup.call plugin_config
+        factory = setup.call Hash[plugin_config]
 
         unless factory.respond_to? m
           log.error "#{d}: Plugin '#{name}' does not support '#{m.to_s}'"
           next
         end
 
-        result << Setup.new(factory.method(m), plugin_config, name)
+        unless factory.respond_to? :config
+          log.error "#{d}: Plugin '#{name}' does not support 'config'"
+          next
+        end
+
+        result << Setup.new(factory.method(m), factory.config, name)
       end
 
       return result

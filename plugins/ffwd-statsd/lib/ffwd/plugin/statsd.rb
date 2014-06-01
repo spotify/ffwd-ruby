@@ -27,18 +27,21 @@ module FFWD::Plugin::Statsd
 
   DEFAULT_HOST = "localhost"
   DEFAULT_PORT = 8125
+  DEFAULT_PROTOCOL = "udp"
 
   INPUTS = {:tcp => Connection::TCP, :udp => Connection::UDP}
 
-  def self.setup_input opts
-    opts[:host] ||= DEFAULT_HOST
-    opts[:port] ||= DEFAULT_PORT
-    protocol = FFWD.parse_protocol(opts[:protocol] || "udp")
+  def self.setup_input config
+    config[:host] ||= DEFAULT_HOST
+    config[:port] ||= DEFAULT_PORT
+    config[:protocol] ||= DEFAULT_PROTOCOL
+
+    protocol = FFWD.parse_protocol config[:protocol]
 
     unless connection = INPUTS[protocol.family]
       raise "No connection for protocol family: #{protocol.family}"
     end
 
-    protocol.bind opts, log, connection
+    protocol.bind config, log, connection
   end
 end

@@ -49,12 +49,22 @@ module FFWD::Processor
     DEFAULT_MISSING = 0
 
     DEFAULT_PERCENTILES = {
-      :p50 => {:percentage => 0.50, :info => "50th"},
-      :p75 => {:percentage => 0.75, :info => "75th"},
-      :p95 => {:percentage => 0.95, :info => "95th"},
-      :p99 => {:percentage => 0.99, :info => "99th"},
-      :p999 => {:percentage => 0.999, :info => "99.9th"},
+      :p50 => {:q => 0.50, :info => "50th"},
+      :p75 => {:q => 0.75, :info => "75th"},
+      :p95 => {:q => 0.95, :info => "95th"},
+      :p99 => {:q => 0.99, :info => "99th"},
+      :p999 => {:q => 0.999, :info => "99.9th"},
     }
+
+    def self.prepare config
+      config[:window] ||= 10
+      config[:cache_limit] ||= 1000
+      config[:bucket_limit] ||= 10000
+      config[:precision] ||= 3
+      config[:missing] ||= DEFAULT_MISSING
+      config[:percentiles] ||= DEFAULT_PERCENTILES
+      config
+    end
 
     #
     # Options:
@@ -66,22 +76,23 @@ module FFWD::Processor
     # :precision - Precision of emitted metrics.
     # :percentiles - Configuration hash of percentile metrics.
     # Structure:
-    #   {:p10 => {:info => "Some description", :percentage => 0.1}, ...}
-    def initialize emitter, opts={}
+    #   {:p10 => {:info => "Some description", :q => 0.1}, ...}
+    def initialize emitter, config={}
       @emitter = emitter
 
-      @window = opts[:window] || 10
-      @cache_limit = opts[:cache_limit] || 1000
-      @bucket_limit = opts[:bucket_limit] || 10000
-      @precision = opts[:precision] || 3
-      @missing = opts[:missing] || DEFAULT_MISSING
-      @percentiles = opts[:percentiles] || DEFAULT_PERCENTILES
+      @window = config[:window]
+      @cache_limit = config[:cache_limit]
+      @bucket_limit = config[:bucket_limit]
+      @precision = config[:precision]
+      @missing = config[:missing]
+      @percentiles = config[:percentiles]
 
       # Dropped values that would have gone into a bucket.
       @cache = {}
 
       starting do
-        log.info "Starting histogram processor (window: #{@window}s)"
+        log.info "Started"
+        log.info "  config: #{config.inspect}"
       end
 
       stopping do
@@ -130,7 +141,7 @@ module FFWD::Processor
       map = {}
 
       @percentiles.each do |k, v|
-        index = (total * v[:percentage]).ceil - 1
+        index = (total * v[:q]).ceil - 1
 
         if (c = map[index]).nil?
           info = "#{v[:info]} percentile"

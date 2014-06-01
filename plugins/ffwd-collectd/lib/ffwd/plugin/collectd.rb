@@ -47,12 +47,13 @@ module FFWD::Plugin::Collectd
       ),
     ]
 
-  def self.setup_input opts
-    opts[:host] ||= DEFAULT_HOST
-    opts[:port] ||= DEFAULT_PORT
-    opts[:types_db] ||= DEFAULT_TYPES_DB
-    protocol = FFWD.parse_protocol(opts[:protocol] || "udp")
-    types_db = TypesDB.open opts[:types_db]
-    protocol.bind opts, log, Connection, types_db
+  def self.setup_input config
+    config[:host] ||= DEFAULT_HOST
+    config[:port] ||= DEFAULT_PORT
+    config[:types_db] ||= DEFAULT_TYPES_DB
+    config[:protocol] ||= "udp"
+    types_db = TypesDB.open config[:types_db]
+    protocol = FFWD.parse_protocol config[:protocol]
+    protocol.bind config, log, Connection, types_db
   end
 end

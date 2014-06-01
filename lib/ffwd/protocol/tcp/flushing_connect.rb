@@ -21,6 +21,14 @@ module FFWD::TCP
   class FlushingConnect
     include FFWD::Reporter
 
+    # percent of maximum events/metrics which will cause a flush.
+    DEFAULT_FORCED_FLUSH_FACTOR = 0.8
+    # defaults for buffered connections.
+    # maximum amount of events to buffer up.
+    DEFAULT_EVENT_LIMIT = 1000
+    # maximum amount of metrics to buffer up.
+    DEFAULT_METRIC_LIMIT = 10000
+
     setup_reporter :keys => [
       :dropped_events, :dropped_metrics,
       :sent_events, :sent_metrics,
@@ -34,12 +42,22 @@ module FFWD::TCP
       @c.reporter_meta
     end
 
-    def initialize(
-      core, log, ignored, connection,
-      flush_period, event_limit, metric_limit, flush_limit
-    )
+    def self.prepare opts
+      opts[:forced_flush_factor] ||= DEFAULT_FORCED_FLUSH_FACTOR
+      opts[:event_limit] ||= DEFAULT_EVENT_LIMIT
+      opts[:metric_limit] ||= DEFAULT_METRIC_LIMIT
+      opts
+    end
+
+    def initialize(core, log, connection, config)
       @log = log
       @c = connection
+
+      flush_period = config[:flush_period]
+      ignored = config[:ignored]
+      forced_flush_factor = config[:forced_flush_factor]
+      event_limit = config[:event_limit]
+      metric_limit = config[:metric_limit]
 
       @event_buffer = []
       @metric_buffer = []
@@ -49,18 +67,17 @@ module FFWD::TCP
       core.starting do
         @c.connect
 
-        log.info "Flushing every #{flush_period}s"
         @timer = EM::PeriodicTimer.new(flush_period){flush!}
 
         unless ignored.include? :events
           event_consumer = setup_consumer(
-            @event_buffer, flush_limit, event_limit, :dropped_events)
+            @event_buffer, forced_flush_factor, event_limit, :dropped_events)
           @subs << core.output.event_subscribe(&event_consumer)
         end
 
         unless ignored.include? :metrics
           metric_consumer = setup_consumer(
-            @metric_buffer, flush_limit, metric_limit, :dropped_metrics)
+            @metric_buffer, forced_flush_factor, metric_limit, :dropped_metrics)
           @subs << core.output.metric_subscribe(&metric_consumer)
         end
       end
@@ -115,7 +132,7 @@ module FFWD::TCP
 
     def setup_consumer buffer, drop, flush, statistics_key
       drop_limit = drop
-      flush_limit = drop * flush
+      forced_flush_limit = drop * flush
 
       proc do |e|
         if buffer.size >= drop_limit
@@ -125,7 +142,7 @@ module FFWD::TCP
 
         buffer << e
 
-        if buffer.size >= flush_limit
+        if buffer.size >= forced_flush_limit
           increment :forced_flush, 1
           flush!
         end

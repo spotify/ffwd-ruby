@@ -44,22 +44,22 @@ supplied example configuration.
 
 ```bash
 $ bundle install
-$ bin/ffwd conf.d/basic conf.d/in-multi conf.d/out-log
+$ bin/ffwd ffwd.d/basic ffwd.d/in-multi ffwd.d/out-log
 ```
 
 FFWD can take and overlay multiple configuration files, you can inspect the
-examples available in [./conf.d](/conf.d) and activate any of those by adding
+examples available in [./ffwd.d](/ffwd.d) and activate any of those by adding
 more `<path>` arguments.
 
 You can now send events and metrics to it using one of the enabled input
 protocols.
-See [./conf.d/in-multi](/conf.d/in-multi) for examples on how.
+See [./ffwd.d/in-multi](/ffwd.d/in-multi) for examples on how.
 
 FFWD also has support for multi-tenancy where multiple clients reporting into the
 same agent with different metadata.
 For more information, see
 [Tunneling and multi-tenancy](docs/tunneling-and-multi-tenancy.md) and the
-accompanied [./conf.d/basic-tunnel](/conf.d/basic-tunnel) configuration.
+accompanied [./ffwd.d/basic-tunnel](/ffwd.d/basic-tunnel) configuration.
 
 ## Installation
 

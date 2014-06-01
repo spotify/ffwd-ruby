@@ -15,7 +15,7 @@ describe FFWD::Processor::CountProcessor do
   end
 
   let(:count) do
-    described_class.new emitter, opts
+    described_class.new emitter, described_class.prepare(opts)
   end
 
   it "should realize that 10 + 10 = 20" do

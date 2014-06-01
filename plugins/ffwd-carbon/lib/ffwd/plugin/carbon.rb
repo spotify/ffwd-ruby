@@ -43,11 +43,12 @@ module FFWD::Plugin
           ]),
       ]
 
-    def self.setup_input opts
-      opts[:host] ||= DEFAULT_HOST
-      opts[:port] ||= DEFAULT_PORT
-      protocol = FFWD.parse_protocol(opts[:protocol] || DEFAULT_PROTOCOL)
-      protocol.bind opts, log, Connection
+    def self.setup_input config
+      config[:host] ||= DEFAULT_HOST
+      config[:port] ||= DEFAULT_PORT
+      config[:protocol] ||= DEFAULT_PROTOCOL
+      protocol = FFWD.parse_protocol config[:protocol]
+      protocol.bind config, log, Connection
     end
   end
 end

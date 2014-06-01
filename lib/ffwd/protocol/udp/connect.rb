@@ -22,6 +22,11 @@ module FFWD::UDP
 
     RESOLVE_TIMEOUT = 10
 
+    def self.prepare opts
+      opts[:ignored] = (opts[:ignored] || []).map{|v| Utils.check_ignored v}
+      opts
+    end
+
     attr_reader :reporter_meta, :log
 
     setup_reporter :keys => [
@@ -29,11 +34,14 @@ module FFWD::UDP
       :sent_events, :sent_metrics
     ]
 
-    def initialize core, log, ignored, host, port, handler
+    def initialize core, log, host, port, handler, config
       @log = log
       @host = host
       @port = port
       @handler = handler
+      @config = config
+
+      ignored = @config[:ignored]
 
       @bind_host = "0.0.0.0"
       @host_ip = nil
@@ -55,9 +63,16 @@ module FFWD::UDP
 
         @c = EM.open_datagram_socket(@bind_host, nil, @handler, self)
 
-        @subs << core.output.event_subscribe{|e| handle_event e}
-        @subs << core.output.metric_subscribe{|m| handle_metric m}
+        unless ignored.include? :events
+          @subs << core.output.event_subscribe{|e| handle_event e}
+        end
+
+        unless ignored.include? :metrics
+          @subs << core.output.metric_subscribe{|m| handle_metric m}
+        end
+
         log.info "Connect to #{info} (attempt #{a})"
+        log.info "  config: #{@config.inspect}"
       end
 
       r.error do |a, t, e|

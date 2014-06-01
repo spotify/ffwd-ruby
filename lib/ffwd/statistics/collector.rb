@@ -27,19 +27,13 @@ module FFWD::Statistics
     DEFAULT_PREFIX = "ffwd"
 
     def self.build emitter, channel, opts={}
-      period = opts[:period] || DEFAULT_PERIOD
-      tags = opts[:tags] || []
-      attributes = opts[:attributes] || {}
-      prefix = opts[:prefix] || DEFAULT_PREFIX
+      opts[:period] ||= DEFAULT_PERIOD
+      opts[:prefix] ||= DEFAULT_PREFIX
+      opts[:tags] ||= []
+      opts[:attributes] ||= {}
       system = SystemStatistics.new(opts[:system] || {})
-
-      system = if system.check
-        system
-      else
-        nil
-      end
-
-      new(emitter, channel, period, prefix, tags, attributes, system)
+      system = if system.check then system end
+      new emitter, channel, system, opts
     end
 
     # Initialize the statistics collector.
@@ -49,16 +43,16 @@ module FFWD::Statistics
     # channel - A side-channel used by the SystemStatistics component
     # to report information about the system. Messages sent on this channel
     # help Core decide if it should seppuku.
-    def initialize emitter, channel, period, prefix, tags, attributes, system
+    def initialize emitter, channel, system, opts
       @emitter = emitter
-      @period = period
-      @prefix = prefix
-      @tags = tags
-      @attributes = attributes
+      @channel = channel
       @system = system
+      @period = opts[:period]
+      @prefix = opts[:prefix]
+      @tags = opts[:tags]
+      @attributes = opts[:attributes]
 
       @reporters = {}
-      @channel = channel
       @timer = nil
 
       starting do
@@ -70,7 +64,7 @@ module FFWD::Statistics
           @last = now
         end
 
-        log.info "Started statistics collection"
+        log.info "Started #{opts.inspect}"
       end
 
       stopping do
@@ -79,7 +73,7 @@ module FFWD::Statistics
           @timer = nil
         end
 
-        log.info "Stopped statistics collection"
+        log.info "Stopped"
       end
     end
 

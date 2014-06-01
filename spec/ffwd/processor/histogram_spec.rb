@@ -8,7 +8,7 @@ describe FFWD::Processor::HistogramProcessor do
   end
 
   it "should submit some of it's incoming metrics to cache" do
-    histogram = described_class.new emitter, {}
+    histogram = described_class.new emitter, described_class.prepare({})
 
     cache = histogram.instance_variable_get "@cache"
     histogram.instance_variable_set "@timer", :timer
@@ -19,7 +19,7 @@ describe FFWD::Processor::HistogramProcessor do
   end
 
   it "drop metrics if bucket size reached" do
-    histogram = described_class.new emitter, {:bucket_limit => 1}
+    histogram = described_class.new emitter, described_class.prepare({:bucket_limit => 1})
 
     cache = histogram.instance_variable_get "@cache"
     histogram.instance_variable_set "@timer", :timer
@@ -30,7 +30,7 @@ describe FFWD::Processor::HistogramProcessor do
   end
 
   it "drop metrics if cache size reached" do
-    histogram = described_class.new emitter, {:cache_limit => 1}
+    histogram = described_class.new emitter, described_class.prepare({:cache_limit => 1})
 
     cache = histogram.instance_variable_get "@cache"
     histogram.instance_variable_set "@timer", :timer

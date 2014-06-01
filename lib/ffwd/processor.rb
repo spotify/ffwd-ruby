@@ -23,14 +23,14 @@ module FFWD::Processor
   class Setup
     attr_reader :name
 
-    def initialize name, klass, options
+    def initialize name, factory, options
       @name = name
-      @klass = klass
+      @factory = factory
       @options = options
     end
 
     def setup emitter
-      @klass.new emitter, @options
+      @factory.new emitter, @options
     end
   end
 
@@ -91,6 +91,13 @@ module FFWD::Processor
 
   # setup hash of processor setup classes.
   def self.load_processors config
-    registry.map{|name, klass| Setup.new name, klass, config[name] || {}}
+    registry.map do |name, klass|
+      unless klass.respond_to? :prepare
+        raise "Processor #{klass} does not have a 'prepare' method"
+      end
+
+      config = klass.prepare Hash[config[name] || {}]
+      Setup.new name, klass, config
+    end
   end
 end

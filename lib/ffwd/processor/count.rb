@@ -34,16 +34,26 @@ module FFWD::Processor
       :keys => [:dropped, :received]
     )
 
-    def initialize emitter, opts={}
+    def self.prepare config
+      config[:cache_limit] ||= 1000
+      config[:timeout] ||= 300
+      config[:window] ||= 30
+      config
+    end
+
+    def initialize emitter, config={}
       @emitter = emitter
-      @cache_limit = opts[:cache_limit] || 1000
-      @timeout = opts[:timeout] || 300
-      @window = opts[:window] || 30
+
+      @cache_limit = config[:cache_limit]
+      @timeout = config[:timeout]
+      @window = config[:window]
+
       @cache = {}
       @timer = nil
 
       starting do
-        log.info "Starting count processor (window: #{@window}s)"
+        log.info "Started"
+        log.info "  config: #{config.inspect}"
       end
 
       stopping do

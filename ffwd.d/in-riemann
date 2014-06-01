@@ -1,0 +1,3 @@
+:input:
+  - :type: "riemann"
+    :protocol: "tcp"

@@ -13,19 +13,36 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
+require_relative '../../utils'
+
 module FFWD::TCP
   class Connection
     INITIAL_TIMEOUT = 2
 
+    # default flush period, if non-zero will cause the connection to be buffered.
+    DEFAULT_FLUSH_PERIOD = 10
+    # default amount of bytes that the outbound connection will allow in its
+    # application-level buffer.
+    DEFAULT_TCP_OUTBOUND_LIMIT = 2 ** 20
+
     attr_reader :log, :peer, :reporter_meta
 
-    def initialize log, host, port, handler, args, outbound_limit
+    def self.prepare opts
+      opts[:flush_period] ||= DEFAULT_FLUSH_PERIOD
+      opts[:tcp_outbound_limit] ||= DEFAULT_TCP_OUTBOUND_LIMIT
+      opts[:ignored] = (opts[:ignored] || []).map{|v| Utils.check_ignored v}
+      opts
+    end
+
+    def initialize log, host, port, handler, args, config
       @log = log
       @host = host
       @port = port
       @handler = handler
       @args = args
-      @outbound_limit = outbound_limit
+      @config = config
+
+      @tcp_outbound_limit = config[:tcp_outbound_limit]
 
       @peer = "#{host}:#{port}"
       @closing = false
@@ -39,13 +56,14 @@ module FFWD::TCP
 
     # Start attempting to connect.
     def connect
-      log.info "Connecting to tcp://#{@host}:#{@port}"
       @c = EM.connect @host, @port, @handler, self, *@args
+      log.info "Connect to tcp://#{@host}:#{@port}"
+      log.info "  config: #{@config.inspect}"
     end
 
     # Explicitly disconnect and discard any reconnect attempts..
     def disconnect
-      log.info "Disconnecting from tcp://#{@host}:#{@port}"
+      log.info "Disconnecting from tcp://#{@host}:#{@port} #{@config.inspect}"
       @closing = true
 
       @c.close_connection if @c
@@ -101,7 +119,7 @@ module FFWD::TCP
 
     # Check if a connection is writable or not.
     def writable?
-      not @c.nil? and @open and @c.get_outbound_data_size < @outbound_limit
+      not @c.nil? and @open and @c.get_outbound_data_size < @tcp_outbound_limit
     end
   end
 end

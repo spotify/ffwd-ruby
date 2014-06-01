@@ -25,6 +25,8 @@ module FFWD::Plugin
     include FFWD::Plugin
     include FFWD::Logging
 
+    DEFAULT_PREFIX = ''
+
     register_plugin "log",
       :description => "A simple plugin that outputs to the primary log.",
       :options => [
@@ -34,17 +36,20 @@ module FFWD::Plugin
       ]
 
     class Setup
-      def initialize opts
-        @opts = opts
+      attr_reader :config
+
+      def initialize config
+        @config = config
+        @config[:prefix] ||= DEFAULT_PREFIX
       end
 
       def connect core
-        Writer.new core, @opts[:prefix]
+        Writer.new core, @config[:prefix]
       end
     end
 
-    def self.setup_output opts
-      Setup.new opts
+    def self.setup_output config
+      Setup.new config
     end
   end
 end

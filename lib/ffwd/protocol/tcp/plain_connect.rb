@@ -19,6 +19,10 @@ module FFWD::TCP
   class PlainConnect
     include FFWD::Reporter
 
+    def self.prepare opts
+      opts
+    end
+
     setup_reporter :keys => [
       :dropped_events, :dropped_metrics,
       :sent_events, :sent_metrics,
@@ -33,9 +37,11 @@ module FFWD::TCP
 
     INITIAL_TIMEOUT = 2
 
-    def initialize core, log, ignored, connection
+    def initialize core, log, connection, config
       @log = log
       @c = connection
+
+      ignored = config[:ignored]
 
       subs = []
 

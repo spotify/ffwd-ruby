@@ -25,9 +25,8 @@ require_relative 'ffwd/schema'
 require_relative 'ffwd/version'
 
 module FFWD
-  DEFAULT_PLUGIN_DIRECTORIES = [
-    './plugins'
-  ]
+  DEFAULT_PLUGIN_DIRECTORIES = ['./plugins' ]
+  DEFAULT_CONFIG_PREFIXES = ['./ffwd.d']
 
   def self.load_yaml path
     return YAML.load_file path
@@ -82,6 +81,7 @@ module FFWD
     @@opts ||= {:debug => false, :config => nil, :config_dir => nil,
                 :list_plugins => false, :list_schemas => false,
                 :dump_config => false, :show_version => false,
+                :config_prefixes => DEFAULT_CONFIG_PREFIXES,
                 :config_paths => [],
                 :plugin_directories => DEFAULT_PLUGIN_DIRECTORIES}
   end
@@ -98,6 +98,10 @@ module FFWD
         puts "WARNING: Deprecated option '-c #{path}'."
         puts "         Use positional argument to specify configuration!"
         opts[:config_paths] << path
+      end
+
+      o.on "-D", "--config-prefix <path>", "Scan for configuration files relative to this directory." do |path|
+        opts[:config_prefixes] << path
       end
 
       o.on "-d", "--config-directory <path>", "Load configuration files from the specified directory." do |path|
@@ -221,6 +225,18 @@ module FFWD
     puts "    https://github.com/spotify/ffwd"
   end
 
+  def self.match_any_config_path prefixes, path
+    return path if File.file? path
+
+    prefixes.each do |prefix|
+      full = File.join prefix, path
+      next unless File.file? full
+      return full
+    end
+
+    return nil
+  end
+
   def self.main args
     positional = parse_options(args)
 
@@ -238,7 +254,9 @@ module FFWD
     config = {}
 
     opts[:config_paths].each do |path|
-      unless File.file? path
+      path = match_any_config_path opts[:config_prefixes], path
+
+      unless path
         puts "Configuration path does not exist: #{path}"
         puts ""
         puts parser.help
@@ -246,7 +264,7 @@ module FFWD
       end
 
       return 0 unless source = load_yaml(path)
-
+      puts "Loaded: #{path}"
       merge_configurations config, source
     end
 

@@ -64,25 +64,29 @@ module FFWD::Plugin
       FFWD::Plugin::Kafka::AttributeRouter::OPTIONS
 
     class Setup
-      def initialize opts
-        @opts = opts
+      attr_reader :config
+
+      def initialize config
+        @config = Hash[config]
+        @config[:producer] ||= DEFAULT_PRODUCER
+        @config[:brokers] ||= DEFAULT_BROKERS
+        @config[:partitioner] ||= DEFAULT_PARTITIONER
+        @config[:router] ||= DEFAULT_ROUTER
       end
 
       def connect core
-        producer = @opts[:producer] || DEFAULT_PRODUCER
-        brokers = @opts[:brokers] || DEFAULT_BROKERS
-        partitioner = FFWD::Plugin::Kafka.build_partitioner(
-          @opts[:partitioner] || DEFAULT_PARTITIONER, @opts)
-        router = FFWD::Plugin::Kafka.build_router(
-          @opts[:router] || DEFAULT_ROUTER, @opts)
-        schema = FFWD.parse_schema @opts
+        producer = @config[:producer]
+        brokers = @config[:brokers]
+        partitioner = FFWD::Plugin::Kafka.build_partitioner @config[:partitioner], @config
+        router = FFWD::Plugin::Kafka.build_router @config[:router], @config
+        schema = FFWD.parse_schema @config
         output = Output.new producer, brokers, schema, router, partitioner
-        FFWD.producing_client core.output, output, @opts
+        FFWD.producing_client core.output, output, @config
       end
     end
 
-    def self.setup_output opts
-      Setup.new opts
+    def self.setup_output config
+      Setup.new config
     end
   end
 end
