@@ -35,7 +35,9 @@ module FFWD::Plugin::Statsd
     end
 
     def receive_data data
-      receive_statsd_frame data
+      data.split("\n").each do |line|
+        receive_statsd_frame line
+      end
     end
   end
 

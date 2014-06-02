@@ -19,7 +19,7 @@ main() {
         rm -f $root/*.gem
 
         bundle exec gem build $root/ffwd.gemspec
-        bundle exec gem install $root/ffwd-*.gem
+        bundle exec gem install --no-rdoc --no-ri $root/ffwd-*.gem
         exit 0
     )
 

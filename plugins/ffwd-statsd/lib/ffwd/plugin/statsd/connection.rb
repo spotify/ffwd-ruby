@@ -27,9 +27,7 @@ module FFWD::Plugin::Statsd
     protected
 
     def receive_statsd_frame(data)
-      metric = Parser.parse(data)
-      return if metric.nil?
-      @core.input.metric metric
+      @core.input.metric Parser.parse(data)
       @bind.increment :received_metrics
     rescue ParserError => e
       log.error "Invalid frame '#{data}': #{e}"
