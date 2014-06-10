@@ -61,7 +61,9 @@ module FWC
       :summary => false,
       :raw => false,
       :raw_threshold => 100,
-      :report_interval => 10
+      :report_interval => 10,
+      :key => nil,
+      :tags => nil
     }
   end
 
@@ -88,6 +90,15 @@ module FWC
       o.on "-i", "--report-interval", "Interval in seconds to generate report" do |d|
         opts[:report_interval] = d.to_i
       end
+
+      o.on "--key <key>", "Only handle events and metrics matching the specified key" do |d|
+        opts[:key] = d
+      end
+
+      o.on "--tag <tag>", "Only handle event and metrics which matches the specified tag" do |d|
+        opts[:tags] ||= []
+        opts[:tags] << d
+      end
     end
   end
 
@@ -96,7 +107,8 @@ module FWC
   end
 
   class Summary
-    def initialize
+    def initialize matcher
+      @matcher = matcher
       @groups = {}
     end
 
@@ -119,6 +131,8 @@ module FWC
     end
 
     def receive data
+      return if not @matcher.matches? data
+
       id = [data["id"], data["type"]]
       group = (@groups[id] ||= {:id => data["id"], :type => data["type"],
                                 :items => {}})
@@ -135,8 +149,9 @@ module FWC
   end
 
   class Raw
-    def initialize threshold
-      @threshold = threshold
+    def initialize matcher, opts={}
+      @threshold = opts[:threshold]
+      @matcher = matcher
       @count = 0
       @rate = 0
       @disabled = false
@@ -155,6 +170,12 @@ module FWC
     end
 
     def receive data
+      return if not @matcher.matches? data
+
+      if not @tags.nil? and not (@tags & (d["tags"] || [])).empty?
+        return
+      end
+
       if not @disabled and @count > 100
         diff = (Time.now - @first)
         rate = (@count / diff)
@@ -175,17 +196,41 @@ module FWC
     end
   end
 
+  class Matcher
+    def initialize opts={}
+      @key = opts[:key]
+      @tags = opts[:tags]
+    end
+
+    def matches? data
+      return false unless ["event", "metric"].include? data["type"]
+
+      d = data["data"]
+      return false unless d
+
+      key = d["key"]
+      return false if @key and @key != key
+
+      tags = d["tags"]
+      return false if @tags and (@tags & (tags || [])).empty?
+
+      true
+    end
+  end
+
   def self.main(args)
     parse_options args
+
+    matcher = Matcher.new(:key => opts[:key], :tags => opts[:tags])
 
     handlers = []
 
     if opts[:summary]
-      handlers << Summary.new
+      handlers << Summary.new(matcher)
     end
 
     if opts[:raw]
-      handlers << Raw.new(opts[:raw_threshold])
+      handlers << Raw.new(matcher, :threshold => opts[:raw_threshold])
     end
 
     if handlers.empty?
