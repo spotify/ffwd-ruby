@@ -71,13 +71,13 @@ module FFWD::TCP
 
         unless ignored.include? :events
           event_consumer = setup_consumer(
-            @event_buffer, forced_flush_factor, event_limit, :dropped_events)
+            @event_buffer, event_limit, forced_flush_factor, :dropped_events)
           @subs << core.output.event_subscribe(&event_consumer)
         end
 
         unless ignored.include? :metrics
           metric_consumer = setup_consumer(
-            @metric_buffer, forced_flush_factor, metric_limit, :dropped_metrics)
+            @metric_buffer, metric_limit, forced_flush_factor, :dropped_metrics)
           @subs << core.output.metric_subscribe(&metric_consumer)
         end
       end
@@ -130,9 +130,8 @@ module FFWD::TCP
 
     private
 
-    def setup_consumer buffer, drop, flush, statistics_key
-      drop_limit = drop
-      forced_flush_limit = drop * flush
+    def setup_consumer buffer, drop_limit, forced_flush_factor, statistics_key
+      forced_flush_limit = drop_limit * forced_flush_factor
 
       proc do |e|
         if buffer.size >= drop_limit
