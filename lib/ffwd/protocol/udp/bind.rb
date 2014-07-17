@@ -58,6 +58,7 @@ module FFWD::UDP
 
         if size = config[:receive_buffer_size]
           log.debug "Setting receive buffer size to #{size}"
+          @socket.set_sock_opt Socket::SOL_SOCKET, Socket::SO_RCVBUFFORCE, true
           @socket.set_sock_opt Socket::SOL_SOCKET, Socket::SO_RCVBUF, size
         end
 
