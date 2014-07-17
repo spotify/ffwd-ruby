@@ -13,6 +13,7 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
+require 'socket'
 require 'eventmachine'
 
 require_relative '../../reporter'
@@ -23,9 +24,11 @@ module FFWD::UDP
     include FFWD::Reporter
 
     DEFAULT_REBIND_TIMEOUT = 10
+    DEFAULT_RECEIVE_BUFFER_SIZE = nil
 
     def self.prepare opts
       opts[:rebind_timeout] ||= DEFAULT_REBIND_TIMEOUT
+      opts[:receive_buffer_size] ||= DEFAULT_RECEIVE_BUFFER_SIZE
       opts
     end
 
@@ -52,6 +55,12 @@ module FFWD::UDP
 
       r = FFWD.retry :timeout => rebind_timeout do |a|
         @socket = EM.open_datagram_socket host, port, connection, self, core, config
+
+        if size = config[:receive_buffer_size]
+          log.debug "Setting receive buffer size to #{size}"
+          @socket.set_sock_opt Socket::SOL_SOCKET, Socket::SO_RCVBUF, size
+        end
+
         log.info "Bind on #{info} (attempt #{a})"
         log.info "  config: #{config.inspect}"
       end
