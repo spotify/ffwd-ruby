@@ -15,13 +15,10 @@
 
 require 'eventmachine'
 
-require 'ffwd/logging'
 require 'ffwd/connection'
 
 module FFWD::Plugin::JSON
   class Connection < FFWD::Connection
-    include FFWD::Logging
-
     EVENT_FIELDS = [
       ["key", :key],
       ["value", :value],
@@ -50,8 +47,7 @@ module FFWD::Plugin::JSON
       data = JSON.load(data)
 
       unless type = data["type"]
-        log.error "Field 'type' missing from received line"
-        return
+        raise "Field 'type' missing from received line"
       end
 
       if type == "metric"
@@ -66,9 +62,7 @@ module FFWD::Plugin::JSON
         return
       end
 
-      log.error "No such type: #{type}"
-    rescue => e
-      log.error "Failed to receive line", e
+      raise "No such type: #{type}"
     end
 
     def read_tags d, source

@@ -51,6 +51,7 @@ module FFWD::Plugin::JSON
     ]
 
   class LineConnection < FFWD::Plugin::JSON::Connection
+    include FFWD::Logging
     include EM::Protocols::LineText2
 
     def self.plugin_type
@@ -59,16 +60,22 @@ module FFWD::Plugin::JSON
 
     def receive_line data
       receive_json data
+    rescue => e
+      log.error "Failed to receive JSON: #{data.inspect}: #{e}"
     end
   end
 
   class FrameConnection < FFWD::Plugin::JSON::Connection
+    include FFWD::Logging
+
     def self.plugin_type
       "json_frame_in"
     end
 
     def receive_data data
       receive_json data
+    rescue => e
+      log.error "Failed to receive JSON: #{data.inspect}: #{e}"
     end
   end
 
