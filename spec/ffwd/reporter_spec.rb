@@ -5,8 +5,10 @@ describe FFWD::Lifecycle do
 
   class Foo
     include FFWD::Reporter
+
+    report_key :foo
   end
 
   f = Foo.new
-  f.increment :total
+  f.increment :foo
 end

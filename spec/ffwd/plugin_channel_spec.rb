@@ -25,7 +25,7 @@ describe FFWD::PluginChannel do
   it "#event should forward to #events" do
     events.should_receive(:<<).with(:foo)
     c.event :foo
-    c.reporter_data.should eq(:total=>1, :metrics=>0, :events=>1)
+    c.reporter_data.should eq(:metrics=>0, :events=>1)
   end
 
   it "#metric_subscribe should forward" do
@@ -39,7 +39,7 @@ describe FFWD::PluginChannel do
   it "#metric should forward to #events" do
     metrics.should_receive(:<<).with(:foo)
     c.metric :foo
-    c.reporter_data.should eq(:total=>1, :metrics=>1, :events=>0)
+    c.reporter_data.should eq(:metrics=>1, :events=>0)
   end
 
   it "#reporter_meta should contain correct metadata" do
