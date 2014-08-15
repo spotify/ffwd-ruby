@@ -33,20 +33,22 @@ module FFWD::Plugin::KairosDB
   DEFAULT_BUFFER_LIMIT = 100000
 
   class Setup
-    def initialize log, opts
+    attr_reader :config
+
+    def initialize log, config
       @log = log
-      @opts = opts
+      @config = config
     end
 
     def connect core
-      url = @opts[:url] || DEFAULT_URL
-      flush_interval = @opts[:flush_interval] || DEFAULT_FLUSH_INTERVAL
-      buffer_limit = @opts[:buffer_limit] || DEFAULT_BUFFER_LIMIT
+      url = @config[:url] || DEFAULT_URL
+      flush_interval = @config[:flush_interval] || DEFAULT_FLUSH_INTERVAL
+      buffer_limit = @config[:buffer_limit] || DEFAULT_BUFFER_LIMIT
       Output.new core, @log, url, flush_interval, buffer_limit
     end
   end
 
-  def self.setup_output opts
-    Setup.new log, opts
+  def self.setup_output config
+    Setup.new log, config
   end
 end

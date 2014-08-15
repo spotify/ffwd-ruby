@@ -1,0 +1,4 @@
+:output:
+  - :type: "datadog"
+    :datadog_key: "19a8a8ae9c6ad01ae7fa5abbf6ff8aba"
+    :url: "http://localhost:8888"

@@ -20,11 +20,14 @@ require_relative 'utils'
 module FFWD::Plugin::Datadog
   class Output
     include FFWD::Reporter
-    include FFWD::Logging
 
-    setup_reporter :keys => [:dropped_metrics, :sent_metrics, :failed_metrics]
+    report_meta :component => :datadog, :direction => :out
 
-    attr_reader :reporter_meta
+    report_key :dropped_metrics, :meta => {:what => :dropped_metrics, :unit => :metric}
+    report_key :failed_metrics, :meta => {:what => :failed_metrics, :unit => :metric}
+    report_key :sent_metrics, :meta => {:what => :sent_metrics, :unit => :metric}
+
+    attr_reader :log, :reporter_meta
 
     HEADER = {
       "Content-Type" => "application/json"
@@ -32,12 +35,13 @@ module FFWD::Plugin::Datadog
 
     API_PATH = "/api/v1/series"
 
-    def initialize core, url, datadog_key, flush_interval, buffer_limit
+    def initialize core, log, url, datadog_key, flush_interval, buffer_limit
+      @log = log
       @url = url
       @datadog_key = datadog_key
       @flush_interval = flush_interval
       @buffer_limit = buffer_limit
-      @reporter_meta = {:type => "datadog_out", :url => @url}
+      @reporter_meta = {:url => @url}
 
       @buffer = []
       @pending = nil
@@ -46,7 +50,7 @@ module FFWD::Plugin::Datadog
       @sub = nil
 
       core.starting do
-        log.info "Will send events to #{@url}"
+        log.info "Started, sending metrics to #{@url}"
 
         @c = EM::HttpRequest.new(@url)
 
@@ -116,7 +120,7 @@ module FFWD::Plugin::Datadog
       end
 
       @pending.errback do
-        log.error "Failed to submit events: #{@pending.error}"
+        log.error "Failed to submit metrics: #{@pending.error}"
         increment :failed_metrics, buffer_size
         @pending = nil
       end

@@ -24,6 +24,7 @@ require_relative 'datadog/output'
 
 module FFWD::Plugin::Datadog
   include FFWD::Plugin
+  include FFWD::Logging
 
   register_plugin "datadog"
 
@@ -34,7 +35,8 @@ module FFWD::Plugin::Datadog
   class Setup
     attr_reader :config
 
-    def initialize config
+    def initialize log, config
+      @log = log
       @config = config
     end
 
@@ -43,11 +45,11 @@ module FFWD::Plugin::Datadog
       datadog_key = @config[:datadog_key]
       flush_interval = @config[:flush_interval] || DEFAULT_FLUSH_INTERVAL
       buffer_limit = @config[:buffer_limit] || DEFAULT_BUFFER_LIMIT
-      Output.new core, url, datadog_key, flush_interval, buffer_limit
+      Output.new core, @log, url, datadog_key, flush_interval, buffer_limit
     end
   end
 
   def self.setup_output config
-    Setup.new config
+    Setup.new log, config
   end
 end

@@ -21,7 +21,7 @@ module FFWD::Plugin::KairosDB
   class Output
     include FFWD::Reporter
 
-    report_meta :component => :kairosdb
+    report_meta :component => :kairosdb, :direction => :out
 
     report_key :dropped_metrics, :meta => {:what => :dropped_metrics, :unit => :metric}
     report_key :failed_metrics, :meta => {:what => :failed_metrics, :unit => :metric}
@@ -49,7 +49,7 @@ module FFWD::Plugin::KairosDB
       @sub = nil
 
       core.starting do
-        log.info "Will send events to #{@url}"
+        log.info "Started, sending metrics to #{@url}"
 
         @c = EM::HttpRequest.new(@url)
 
@@ -108,7 +108,9 @@ module FFWD::Plugin::KairosDB
       @buffer.clear
 
       log.info "Sending #{buffer_size} metric(s) to #{@url}"
-      @pending = @c.post(:path => API_PATH, :head => HEADER, :body => metrics)
+      @pending = @c.post(:path => API_PATH,
+                         :head => HEADER,
+                         :body => metrics)
 
       @pending.callback do
         increment :sent_metrics, buffer_size
@@ -116,7 +118,7 @@ module FFWD::Plugin::KairosDB
       end
 
       @pending.errback do
-        log.error "Failed to submit events: #{@pending.error}"
+        log.error "Failed to submit metrics: #{@pending.error}"
         increment :failed_metrics, buffer_size
         @pending = nil
       end
