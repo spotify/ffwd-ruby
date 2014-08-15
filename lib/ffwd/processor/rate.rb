@@ -27,10 +27,11 @@ module FFWD::Processor
     include FFWD::Reporter
 
     register_processor "rate"
-    setup_reporter(
-      :reporter_meta => {:processor => "rate"},
-      :keys => [:dropped, :expired, :received]
-    )
+
+    report_meta :component => :processor, :processor => :rate
+    report_key :dropped, {:meta => {:what => :dropped, :unit => :value}}
+    report_key :expired, {:meta => {:what => :expired, :unit => :value}}
+    report_key :received, {:meta => {:what => :received, :unit => :value}}
 
     # Options:
     #

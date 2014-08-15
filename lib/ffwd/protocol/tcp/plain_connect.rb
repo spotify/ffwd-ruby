@@ -19,17 +19,22 @@ module FFWD::TCP
   class PlainConnect
     include FFWD::Reporter
 
+    attr_reader :log
+
     def self.prepare opts
       opts
     end
 
-    setup_reporter :keys => [
-      :dropped_events, :dropped_metrics,
-      :sent_events, :sent_metrics,
-      :failed_events, :failed_metrics
-    ]
+    report_meta :protocol => :tcp, :direction => :out
 
-    attr_reader :log
+    report_key :dropped_events, :meta => {:what => :dropped_events, :unit => :event}
+    report_key :dropped_metrics, :meta => {:what => :dropped_metrics, :unit => :metric}
+
+    report_key :sent_events, :meta => {:what => :sent_events, :unit => :event}
+    report_key :sent_metrics, :meta => {:what => :sent_metrics, :unit => :metric}
+
+    report_key :failed_events, :meta => {:what => :failed_events, :unit => :event}
+    report_key :failed_metrics, :meta => {:what => :failed_metrics, :unit => :metric}
 
     def reporter_meta
       @c.reporter_meta

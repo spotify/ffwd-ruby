@@ -80,19 +80,18 @@ module FFWD::Statistics
     def generate! last, now
       if @system
         @system.collect @channel do |key, value|
-          key = "#{@prefix}.#{key}"
+          attributes = FFWD.merge_hashes @attributes, {:what => key, :component => :system}
           @emitter.metric.emit(
-            :key => key, :value => value,
-            :tags => @tags, :attributes => @attributes)
+            :key => @prefix, :value => value,
+            :tags => @tags, :attributes => attributes)
         end
       end
 
       @reporters.each do |id, reporter|
         reporter.report! do |d|
           attributes = FFWD.merge_hashes @attributes, d[:meta]
-          key = "#{@prefix}.#{d[:key]}"
           @emitter.metric.emit(
-            :key => key, :value => d[:value],
+            :key => @prefix, :value => d[:value],
             :tags => @tags, :attributes => attributes)
         end
       end

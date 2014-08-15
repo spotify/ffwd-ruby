@@ -70,7 +70,7 @@ module FFWD::Plugin::Protobuf
     end
 
     def self.plugin_type
-      "protobuf_in"
+      "protobuf"
     end
 
     def receive_data datagram

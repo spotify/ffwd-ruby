@@ -41,10 +41,11 @@ module FFWD::Processor
     include FFWD::Reporter
 
     register_processor "histogram"
-    setup_reporter(
-      :reporter_meta => {:processor => "histogram"},
-      :keys => [:dropped, :bucket_dropped, :received]
-    )
+
+    report_meta :component => :processor, :processor => :histogram
+    report_key :dropped, {:meta => {:what => :dropped, :unit => :value}}
+    report_key :bucked_dropped, {:meta => {:what => :bucked_dropped, :unit => :value}}
+    report_key :received, {:meta => {:what => :received, :unit => :value}}
 
     DEFAULT_MISSING = 0
 

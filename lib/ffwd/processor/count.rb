@@ -29,10 +29,10 @@ module FFWD::Processor
     include FFWD::Reporter
 
     register_processor "count"
-    setup_reporter(
-      :reporter_meta => {:processor => "count"},
-      :keys => [:dropped, :received]
-    )
+
+    report_meta :component => :processor, :processor => :count
+    report_key :dropped, :meta => {:what => :count_dropped, :unit => :value}
+    report_key :received, :meta => {:what => :count_received, :unit => :value}
 
     def self.prepare config
       config[:cache_limit] ||= 1000
