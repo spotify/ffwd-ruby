@@ -20,7 +20,12 @@ require_relative 'utils'
 module FFWD::Plugin::KairosDB
   class Output
     include FFWD::Reporter
-    setup_reporter :keys => [:dropped_metrics, :sent_metrics, :failed_metrics]
+
+    report_meta :component => :kairosdb
+
+    report_key :dropped_metrics, :meta => {:what => :dropped_metrics, :unit => :metric}
+    report_key :failed_metrics, :meta => {:what => :failed_metrics, :unit => :metric}
+    report_key :sent_metrics, :meta => {:what => :sent_metrics, :unit => :metric}
 
     attr_reader :log, :reporter_meta
 
@@ -35,7 +40,7 @@ module FFWD::Plugin::KairosDB
       @url = url
       @flush_interval = flush_interval
       @buffer_limit = buffer_limit
-      @reporter_meta = {:type => "kairosdb_out", :url => @url}
+      @reporter_meta = {:url => @url}
 
       @buffer = []
       @pending = nil

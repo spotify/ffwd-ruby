@@ -43,7 +43,7 @@ module FFWD::Plugin::Riemann
     include FFWD::Plugin::Riemann::Output
 
     def self.plugin_type
-      "riemann_out"
+      "riemann"
     end
 
     def encode m
@@ -56,7 +56,7 @@ module FFWD::Plugin::Riemann
     include FFWD::Plugin::Riemann::Output
 
     def self.plugin_type
-      "riemann_out"
+      "riemann"
     end
 
     def encode m

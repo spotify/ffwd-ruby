@@ -29,10 +29,13 @@ module FFWD::UDP
 
     attr_reader :reporter_meta, :log, :config
 
-    setup_reporter :keys => [
-      :dropped_events, :dropped_metrics,
-      :sent_events, :sent_metrics
-    ]
+    report_meta :protocol => :udp, :direction => :out
+
+    report_key :sent_events, :meta => {:what => :sent_events, :unit => :event}
+    report_key :sent_metrics, :meta => {:what => :sent_metrics, :unit => :metric}
+
+    report_key :dropped_events, :meta => {:what => :dropped_events, :unit => :event}
+    report_key :dropped_metrics, :meta => {:what => :dropped_metrics, :unit => :metric}
 
     def initialize core, log, host, port, handler, config
       @log = log
@@ -46,9 +49,7 @@ module FFWD::UDP
       @host_ip = nil
       @c = nil
       @peer = "#{host}:#{port}"
-      @reporter_meta = {
-        :type => @handler.plugin_type, :peer => @peer
-      }
+      @reporter_meta = {:component => @handler.plugin_type, :peer => @peer}
 
       info = "udp://#{@peer}"
 

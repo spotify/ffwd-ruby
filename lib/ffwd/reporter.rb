@@ -18,23 +18,44 @@ module FFWD::Reporter
     Hash[meta.map{|k, v| [k.to_s, v]}]
   end
 
+  def self.build_meta instance, k
+    meta = instance.class.reporter_meta || {}
+
+    if instance.respond_to?(:reporter_meta)
+      meta = meta.merge(instance.send(:reporter_meta))
+    end
+
+    return meta.merge(k[:meta])
+  end
+
   module ClassMethods
     def reporter_keys
-      @_reporter_keys ||= [:total]
+      @reporter_keys ||= []
     end
 
+    # Statically configured metadata.
     def reporter_meta
-      @_reporter_meta ||= nil
+      @reporter_meta ||= {}
     end
 
-    def reporter_meta_method
-      @_reporter_meta_method ||= :reporter_meta
+    # Configure either static or dynamic metadata.
+    # If a symbol is provided, it is assumed to be the name of the function
+    # that will be used to fetch metadata.
+    # If a Hash is provided, it will be assumed to be the static metadata.
+    def report_meta meta
+      unless meta.is_a? Hash
+        raise "Invalid meta: #{meta.inspect}"
+      end
+
+      @reporter_meta = meta
+    end
+
+    def report_key key, options={}
+      reporter_keys <<  {:key => key, :meta => options[:meta] || {}}
     end
 
     def setup_reporter opts={}
-      @_reporter_keys = [:total] + (opts[:keys] || [])
-      @_reporter_meta = opts[:reporter_meta]
-      @_reporter_meta_method = opts[:id_method] || :reporter_meta
+      raise "setup_reporter is deprecated, use (report_*) instead!"
     end
   end
 
@@ -43,23 +64,22 @@ module FFWD::Reporter
   end
 
   def reporter_data
-    @_reporter_keys ||= self.class.reporter_keys
-    @_reporter_data ||= Hash[@_reporter_keys.map{|k| [k, 0]}]
+    @_reporter_data ||= Hash[self.class.reporter_keys.map{|k| [k[:key], 0]}]
   end
 
   def increment n, c=1
     reporter_data[n] += c
-    reporter_data[:total] += c
   end
 
   def report!
-    @_reporter_meta ||= FFWD::Reporter.map_meta(
-      self.class.reporter_meta || send(self.class.reporter_meta_method))
-
-    reporter_data.each do |k, v|
-      yield(:key => k, :value => v,
-            :meta => @_reporter_meta)
+    self.class.reporter_keys.each do |key|
+      k = key[:key]
+      v = reporter_data[k]
       reporter_data[k] = 0
+
+      meta = ((@_reporter_meta ||= {})[k] ||= FFWD::Reporter.build_meta(self, key))
+
+      yield(:key => k, :value => v, :meta => meta)
     end
   end
 end

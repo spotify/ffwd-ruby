@@ -11,14 +11,14 @@
     - "ffwd"
   # Only events will be decorated with the following metadata.
   :event:
-    :attributes:
+    :whoami:
       data_type: "event"
     :tags:
       - "event"
   # Only metrics will be decorated with the following metadata.
   :metric:
     :attributes:
-      data_type: "metric"
+      :whoami: "metric"
     :tags:
       - "metric"
   # Set a memory limit (only works on Linux) after which the system will

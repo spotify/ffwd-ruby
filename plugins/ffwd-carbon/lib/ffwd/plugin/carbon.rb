@@ -45,13 +45,13 @@ module FFWD::Plugin
 
     class InputTCP < FFWD::Plugin::Carbon::Connection
       def self.plugin_type
-        "carbon_tcp_in"
+        "carbon"
       end
     end
 
     class InputUDP < FFWD::Plugin::Carbon::Connection
       def self.plugin_type
-        "carbon_udp_in"
+        "carbon"
       end
     end
 

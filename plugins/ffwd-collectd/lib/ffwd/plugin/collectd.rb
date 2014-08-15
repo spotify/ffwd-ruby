@@ -48,13 +48,13 @@ module FFWD::Plugin::Collectd
 
   class InputTCP < FFWD::Plugin::Collectd::Connection
     def self.plugin_type
-      "collectd_tcp_in"
+      "collectd"
     end
   end
 
   class InputUDP < FFWD::Plugin::Collectd::Connection
     def self.plugin_type
-      "collectd_udp_in"
+      "collectd"
     end
   end
 

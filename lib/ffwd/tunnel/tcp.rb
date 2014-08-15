@@ -21,8 +21,13 @@ module FFWD::Tunnel
     include FFWD::Lifecycle
     include FFWD::Reporter
 
-    setup_reporter :keys => [
-      :received_events, :received_metrics, :failed_events, :failed_metrics]
+    report_meta :protocol => :tunnel_tcp
+
+    report_key :received_events, :meta => {:what => :received_events, :unit => :event}
+    report_key :received_metrics, :meta => {:what => :received_metrics, :unit => :metric}
+
+    report_key :failed_events, :meta => {:what => :failed_events, :unit => :event}
+    report_key :failed_metrics, :meta => {:what => :failed_metrics, :unit => :metric}
 
     attr_reader :log
 

@@ -23,7 +23,10 @@ module FFWD::Plugin::Kafka
     include FFWD::Logging
     include FFWD::Reporter
 
-    setup_reporter :keys => [:kafka_routing_error, :kafka_routing_success]
+    report_meta :component => :kafka
+
+    report_key :kafka_routing_error, :meta => {:what => :kafka_routing_error, :unit => :failure}
+    report_key :kafka_routing_success, :meta => {:what => :kafka_routing_success, :unit => :success}
 
     attr_reader :reporter_meta
 

@@ -46,7 +46,7 @@ module FFWD::TCP
       @peer = "#{host}:#{port}"
       @closing = false
       @reconnect_timeout = INITIAL_TIMEOUT
-      @reporter_meta = {:type => @handler.plugin_type, :peer => peer}
+      @reporter_meta = {:component => @handler.plugin_type, :peer => peer}
 
       @timer = nil
       @c = nil

@@ -29,21 +29,27 @@ module FFWD
       def produce events, metrics; raise "not implemented: produce"; end
     end
 
-    setup_reporter :keys => [
-      # number of events/metrics that we attempted to dispatch but failed.
-      :failed_events, :failed_metrics,
-      # number of events/metrics that were dropped because the output buffers
-      # are full.
-      :dropped_events, :dropped_metrics,
-      # number of events/metrics successfully sent.
-      :sent_events, :sent_metrics,
-      # number of requests that take longer than the allowed period.
-      :slow_requests
-    ]
+    report_meta :component => :producing_client
+
+    # number of events/metrics that we attempted to dispatch but failed.
+    report_key :failed_events, :meta => {:what => :failed_events, :unit => :event}
+    report_key :failed_metrics, :meta => {:what => :failed_metrics, :unit => :metric}
+
+    # number of events/metrics that were dropped because the output buffers
+    # are full.
+    report_key :dropped_events, :meta => {:what => :dropped_events, :unit => :event}
+    report_key :dropped_metrics, :meta => {:what => :dropped_metrics, :unit => :event}
+
+    # number of events/metrics successfully sent.
+    report_key :sent_events, :meta => {:what => :sent_events, :unit => :event}
+    report_key :sent_metrics, :meta => {:what => :sent_metrics, :unit => :event}
+
+    # number of requests that take longer than the allowed period.
+    report_key :slow_requests, :meta => {:what => :slow_requests, :unit => :request}
 
     def reporter_meta
-      @reporter_meta ||= @producer.reporter_meta.merge(
-        :type => "producing_client_out")
+      return {} if @producer_is_reporter
+      @producer.class.reporter_meta.merge(@producer.reporter_meta)
     end
 
     def report!

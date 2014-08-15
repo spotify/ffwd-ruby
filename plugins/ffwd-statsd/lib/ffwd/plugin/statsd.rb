@@ -31,7 +31,7 @@ module FFWD::Plugin::Statsd
 
   class InputUDP < FFWD::Plugin::Statsd::Connection
     def self.plugin_type
-      "statsd_udp_in"
+      "statsd"
     end
 
     def receive_data data
@@ -45,7 +45,7 @@ module FFWD::Plugin::Statsd
     include EM::Protocols::LineText2
 
     def self.plugin_type
-      "statsd_tcp_in"
+      "statsd"
     end
 
     def receive_line(data)

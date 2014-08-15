@@ -30,20 +30,17 @@ module FFWD::TCP
       opts
     end
 
-    setup_reporter :keys => [
-      :received_events, :received_metrics,
-      :failed_events, :failed_metrics
-    ]
+    report_meta :protocol => :tcp, :direction => :in
+
+    report_key :failed_events, :meta => {:what => :failed_events, :unit => :event}
+    report_key :received_events, :meta => {:what => :received_events, :unit => :event}
 
     attr_reader :log, :reporter_meta
 
     def initialize core, log, host, port, connection, config
       @log = log
       @peer = "#{host}:#{port}"
-      @reporter_meta = {
-        :type => connection.plugin_type,
-        :listen => @peer, :family => 'tcp'
-      }
+      @reporter_meta = {:component => connection.plugin_type, :listen => @peer}
 
       @server = nil
 
