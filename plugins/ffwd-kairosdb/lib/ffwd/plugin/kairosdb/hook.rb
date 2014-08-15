@@ -13,33 +13,46 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
-require 'eventmachine'
-require 'em-http'
+require 'json'
 
-require 'ffwd/logging'
-require 'ffwd/plugin'
-require 'ffwd/reporter'
-require 'ffwd/flushing_output'
+require_relative 'utils'
 
-require_relative 'kairosdb/hook'
+require 'ffwd/flushing_output_hook'
 
 module FFWD::Plugin::KairosDB
-  include FFWD::Plugin
-  include FFWD::Logging
+  class Hook < FFWD::FlushingOutputHook
+    HEADER = {
+      "Content-Type" => "application/json"
+    }
 
-  register_plugin "kairosdb"
+    API_PATH = "/api/v1/series"
 
-  DEFAULT_URL = "http://localhost:8080"
-  DEFAULT_FLUSH_INTERVAL = 10
-  DEFAULT_BUFFER_LIMIT = 100000
+    def initialize url
+      @c = nil
+      @url = url
+    end
 
-  def self.setup_output config
-    config[:url] ||= DEFAULT_URL
-    config[:flush_interval] ||= DEFAULT_FLUSH_INTERVAL
-    config[:buffer_limit] ||= DEFAULT_BUFFER_LIMIT
+    def active?
+      not @c.nil?
+    end
 
-    hook = Hook.new(config[:url])
+    def connect
+      @c = EM::HttpRequest.new(@url)
+    end
 
-    FFWD.flushing_output log, hook, config
+    def close
+      @c.close
+      @c = nil
+    end
+
+    def send metrics
+      metrics = Utils.make_metrics(metrics)
+      metrics = JSON.dump(metrics)
+      @c.post(:path => API_PATH, :head => HEADER, :body => metrics)
+    end
+
+    def reporter_meta
+      {:component => :datadog}
+    end
   end
 end

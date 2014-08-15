@@ -17,11 +17,11 @@ require 'ffwd/reporter'
 
 require_relative 'utils'
 
-module FFWD::Plugin::Datadog
-  class Output
+module FFWD
+  class FlushingOutput
     include FFWD::Reporter
 
-    report_meta :component => :datadog, :direction => :out
+    report_meta :direction => :out
 
     report_key :dropped_metrics, :meta => {:what => :dropped_metrics, :unit => :metric}
     report_key :failed_metrics, :meta => {:what => :failed_metrics, :unit => :metric}
@@ -29,19 +29,12 @@ module FFWD::Plugin::Datadog
 
     attr_reader :log, :reporter_meta
 
-    HEADER = {
-      "Content-Type" => "application/json"
-    }
-
-    API_PATH = "/api/v1/series"
-
-    def initialize core, log, url, datadog_key, flush_interval, buffer_limit
+    def initialize core, log, hook, config
       @log = log
-      @url = url
-      @datadog_key = datadog_key
-      @flush_interval = flush_interval
-      @buffer_limit = buffer_limit
-      @reporter_meta = {:url => @url}
+      @flush_interval = config[:flush_interval]
+      @buffer_limit = config[:buffer_limit]
+      @hook = hook
+      @reporter_meta = @hook.reporter_meta
 
       @buffer = []
       @pending = nil
@@ -50,9 +43,10 @@ module FFWD::Plugin::Datadog
       @sub = nil
 
       core.starting do
-        log.info "Started, sending metrics to #{@url}"
+        @log.info "Started"
+        @log.info "  config: #{config}"
 
-        @c = EM::HttpRequest.new(@url)
+        @hook.connect
 
         @sub = core.output.metric_subscribe do |metric|
           if @buffer.size >= @buffer_limit
@@ -66,10 +60,9 @@ module FFWD::Plugin::Datadog
       end
 
       core.stopping do
-        # Close is buggy, don.
-        #@c.close
+        @log.info "Stopped"
 
-        log.info "Closing connection to #{@url}"
+        @hook.close
 
         if @sub
           @sub.unsubscribe
@@ -90,29 +83,22 @@ module FFWD::Plugin::Datadog
       end
 
       if @pending
-        log.info "Request already in progress, dropping metrics"
+        @log.info "Request already in progress, dropping metrics"
         increment :dropped_metrics, @buffer.size
         @buffer.clear
         return
       end
 
-      unless @c
-        log.error "Dropping metrics, no active connection available"
+      unless @hook.active?
+        @log.error "Dropping metrics, no active connection available"
         increment :dropped_metrics, @buffer.size
         @buffer.clear
         return
       end
 
       buffer_size = @buffer.size
-      metrics = Utils.make_metrics(@buffer)
-      metrics = JSON.dump(metrics)
-      @buffer.clear
 
-      log.info "Sending #{buffer_size} metric(s) to #{@url}"
-      @pending = @c.post(:path => API_PATH,
-                         :query => {'api_key' => @datadog_key },
-                         :head => HEADER,
-                         :body => metrics)
+      @pending = @hook.send @buffer
 
       @pending.callback do
         increment :sent_metrics, buffer_size
@@ -120,20 +106,44 @@ module FFWD::Plugin::Datadog
       end
 
       @pending.errback do
-        log.error "Failed to submit metrics: #{@pending.error}"
+        @log.error "Failed to submit metrics: #{@pending.error}"
         increment :failed_metrics, buffer_size
         @pending = nil
       end
+    rescue => e
+      @log.error "Error during flush", e
+    ensure
+      @buffer.clear
     end
 
     def check_timer!
       return if @timer
 
-      log.debug "Setting timer to #{@flush_interval}s"
+      @log.debug "Setting timer to #{@flush_interval}s"
 
       @timer = EM::Timer.new(@flush_interval) do
         flush!
       end
     end
+
+    class Setup
+      attr_reader :config
+
+      def initialize log, hook, config
+        @log = log
+        @hook = hook
+        @config = config
+      end
+
+      def connect core
+        FlushingOutput.new core, @log, @hook, @config
+      end
+    end
+  end
+
+  def self.flushing_output log, hook, config={}
+    raise "Expected: flush_interval" unless config[:flush_interval]
+    raise "Expected: buffer_limit" unless config[:buffer_limit]
+    FlushingOutput::Setup.new log, hook, config
   end
 end

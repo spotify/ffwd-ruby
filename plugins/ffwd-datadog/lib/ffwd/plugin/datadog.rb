@@ -19,8 +19,9 @@ require 'em-http'
 require 'ffwd/logging'
 require 'ffwd/plugin'
 require 'ffwd/reporter'
+require 'ffwd/flushing_output'
 
-require_relative 'datadog/output'
+require_relative 'datadog/hook'
 
 module FFWD::Plugin::Datadog
   include FFWD::Plugin
@@ -32,24 +33,17 @@ module FFWD::Plugin::Datadog
   DEFAULT_FLUSH_INTERVAL = 10
   DEFAULT_BUFFER_LIMIT = 100000
 
-  class Setup
-    attr_reader :config
-
-    def initialize log, config
-      @log = log
-      @config = config
-    end
-
-    def connect core
-      url = @config[:url] || DEFAULT_URL
-      datadog_key = @config[:datadog_key]
-      flush_interval = @config[:flush_interval] || DEFAULT_FLUSH_INTERVAL
-      buffer_limit = @config[:buffer_limit] || DEFAULT_BUFFER_LIMIT
-      Output.new core, @log, url, datadog_key, flush_interval, buffer_limit
-    end
-  end
-
   def self.setup_output config
-    Setup.new log, config
+    config[:url] ||= DEFAULT_URL
+    config[:flush_interval] ||= DEFAULT_FLUSH_INTERVAL
+    config[:buffer_limit] ||= DEFAULT_BUFFER_LIMIT
+
+    unless config[:datadog_key]
+      raise "datadog_key: must be specified"
+    end
+
+    hook = Hook.new(config[:url], config[:datadog_key])
+
+    FFWD.flushing_output log, hook, config
   end
 end
