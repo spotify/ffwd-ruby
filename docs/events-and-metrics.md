@@ -74,7 +74,7 @@ the data that caused it.<br />
 
 It is designed like this to allow for input plugins to provide data in a
 *terse* format, making it easier for author to write plugins. See [the
-statsd plugin](/lib/ffwd/plugin/statsd.rb) for a good example where only
+statsd plugin](/plugins/ffwd-statsd/lib/ffwd/plugin/statsd.rb) for a good example where only
 **:key**, **:value** and **:proc** is used.
 
 ## Output Data Structure
