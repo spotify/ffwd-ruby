@@ -31,11 +31,11 @@ module FFWD::UDP
 
     report_meta :protocol => :udp, :direction => :out
 
-    report_key :sent_events, :meta => {:what => :sent_events, :unit => :event}
-    report_key :sent_metrics, :meta => {:what => :sent_metrics, :unit => :metric}
+    report_key :sent_events, :meta => {:what => "sent-events", :unit => :event}
+    report_key :sent_metrics, :meta => {:what => "sent-metrics", :unit => :metric}
 
-    report_key :dropped_events, :meta => {:what => :dropped_events, :unit => :event}
-    report_key :dropped_metrics, :meta => {:what => :dropped_metrics, :unit => :metric}
+    report_key :dropped_events, :meta => {:what => "dropped-events", :unit => :event}
+    report_key :dropped_metrics, :meta => {:what => "dropped-metrics", :unit => :metric}
 
     def initialize core, log, host, port, handler, config
       @log = log

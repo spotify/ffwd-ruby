@@ -25,8 +25,8 @@ module FFWD::Plugin::Kafka
 
     report_meta :component => :kafka
 
-    report_key :kafka_routing_error, :meta => {:what => :kafka_routing_error, :unit => :failure}
-    report_key :kafka_routing_success, :meta => {:what => :kafka_routing_success, :unit => :success}
+    report_key :routing_error, :meta => {:what => "routing-error", :unit => :failure}
+    report_key :routing_success, :meta => {:what => "routing-success", :unit => :success}
 
     attr_reader :reporter_meta
 
@@ -88,10 +88,10 @@ module FFWD::Plugin::Kafka
       end
 
       if messages.size < expected_messages
-        increment :kafka_routing_error, expected_messages - messages.size
+        increment :routing_error, expected_messages - messages.size
       end
 
-      increment :kafka_routing_success, messages.size
+      increment :routing_success, messages.size
       @instance.send_messages messages
     end
 

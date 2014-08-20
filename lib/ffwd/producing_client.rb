@@ -32,20 +32,20 @@ module FFWD
     report_meta :component => :producing_client
 
     # number of events/metrics that we attempted to dispatch but failed.
-    report_key :failed_events, :meta => {:what => :failed_events, :unit => :event}
-    report_key :failed_metrics, :meta => {:what => :failed_metrics, :unit => :metric}
+    report_key :failed_events, :meta => {:what => "failed-events", :unit => :event}
+    report_key :failed_metrics, :meta => {:what => "failed-metrics", :unit => :metric}
 
     # number of events/metrics that were dropped because the output buffers
     # are full.
-    report_key :dropped_events, :meta => {:what => :dropped_events, :unit => :event}
-    report_key :dropped_metrics, :meta => {:what => :dropped_metrics, :unit => :event}
+    report_key :dropped_events, :meta => {:what => "dropped-events", :unit => :event}
+    report_key :dropped_metrics, :meta => {:what => "dropped-metrics", :unit => :event}
 
     # number of events/metrics successfully sent.
-    report_key :sent_events, :meta => {:what => :sent_events, :unit => :event}
-    report_key :sent_metrics, :meta => {:what => :sent_metrics, :unit => :event}
+    report_key :sent_events, :meta => {:what => "sent-events", :unit => :event}
+    report_key :sent_metrics, :meta => {:what => "sent-metrics", :unit => :event}
 
     # number of requests that take longer than the allowed period.
-    report_key :slow_requests, :meta => {:what => :slow_requests, :unit => :request}
+    report_key :slow_requests, :meta => {:what => "slow-requests", :unit => :request}
 
     def reporter_meta
       return {} if @producer_is_reporter

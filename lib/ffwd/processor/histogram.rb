@@ -43,9 +43,10 @@ module FFWD::Processor
     register_processor "histogram"
 
     report_meta :component => :processor, :processor => :histogram
-    report_key :dropped, {:meta => {:what => :dropped, :unit => :value}}
-    report_key :bucket_dropped, {:meta => {:what => :bucket_dropped, :unit => :value}}
-    report_key :received, {:meta => {:what => :received, :unit => :value}}
+
+    report_key :dropped, {:meta => {:what => "dropped-values", :unit => :value}}
+    report_key :bucket_dropped, {:meta => {:what => "dropped-bucket-values", :unit => :value}}
+    report_key :received, {:meta => {:what => "received-values", :unit => :value}}
 
     DEFAULT_MISSING = 0
 

@@ -23,9 +23,9 @@ module FFWD
 
     report_meta :direction => :out
 
-    report_key :dropped_metrics, :meta => {:what => :dropped_metrics, :unit => :metric}
-    report_key :failed_metrics, :meta => {:what => :failed_metrics, :unit => :metric}
-    report_key :sent_metrics, :meta => {:what => :sent_metrics, :unit => :metric}
+    report_key :dropped_metrics, :meta => {:what => "dropped-metrics", :unit => :metric}
+    report_key :failed_metrics, :meta => {:what => "failed-metrics", :unit => :metric}
+    report_key :sent_metrics, :meta => {:what => "sent-metrics", :unit => :metric}
 
     attr_reader :log, :reporter_meta
 

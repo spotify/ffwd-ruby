@@ -31,8 +31,8 @@ module FFWD::Processor
     register_processor "count"
 
     report_meta :component => :processor, :processor => :count
-    report_key :dropped, :meta => {:what => :count_dropped, :unit => :value}
-    report_key :received, :meta => {:what => :count_received, :unit => :value}
+    report_key :dropped, :meta => {:what => "dropped-values", :unit => :value}
+    report_key :received, :meta => {:what => "received-values", :unit => :value}
 
     def self.prepare config
       config[:cache_limit] ||= 1000
