@@ -29,7 +29,7 @@ module FFWD::Plugin
     include FFWD::Logging
 
     register_plugin "kafka",
-      :description => "A plugin for the collectd binary protocol.",
+      :description => "Kafka support for FFWD.",
       :options => [
         FFWD::Plugin.option(
           :producer, :default => FFWD::Plugin::Kafka::Output::DEFAULT_PRODUCER,
