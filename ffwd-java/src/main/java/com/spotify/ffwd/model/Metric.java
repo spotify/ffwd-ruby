@@ -14,6 +14,5 @@ public class Metric {
 	private final String host;
 	private final List<String> tags;
 	private final Map<String, String> attributes;
-	private final String source;
 	private final String proc;
 }

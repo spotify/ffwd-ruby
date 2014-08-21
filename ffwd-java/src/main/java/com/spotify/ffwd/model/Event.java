@@ -11,12 +11,10 @@ public class Event {
 	private final String key;
 	private final double value;
 	private final Date time;
-	private final long ttl;
+	private final Long ttl;
 	private final String state;
 	private final String description;
 	private final String host;
 	private final List<String> tags;
 	private final Map<String, String> attributes;
-	private final String source;
-	private final String proc;
 }

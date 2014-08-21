@@ -1,14 +1,12 @@
-package com.spotify.ffwd.protocol.tcp;
+package com.spotify.ffwd.protocol.udp;
 
 import io.netty.bootstrap.Bootstrap;
-import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.socket.SocketChannel;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.channel.socket.DatagramChannel;
+import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.util.Timer;
 
 import java.util.concurrent.TimeUnit;
@@ -21,21 +19,19 @@ import com.spotify.ffwd.protocol.retrier.ChannelRetrier;
 
 @Slf4j
 @AllArgsConstructor
-public class TCP implements Protocol {
+public class UDP implements Protocol {
 	private final Timer timer;
-	private final EventLoopGroup bossGroup;
 	private final EventLoopGroup workerGroup;
 
 	public void bind(final String host, final int port,
-			ChannelInitializer<SocketChannel> initializer) {
-		final ServerBootstrap b = new ServerBootstrap();
+			ChannelInitializer<DatagramChannel> initializer) {
+		final Bootstrap b = new Bootstrap();
 
-		b.group(bossGroup, workerGroup);
-		b.channel(NioServerSocketChannel.class);
-		b.childHandler(initializer);
+		b.group(workerGroup);
+		b.channel(NioDatagramChannel.class);
+		b.handler(initializer);
 
-		b.option(ChannelOption.SO_BACKLOG, 128);
-		b.childOption(ChannelOption.SO_KEEPALIVE, true);
+		// b.option(ChannelOption.SO_RCVBUF, 128);
 
 		final ChannelRetrier.ChannelAction action = new ChannelRetrier.ChannelAction() {
 			@Override
@@ -48,13 +44,13 @@ public class TCP implements Protocol {
 				final long seconds = TimeUnit.SECONDS.convert(delay,
 						TimeUnit.MILLISECONDS);
 				log.info(
-						"Bind tcp://{}:{} (attempt #{}) failed, retrying in {}s. Caused by: {}",
+						"Bind udp://{}:{} (attempt #{}) failed, retrying in {}s. Caused by: {}",
 						host, port, attempt, seconds, cause);
 			}
 
 			@Override
 			public void success() {
-				log.info("Bound to tcp://{}:{}", host, port);
+				log.info("Bound to udp://{}:{}", host, port);
 			}
 		};
 
@@ -62,11 +58,11 @@ public class TCP implements Protocol {
 	}
 
 	public void connect(final String host, final int port,
-			ChannelInitializer<SocketChannel> initializer) {
+			ChannelInitializer<DatagramChannel> initializer) {
 		final Bootstrap b = new Bootstrap();
 
 		b.group(workerGroup);
-		b.channel(NioSocketChannel.class);
+		b.channel(NioDatagramChannel.class);
 		b.handler(initializer);
 
 		b.option(ChannelOption.SO_KEEPALIVE, true);
@@ -74,7 +70,7 @@ public class TCP implements Protocol {
 		final ChannelRetrier.ChannelAction action = new ChannelRetrier.ChannelAction() {
 			@Override
 			public ChannelFuture run() {
-				return b.connect(host, port);
+				return b.connect();
 			}
 
 			@Override
@@ -82,13 +78,13 @@ public class TCP implements Protocol {
 				final long seconds = TimeUnit.SECONDS.convert(delay,
 						TimeUnit.MILLISECONDS);
 				log.info(
-						"Connect tcp://{}:{} (attempt #{}) failed, reconnecting in {}s. Caused by: {}",
+						"Connect udp://{}:{} (attempt #{}) failed, reconnecting in {}s. Caused by: {}",
 						host, port, attempt, seconds, cause);
 			}
 
 			@Override
 			public void success() {
-				log.info("Connected to tcp://{}:{}", host, port);
+				log.info("Connected to udp://{}:{}", host, port);
 			}
 		};
 
