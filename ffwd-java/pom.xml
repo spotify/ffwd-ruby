@@ -59,6 +59,12 @@
       <version>1.7.7</version>
 	</dependency>
 
+	<dependency>
+	  <groupId>eu.toolchain.ffwd</groupId>
+	  <artifactId>ffwd-client</artifactId>
+	  <version>0.0.3</version>
+	</dependency>
+
     <!-- logging -->
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
