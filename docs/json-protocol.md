@@ -78,7 +78,13 @@ Metric:
   host: optional String
   tags: optional [String, ..]
   attributes: optional {String: String, ..}
+  proc: optional String
 ```
+
+##### proc
+
+To see a list of the currently available processors, go look at the
+implementations available in [lib/ffwd/processor](/lib/ffwd/processor).
 
 #### Metric Object (v2) (WIP)
 
@@ -87,12 +93,8 @@ Metric:
   type: required "metric.v2"
   value: optional Number
   tags: optional {String: String, ..}
+  proc: optional String
 ```
-
-##### proc
-
-To see a list of the currently available processors, go look at the
-implementations available in [lib/ffwd/processor](/lib/ffwd/processor).
 
 #### Event Object (v1)
 
