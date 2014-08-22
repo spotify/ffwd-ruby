@@ -48,6 +48,8 @@ The available objects are documented in the following sections.
   // optional
   "value": <number>,
   // optional
+  "host": <string>,
+  // optional
   "tags": [<string>, ...],
   // optional
   "attributes": {<string>: <string>, ...},
