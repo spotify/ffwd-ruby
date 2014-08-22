@@ -37,55 +37,76 @@ Each message is expected to be a valid JSON object with a `type` field describin
 
 The available objects are documented in the following sections.
 
-#### Metric Object
+#### Documentation Structure
 
-```text
-{
-  // required
-  "type": "metric",
-  // required
-  "key": <string>,
-  // optional
-  "value": <number>,
-  // optional
-  "host": <string>,
-  // optional
-  "tags": [<string>, ...],
-  // optional
-  "attributes": {<string>: <string>, ...},
-  // optional
-  "proc": <string>,
-}
-````
+Messages are documented in the following structure.
+
+```
+<type>:
+  <field>: <optional|required> <literal|type|list|map>
+  ...
+```
+
+```String```, and ```Number``` are built-in types from JSON that are used below.
+
+A ```literal``` refers to JSON literal values, such as the string ```"foo"``` or the number ```12.14```.
+
+A ```<field>``` refers to a key in a JSON object.
+The keyword ```optional``` or ```required``` refers to if the field has to be present and non-null or not.
+
+A ```list``` or a ```map``` is characterized with one item which contains their type. It also contains an element ```..``` if more than the specified amount of elements are allowed. Some examples are ```[String, ..]```, ```[String, String]```, and ```{Number: String, ..}```.
+
+The following is an example definition and a corresponding, _valid_ JSON.
+
+```
+Foo:
+  hello: optional String
+  world: required Number
+```
+
+```javascript
+{"hello": "foo", "world": 12.14}
+```
+
+#### Metric Object (v1)
+
+```
+Metric:
+  type: required "metric"
+  key: optional String
+  value: optional Number
+  host: optional String
+  tags: optional [String, ..]
+  attributes: optional {String: String, ..}
+```
+
+#### Metric Object (v2) (WIP)
+
+```
+Metric:
+  type: required "metric.v2"
+  value: optional Number
+  tags: optional {String: String, ..}
+```
 
 ##### proc
 
 To see a list of the currently available processors, go look at the
 implementations available in [lib/ffwd/processor](/lib/ffwd/processor).
 
-#### Event Object
+#### Event Object (v1)
 
-```text
-{
-  // required
-  "type": "event",
-  // required
-  "key": <string>,
-  // optional
-  "value": <number>,
-  // optional
-  "host": <string>,
-  // optional
-  "state": <string>,
-  // optional
-  "description": <string>,
-  // optional
-  "ttl": <number>,
-  // optional
-  "tags": [<string>, ...],
-  // optional
-  "attributes": {...},
-}
+```
+Metric:
+  type: required "event"
+  key: optional String
+  value: optional Number
+  host: optional String
+  state: optional String
+  description: optional String
+  ttl: optional Number
+  tags: optional [String, ..]
+  attributes: optional {String: String, ..}
 ```
 
 ## Python Client Example
