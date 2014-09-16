@@ -75,6 +75,7 @@ Metric:
   type: required "metric"
   key: optional String
   value: optional Number
+  time: optional Number
   host: optional String
   tags: optional [String, ..]
   attributes: optional {String: String, ..}
@@ -92,6 +93,7 @@ implementations available in [lib/ffwd/processor](/lib/ffwd/processor).
 Metric:
   type: required "metric.v2"
   value: optional Number
+  time: optional Number
   tags: optional {String: String, ..}
   proc: optional String
 ```
@@ -99,10 +101,11 @@ Metric:
 #### Event Object (v1)
 
 ```
-Metric:
+Event:
   type: required "event"
   key: optional String
   value: optional Number
+  time: optional Number
   host: optional String
   state: optional String
   description: optional String
