@@ -33,6 +33,7 @@ module FFWD::Plugin::JSON
     METRIC_FIELDS = [
       ["proc", :proc],
       ["key", :key],
+      ["host", :host],
       ["value", :value],
       ["tags", :tags],
       ["attributes", :attributes]
