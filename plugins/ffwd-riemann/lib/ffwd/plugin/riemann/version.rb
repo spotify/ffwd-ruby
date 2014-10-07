@@ -16,7 +16,7 @@
 module FFWD
   module Plugin
     module Riemann
-      VERSION = "0.3.0"
+      VERSION = "0.3.1"
     end
   end
 end
