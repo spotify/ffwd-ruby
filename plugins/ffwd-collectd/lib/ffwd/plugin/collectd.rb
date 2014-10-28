@@ -26,6 +26,7 @@ module FFWD::Plugin::Collectd
   DEFAULT_HOST = "localhost"
   DEFAULT_PORT = 25826
   DEFAULT_TYPES_DB = "/usr/share/collectd/types.db"
+  DEFAULT_KEY = "collectd"
 
   register_plugin "collectd",
     :description => "A plugin for the collectd binary protocol.",
@@ -65,6 +66,8 @@ module FFWD::Plugin::Collectd
     config[:port] ||= DEFAULT_PORT
     config[:types_db] ||= DEFAULT_TYPES_DB
     config[:protocol] ||= "udp"
+    config[:key] ||= DEFAULT_KEY
+
     protocol = FFWD.parse_protocol config[:protocol]
 
     unless connection = INPUTS[protocol.family]

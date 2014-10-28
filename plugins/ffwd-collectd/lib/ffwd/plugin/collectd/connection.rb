@@ -24,27 +24,27 @@ module FFWD::Plugin::Collectd
       @bind = bind
       @core = core
       @types_db = TypesDB.open config[:types_db]
+      @key = config[:key]
     end
 
     def receive_data(data)
       Parser.parse(data) do |metric|
-        plugin_key = metric[:plugin]
-        type_key = metric[:type]
+        values = metric[:values]
+        time = metric[:time]
+        host = metric[:host]
+
+        attributes = {
+          "plugin" => metric[:plugin],
+          "type" => metric[:type],
+        }
 
         if instance = metric[:plugin_instance] and not instance.empty?
-          plugin_key = "#{plugin_key}-#{instance}"
+          attributes[:plugin_instance] = instance
         end
 
         if instance = metric[:type_instance] and not instance.empty?
-          type_key = "#{type_key}-#{instance}"
+          attributes[:type_instance] = instance
         end
-
-        key = "#{plugin_key}/#{type_key}"
-
-        values = metric[:values]
-
-        time = metric[:time]
-        host = metric[:host]
 
         # Just add a running integer to the end of the key, the 'correct'
         # solution would have been to read, parse and match from a types.db.
@@ -52,21 +52,22 @@ module FFWD::Plugin::Collectd
         # http://collectd.org/documentation/manpages/types.db.5.shtml
         if values.size > 1
           values.each_with_index do |v, i|
-            if @types_db and name = @types_db.get_name(type_key, i)
+            if @types_db and name = @types_db.get_name(metric[:type], i)
               index_key = name
             else
               index_key = i.to_s
             end
 
             @core.input.metric(
-              :key => "#{key}_#{index_key}", :time => time, :value => v[1],
-              :host => host)
+              :key => @key, :time => time, :value => v[1],
+              :host => host, :attributes => attributes)
             @bind.increment :received_metrics
           end
         else
           v = values[0]
           @core.input.metric(
-            :key => key, :time => time, :value => v[1], :host => host)
+            :key => @key, :time => time, :value => v[1],
+            :host => host, :attributes => attributes)
           @bind.increment :received_metrics
         end
       end
