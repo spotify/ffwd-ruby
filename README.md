@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/spotify/ffwd.svg?branch=master)](https://travis-ci.org/spotify/ffwd)
 
 A flexible system event and metric forwarding agent.
-It is a intended to run on locally and receive metrics and events through a set
+It is intended to run locally and receive metrics and events through a set
 of widely used standard protocols.
 
 By running locally it is readily available to receive pushed data from
