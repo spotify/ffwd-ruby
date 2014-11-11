@@ -58,7 +58,6 @@ module FFWD::UDP
 
         if size = config[:receive_buffer_size]
           log.debug "Setting receive buffer size to #{size}"
-          @socket.set_sock_opt Socket::SOL_SOCKET, Socket::SO_RCVBUFFORCE, true
           @socket.set_sock_opt Socket::SOL_SOCKET, Socket::SO_RCVBUF, size
         end
 
@@ -68,6 +67,11 @@ module FFWD::UDP
 
       r.error do |a, t, e|
         log.warning "Bind on #{info} failed, retry ##{a} in #{t}s: #{e}"
+
+        if @socket
+          @socket.close
+          @socket = nil
+        end
       end
 
       r.depend_on core
