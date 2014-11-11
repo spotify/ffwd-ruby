@@ -54,7 +54,7 @@ module FFWD::Plugin::Riemann
 
       e.attributes = source.map{|k, v|
         k = k.to_s.dup unless k.nil?
-        v = v.dup unless v.nil?
+        v = v.to_s.dup unless v.nil?
         ::Riemann::Attribute.new(:key => k, :value => v)
       }
     end

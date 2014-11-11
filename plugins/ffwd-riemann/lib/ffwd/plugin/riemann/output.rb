@@ -19,23 +19,51 @@ module FFWD::Plugin::Riemann
   module Output
     def send_all events, metrics
       all_events = []
-      all_events += events.map{|e| make_event e} unless events.empty?
-      all_events += metrics.map{|m| make_metric m} unless metrics.empty?
+
+      events.each do |event|
+        begin
+          all_events << make_event(event)
+        rescue => error
+          output_failed_event event, error
+        end
+      end
+
+      metrics.each do |metric|
+        begin
+          all_events << make_metric(metric)
+        rescue => error
+          output_failed_metric metric, error
+        end
+      end
+
       return if all_events.empty?
+
       m = make_message :events => all_events
-      send_data encode(m)
+      send_data output_encode(m)
     end
 
     def send_event event
-      e = make_event event
+      begin
+        e = make_event event
+      rescue => error
+        output_failed_event event, error
+        return
+      end
+
       m = make_message :events => [e]
-      send_data encode(m)
+      send_data output_encode(m)
     end
 
     def send_metric metric
-      e = make_metric metric
+      begin
+        e = make_metric metric
+      rescue => error
+        output_failed_metric event, error
+        return
+      end
+
       m = make_message :events => [e]
-      send_data encode(m)
+      send_data output_encode(m)
     end
 
     def receive_data data
@@ -43,6 +71,13 @@ module FFWD::Plugin::Riemann
       return if message.ok
       @bad_acks = (@bad_acks || 0) + 1
     end
+
+    def output_encode message
+      raise "#output_encode: not implemented"
+    end
+
+    def output_failed_event event, error; end
+    def output_failed_metric metric, error; end
   end
 end
 

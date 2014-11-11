@@ -39,6 +39,7 @@ module FFWD::Plugin::Riemann
   register_plugin "riemann"
 
   class OutputTCP < FFWD::Handler
+    include FFWD::Logging
     include FFWD::Plugin::Riemann::Shared
     include FFWD::Plugin::Riemann::Output
 
@@ -46,12 +47,21 @@ module FFWD::Plugin::Riemann
       "riemann"
     end
 
-    def encode m
+    def output_encode m
       m.encode_with_length
+    end
+
+    def output_failed_event event, error
+      log.error "Failed to send event #{event.inspect}: #{error}", error
+    end
+
+    def output_failed_metric metric, error
+      log.error "Failed to send metric #{metric.inspect}: #{error}", error
     end
   end
 
   class OutputUDP < FFWD::Handler
+    include FFWD::Logging
     include FFWD::Plugin::Riemann::Shared
     include FFWD::Plugin::Riemann::Output
 
@@ -59,8 +69,16 @@ module FFWD::Plugin::Riemann
       "riemann"
     end
 
-    def encode m
+    def output_encode m
       m.encode
+    end
+
+    def output_failed_event event, error
+      log.error "Failed to send event #{event.inspect}: #{error}", error
+    end
+
+    def output_failed_metric metric, error
+      log.error "Failed to send metric #{metric.inspect}: #{error}", error
     end
   end
 
