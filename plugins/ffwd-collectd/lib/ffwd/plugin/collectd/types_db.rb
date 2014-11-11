@@ -23,15 +23,11 @@ module FFWD::Plugin::Collectd
     end
 
     def get_name key, i
-      unless entry = @database[key]
-        return nil
+      if entry = @database[key] and spec = entry[i]
+        return spec[0]
       end
 
-      unless type_spec = entry[i]
-        return nil
-      end
-
-      type_spec[0]
+      return i.to_s
     end
 
     def self.open path

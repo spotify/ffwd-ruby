@@ -23,56 +23,87 @@ module FFWD::Plugin::Collectd
     def initialize bind, core, config
       @bind = bind
       @core = core
-      @types_db = TypesDB.open config[:types_db]
+      @db = TypesDB.open config[:types_db]
       @key = config[:key]
     end
 
     def receive_data(data)
-      Parser.parse(data) do |metric|
-        values = metric[:values]
-        time = metric[:time]
-        host = metric[:host]
+      Parser.parse(data) do |m|
+        plugin = m[:plugin]
+        type = m[:type]
+        plugin_i = m[:plugin_instance]
+        type_i = m[:type_instance]
 
-        attributes = {
-          "plugin" => metric[:plugin],
-          "type" => metric[:type],
-        }
-
-        if instance = metric[:plugin_instance] and not instance.empty?
-          attributes[:plugin_instance] = instance
-        end
-
-        if instance = metric[:type_instance] and not instance.empty?
-          attributes[:type_instance] = instance
-        end
-
-        # Just add a running integer to the end of the key, the 'correct'
-        # solution would have been to read, parse and match from a types.db.
-        #
-        # http://collectd.org/documentation/manpages/types.db.5.shtml
-        if values.size > 1
-          values.each_with_index do |v, i|
-            if @types_db and name = @types_db.get_name(metric[:type], i)
-              index_key = name
-            else
-              index_key = i.to_s
-            end
-
-            @core.input.metric(
-              :key => @key, :time => time, :value => v[1],
-              :host => host, :attributes => attributes)
-            @bind.increment :received_metrics
-          end
-        else
-          v = values[0]
+        read_values(plugin, plugin_i, type, type_i, m[:values]) do |a, v|
           @core.input.metric(
-            :key => @key, :time => time, :value => v[1],
-            :host => host, :attributes => attributes)
+            :key => @key, :time => m[:time], :value => v,
+            :host => m[:host], :attributes => a)
           @bind.increment :received_metrics
         end
       end
     rescue => e
       @bind.log.error "Failed to receive data", e
+    end
+
+    def read_values(plugin, plugin_i, type, type_i, values, &block)
+      if values.size == 1
+        return read_single(plugin, plugin_i, type, type_i, values[0], &block)
+      end
+
+      read_multiple(plugin, plugin_i, type, type_i, values, &block)
+    end
+
+    def read_single(plugin, plugin_i, type, type_i, v)
+      a = {:plugin => plugin, :type => type}
+      a[:plugin_instance] = plugin_i unless plugin_i.nil? or plugin_i.empty?
+      a[:type_instance] = type_i unless type_i.nil? or type_i.empty?
+      a[:value_type] = v[0]
+      a[:what] = format_what(a)
+      yield a, v[1]
+    end
+
+    # Handle payload with multiple values.
+    #
+    # If a database is not available, plugin_instance becomes the running
+    # integer, or index of the value.
+    #
+    # If a database is avaialble, it would follow the current structure and
+    # determine what the name of the plugin_instance is.
+    #
+    # http://collectd.org/documentation/manpages/types.db.5.shtml
+    def read_multiple(plugin, plugin_i, type, type_i, values)
+      values.each_with_index do |v, i|
+        a = {:plugin => plugin, :type => type}
+        a[:plugin_instance] = plugin_i unless plugin_i.nil? or plugin_i.empty?
+        a[:type_instance] = format_type_instance(type, i)
+        a[:value_type] = v[0]
+        a[:what] = format_what(a)
+        yield a, v[1]
+      end
+    end
+
+    def format_type_instance type, i
+      if @db
+        return @db.get_name(type, i)
+      end
+
+      i.to_s
+    end
+
+    def format_what a
+      p = if a[:plugin_instance]
+            "#{a[:plugin]}-#{a[:plugin_instance]}"
+          else
+            a[:plugin].to_s
+          end
+
+      t = if a[:type_instance]
+            "#{a[:type]}-#{a[:type_instance]}"
+          else
+            a[:type].to_s
+          end
+
+      "#{p}/#{t}"
     end
   end
 end
