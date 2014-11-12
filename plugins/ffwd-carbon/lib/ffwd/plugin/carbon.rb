@@ -27,6 +27,7 @@ module FFWD::Plugin
     DEFAULT_HOST = "localhost"
     DEFAULT_PORT = 2003
     DEFAULT_PROTOCOL = "tcp"
+    DEFAULT_KEY = "carbon"
 
     register_plugin "carbon",
       :description => "A plugin for the carbon line protocol.",
@@ -40,6 +41,12 @@ module FFWD::Plugin
           :port, :default => DEFAULT_PORT,
           :help => [
             "Port to bind to."
+          ]),
+        FFWD::Plugin.option(
+          :key, :default => DEFAULT_KEY,
+          :help => [
+            "Key to output metrics for.",
+            "All carbon paths will be added to the :what attribute."
           ]),
       ]
 
@@ -61,6 +68,7 @@ module FFWD::Plugin
       config[:host] ||= DEFAULT_HOST
       config[:port] ||= DEFAULT_PORT
       config[:protocol] ||= DEFAULT_PROTOCOL
+      config[:key] ||= DEFAULT_KEY
       protocol = FFWD.parse_protocol config[:protocol]
 
       unless connection = INPUTS[protocol.family]

@@ -22,12 +22,16 @@ module FFWD::Plugin::Statsd
     def initialize bind, core, config
       @bind = bind
       @core = core
+      @key = config[:key]
     end
 
     protected
 
     def receive_statsd_frame(data)
-      @core.input.metric Parser.parse(data)
+      frame = Parser.parse(data)
+      a = {:what => frame[:key]}
+      m = {:key => @key, :proc => frame[:proc], :attributes => a}
+      @core.input.metric m
       @bind.increment :received_metrics
     rescue ParserError => e
       log.error "Invalid frame '#{data}': #{e}"

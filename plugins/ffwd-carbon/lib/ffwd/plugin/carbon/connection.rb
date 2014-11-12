@@ -23,6 +23,7 @@ module FFWD::Plugin
       def initialize bind, core, config
         @bind = bind
         @core = core
+        @key = config[:key]
       end
 
       def parse line
@@ -34,7 +35,9 @@ module FFWD::Plugin
         value = value.to_f unless value.nil?
         time = Time.at(timestamp.to_i)
 
-        return {:key => path, :value => value, :time => time}
+        a = {:what => path}
+
+        return {:key => @key, :value => value, :time => time, :attributes => a}
       end
 
       def receive_line line
@@ -44,6 +47,7 @@ module FFWD::Plugin
         @bind.increment :received_metrics
       rescue => e
         @bind.log.error "Failed to receive data", e
+        @bind.increment :failed_metrics
       end
     end
   end

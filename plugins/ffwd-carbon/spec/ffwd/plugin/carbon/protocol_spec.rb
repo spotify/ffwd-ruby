@@ -7,7 +7,7 @@ FFWD::Plugin::Carbon::INPUTS.each do |proto, input_class|
     include FFWD::Test::Protocol
 
     it "#{proto}: should use the protocol infrastructure" do
-      valid_input described_class
+      valid_input described_class, :config => {:key => "carbon"}
     end
   end
 end

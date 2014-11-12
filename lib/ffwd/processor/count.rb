@@ -111,7 +111,7 @@ module FFWD::Processor
 
       now = Time.now
 
-      cache_key = [key, (m[:attributes] || {})].hash
+      cache_key = [key, (m[:attributes] || {}), (m[:tags] || [])].hash
 
       unless (entry = @cache[cache_key])
         return increment :dropped if @cache.size >= @cache_limit

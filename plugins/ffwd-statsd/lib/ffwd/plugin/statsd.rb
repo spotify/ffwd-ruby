@@ -28,6 +28,7 @@ module FFWD::Plugin::Statsd
   DEFAULT_HOST = "localhost"
   DEFAULT_PORT = 8125
   DEFAULT_PROTOCOL = "udp"
+  DEFAULT_KEY = "statsd"
 
   class InputUDP < FFWD::Plugin::Statsd::Connection
     def self.plugin_type
@@ -59,6 +60,7 @@ module FFWD::Plugin::Statsd
     config[:host] ||= DEFAULT_HOST
     config[:port] ||= DEFAULT_PORT
     config[:protocol] ||= DEFAULT_PROTOCOL
+    config[:key] ||= DEFAULT_KEY
 
     protocol = FFWD.parse_protocol config[:protocol]
 
