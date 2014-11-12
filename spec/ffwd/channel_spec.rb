@@ -22,8 +22,8 @@ describe FFWD::Channel do
 
     data = Object.new
 
-    r1.should_receive(:receive).with(data)
-    r2.should_receive(:receive).with(data)
+    expect(r1).to receive(:receive).with(data)
+    expect(r2).to receive(:receive).with(data)
 
     c << data
   end
@@ -31,7 +31,7 @@ describe FFWD::Channel do
   it "should log errors with provided name" do
     r1 = double
 
-    r1.should_receive(:receive).and_raise("exception")
+    expect(r1).to receive(:receive).and_raise("exception")
 
     c.subscribe do |data|
       r1.receive data
@@ -39,7 +39,7 @@ describe FFWD::Channel do
 
     data = Object.new
 
-    log.should_receive(:error).with("#{name}: Subscription failed", an_instance_of(RuntimeError))
+    expect(log).to receive(:error).with("#{name}: Subscription failed", an_instance_of(RuntimeError))
 
     c << data
   end

@@ -11,7 +11,7 @@ describe FFWD::Plugin::Riemann::Shared do
     it "should escape all attribute keys to strings" do
       ref = [::Riemann::Attribute.new(:key => "foo", :value => "bar")]
       e = double
-      e.should_receive(:attributes=).with(ref)
+      expect(e).to receive(:attributes=).with(ref)
       f.write_attributes e, {:foo => "bar"}
     end
   end
@@ -25,8 +25,8 @@ describe FFWD::Plugin::Riemann::Shared do
         :attributes => {}, :tags => [], :time => nil, :state => nil,
         :description => nil, :ttl => nil, :key => nil, :value => nil)
 
-      e.should_receive(:host).and_return(:foo)
-      f.make_event(e).should eq(ref)
+      expect(e).to receive(:host).and_return(:foo)
+      expect(f.make_event(e)).to eq(ref)
     end
   end
 end

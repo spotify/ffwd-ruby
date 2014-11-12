@@ -15,7 +15,7 @@ describe FFWD::Processor::HistogramProcessor do
 
     histogram.process :key => :foo, :value => :bar
     histogram.process :key => :foo, :value => :baz
-    cache.should eq({:foo => [:bar, :baz]})
+    expect(cache).to eq({:foo => [:bar, :baz]})
   end
 
   it "drop metrics if bucket size reached" do
@@ -26,7 +26,7 @@ describe FFWD::Processor::HistogramProcessor do
 
     histogram.process :key => :foo, :value => :bar
     histogram.process :key => :foo, :value => :baz
-    cache.should eq({:foo => [:bar]})
+    expect(cache).to eq({:foo => [:bar]})
   end
 
   it "drop metrics if cache size reached" do
@@ -37,6 +37,6 @@ describe FFWD::Processor::HistogramProcessor do
 
     histogram.process :key => :foo1, :value => :bar
     histogram.process :key => :foo2, :value => :baz
-    cache.should eq({:foo1 => [:bar]})
+    expect(cache).to eq({:foo1 => [:bar]})
   end
 end

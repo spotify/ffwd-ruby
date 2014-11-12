@@ -5,7 +5,7 @@ describe FFWD::Core::Emitter do
     event = double
     metric = double
     i = described_class.new event, metric
-    i.event.should eq(event)
-    i.metric.should eq(metric)
+    expect(i.event).to eq(event)
+    expect(i.metric).to eq(metric)
   end
 end

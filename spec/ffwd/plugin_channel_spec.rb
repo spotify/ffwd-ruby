@@ -10,39 +10,39 @@ describe FFWD::PluginChannel do
   end
 
   it "should forward attributes" do
-    c.events.should equal(events)
-    c.metrics.should equal(metrics)
+    expect(c.events).to equal(events)
+    expect(c.metrics).to equal(metrics)
   end
 
   it "#event_subscribe should forward" do
-    events.should_receive(:subscribe).and_yield(:foo, :bar)
+    expect(events).to receive(:subscribe).and_yield(:foo, :bar)
     c.event_subscribe do |first, second|
-      first.should eq(:foo)
-      second.should eq(:bar)
+      expect(first).to eq(:foo)
+      expect(second).to eq(:bar)
     end
   end
 
   it "#event should forward to #events" do
-    events.should_receive(:<<).with(:foo)
+    expect(events).to receive(:<<).with(:foo)
     c.event :foo
-    c.reporter_data.should eq(:metrics=>0, :events=>1)
+    expect(c.reporter_data).to eq(:metrics=>0, :events=>1)
   end
 
   it "#metric_subscribe should forward" do
-    metrics.should_receive(:subscribe).and_yield(:foo, :bar)
+    expect(metrics).to receive(:subscribe).and_yield(:foo, :bar)
     c.metric_subscribe do |first, second|
-      first.should eq(:foo)
-      second.should eq(:bar)
+      expect(first).to eq(:foo)
+      expect(second).to eq(:bar)
     end
   end
 
   it "#metric should forward to #events" do
-    metrics.should_receive(:<<).with(:foo)
+    expect(metrics).to receive(:<<).with(:foo)
     c.metric :foo
-    c.reporter_data.should eq(:metrics=>1, :events=>0)
+    expect(c.reporter_data).to eq(:metrics=>1, :events=>0)
   end
 
   it "#reporter_meta should contain correct metadata" do
-    c.reporter_meta.should eq(:plugin_channel => name, :type => "plugin_channel")
+    expect(c.reporter_meta).to eq(:plugin_channel => name, :type => "plugin_channel")
   end
 end

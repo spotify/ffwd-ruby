@@ -26,23 +26,23 @@ describe FFWD::EventEmitter do
     end
 
     before(:each) do
-      FFWD.should_receive(:merge_hashes)
+      expect(FFWD).to receive(:merge_hashes)
           .with(attributes, :attributes){:merged_hashes}
-      FFWD.should_receive(:merge_sets)
+      expect(FFWD).to receive(:merge_sets)
           .with(tags, :tags){:merged_sets}
     end
 
     it "#emit should output event" do
-      FFWD::Event.should_receive(:make){event}
-      output.should_receive(:event).with(event)
+      expect(FFWD::Event).to receive(:make){event}
+      expect(output).to receive(:event).with(event)
       c.emit make_e
     end
 
     it "#emit should fix NaN value in events" do
-      FFWD::Event.should_receive(:make).with(
+      expect(FFWD::Event).to receive(:make).with(
         :tags=>:merged_sets, :attributes=>:merged_hashes, :value => nil,
         :time => :time, :host => :host, :ttl => :ttl){event}
-      output.should_receive(:event).with(event)
+      expect(output).to receive(:event).with(event)
       c.emit make_e(:value => Float::NAN)
     end
   end

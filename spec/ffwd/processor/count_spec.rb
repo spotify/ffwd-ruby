@@ -19,14 +19,14 @@ describe FFWD::Processor::CountProcessor do
   end
 
   it "should realize that 10 + 10 = 20" do
-    Time.stub(:now).and_return(0)
+    allow(Time).to receive(:now){0}
 
-    metric.should_receive(:emit).with m1.merge(
+    expect(metric).to receive(:emit).with m1.merge(
       :key => m1[:key], :value => m1[:value] * 2, :source => m1[:key],
       :attributes => nil, :tags => nil)
 
-    count.should_receive(:check_timer)
-    count.should_receive(:check_timer)
+    expect(count).to receive(:check_timer)
+    expect(count).to receive(:check_timer)
 
     count.process m1
     count.process m1

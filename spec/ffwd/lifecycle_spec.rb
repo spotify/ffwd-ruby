@@ -7,7 +7,7 @@ describe FFWD::Lifecycle do
     end
 
     block = double
-    block.should_receive(:call)
+    expect(block).to receive(:call)
 
     f = Foo.new
 
@@ -15,8 +15,8 @@ describe FFWD::Lifecycle do
       block.call(*args)
     end
 
-    f.stopped?.should eq(false)
+    expect(f.stopped?).to eq(false)
     f.stop
-    f.stopped?.should eq(true)
+    expect(f.stopped?).to eq(true)
   end
 end

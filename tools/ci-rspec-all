@@ -20,7 +20,7 @@ main() {
 
         bundle exec gem build $root/ffwd.gemspec
         bundle exec gem install --no-rdoc --no-ri $root/ffwd-*.gem
-        exit 0
+        exit $?
     )
 
     if [[ $? -ne 0 ]]; then
@@ -43,7 +43,7 @@ main() {
             cd $dir
             bundle install --path $bundle_path
             bundle exec rspec
-            exit 0
+            exit $?
         )
 
         status=$?

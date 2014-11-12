@@ -7,9 +7,9 @@ describe FFWD::Core::Processor do
     p1 = double
     processors = {:foo => p1}
     reporters = []
-    input.should_receive :starting
-    input.should_receive :stopping
-    p1.should_receive(:depend_on).with(input)
+    expect(input).to receive(:starting)
+    expect(input).to receive(:stopping)
+    expect(p1).to receive(:depend_on).with(input)
     described_class.new input, emitter, processors, reporters
   end
 end

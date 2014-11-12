@@ -25,23 +25,23 @@ describe FFWD::MetricEmitter do
     end
 
     before(:each) do
-      FFWD.should_receive(:merge_hashes)
+      expect(FFWD).to receive(:merge_hashes)
           .with(attributes, :attributes){:merged_hashes}
-      FFWD.should_receive(:merge_sets)
+      expect(FFWD).to receive(:merge_sets)
           .with(tags, :tags){:merged_sets}
     end
 
     it "#emit should output metric" do
-      FFWD::Metric.should_receive(:make){metric}
-      output.should_receive(:metric).with(metric)
+      expect(FFWD::Metric).to receive(:make){metric}
+      expect(output).to receive(:metric).with(metric)
       c.emit make_e
     end
 
     it "#emit should fix NaN value in metrics" do
-      FFWD::Metric.should_receive(:make).with(
+      expect(FFWD::Metric).to receive(:make).with(
         :tags=>:merged_sets, :attributes=>:merged_hashes, :value => nil,
         :time => :time, :host => :host){metric}
-      output.should_receive(:metric).with(metric)
+      expect(output).to receive(:metric).with(metric)
       c.emit make_e(:value => Float::NAN)
     end
   end

@@ -9,7 +9,7 @@ FFWD::Plugin::Collectd::INPUTS.each do |proto, input_class|
 
     it "#{proto}: should use the protocol infrastructure" do
       config = {:types_db => :path}
-      FFWD::Plugin::Collectd::TypesDB.should_receive(:open).with(:path)
+      expect(FFWD::Plugin::Collectd::TypesDB).to receive(:open).with(:path)
       valid_input described_class, :config => config
     end
   end
