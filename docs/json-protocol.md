@@ -3,6 +3,8 @@
 FFWD comes with a built-in reference JSON-based protocol that supports most of the
 features available in the system.
 
+In order to activate this protocol add [this configuration](/ffwd.d/in-json).
+
 ## Message Framing
 
 This protocol either operates in `TCP line-based` or `UDP frame-based` mode.
