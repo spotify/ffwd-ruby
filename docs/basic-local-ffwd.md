@@ -22,11 +22,21 @@ $ gem install ffwd
 ```
 This will activates [JSON protocol] (/docs/json-protocol.md) in FFWD. The last line activates [debugging](https://github.com/spotify/ffwd#debugging).
 
-3- run FFWD:
+3- Install protobuf plugin
+```bash
+$ gem install ffwd-protobuf
+```
+4- Enable [protobuf plugin](/docs/protobuf-protocol.md) in the config by adding the following to the configuration file:
+```bash
+:input:
+  - :type: "protobuf"
+    :receive_buffer_size: 26214400
+```
+5- run FFWD:
 ```bash
 $ ffwd myconfig.yml
 ```
-4- Now in a separate terminal shell start the FFWD debugger:
+6- Now in a separate terminal shell start the FFWD debugger:
 ```bash
 $ fwc --raw
 ```
