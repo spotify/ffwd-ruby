@@ -27,6 +27,7 @@ module FFWD::Plugin::JSON
       ["description", :description],
       ["ttl", :ttl],
       ["tags", :tags],
+      ["time", :time],
       ["attributes", :attributes],
     ]
 
@@ -36,6 +37,7 @@ module FFWD::Plugin::JSON
       ["host", :host],
       ["value", :value],
       ["tags", :tags],
+      ["time", :time],
       ["attributes", :attributes]
     ]
 
