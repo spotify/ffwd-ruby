@@ -30,7 +30,8 @@ module FFWD::Plugin::Statsd
     def receive_statsd_frame(data)
       frame = Parser.parse(data)
       a = {:what => frame[:key]}
-      m = {:key => @key, :proc => frame[:proc], :attributes => a}
+      m = {:key => @key, :proc => frame[:proc], :attributes => a,
+           :value => frame[:value]}
       @core.input.metric m
       @bind.increment :received_metrics
     rescue ParserError => e
