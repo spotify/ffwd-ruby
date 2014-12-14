@@ -6,7 +6,7 @@ with a different core use-case and design principles.
 ## collectd collects. FFWD only receives.
 
 **FFWD** does not have collection plugins, instead it relies on the system
-administrator too choose which is the most appropriate method of collecting and
+administrator to choose which is the most appropriate method of collecting and
 supports a wide array of community accepted protocols to receive them.
 
 **collectd** does as well support alternative input protocols and is indeed
