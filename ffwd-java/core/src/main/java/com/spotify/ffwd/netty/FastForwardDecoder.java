@@ -1,4 +1,4 @@
-package com.spotify.ffwd.plugin.ffwd;
+package com.spotify.ffwd.netty;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;

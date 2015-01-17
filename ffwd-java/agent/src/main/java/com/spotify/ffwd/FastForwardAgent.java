@@ -12,6 +12,12 @@ public class FastForwardAgent {
     public static void main(String argv[]) {
         final List<Class<? extends FastForwardModule>> modules = new ArrayList<>();
 
+        // built-in core
+        modules.add(com.spotify.ffwd.debug.DebugModule.class);
+        modules.add(com.spotify.ffwd.json.JsonModule.class);
+        modules.add(com.spotify.ffwd.protobuf.ProtobufModule.class);
+
+        // additional
         modules.add(com.spotify.ffwd.kafka.KafkaModule.class);
 
         final AgentCore core = AgentCore.builder().modules(modules).build();

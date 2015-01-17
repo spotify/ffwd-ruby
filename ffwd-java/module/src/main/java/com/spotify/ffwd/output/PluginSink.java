@@ -1,4 +1,4 @@
-package com.spotify.ffwd.module;
+package com.spotify.ffwd.output;
 
 import java.util.Collection;
 
@@ -7,7 +7,7 @@ import com.spotify.ffwd.model.Metric;
 
 import eu.toolchain.async.AsyncFuture;
 
-public interface OutputPlugin {
+public interface PluginSink {
     /**
      * Send the given collection of events.
      *
@@ -23,4 +23,8 @@ public interface OutputPlugin {
      * @return A future that will be resolved when the metrics have been sent.
      */
     public AsyncFuture<Void> sendMetrics(Collection<Metric> metrics);
+
+    public AsyncFuture<Void> start();
+
+    public AsyncFuture<Void> stop();
 }

@@ -1,5 +1,9 @@
 package com.spotify.ffwd.module;
 
+import com.spotify.ffwd.input.InputPlugin;
+import com.spotify.ffwd.output.OutputPlugin;
+
+
 public interface PluginContext {
     /**
      * Register an input plugin.

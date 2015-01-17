@@ -25,7 +25,10 @@ facilities to perform module setup.
 The following is a list of components that are given access to and their
 purpose.
 
-* _com.spotify.ffwd.module.PluginContext_ - Register input and output plugins.
+* _com.spotify.ffwd.module.PluginContext_
+  Register input and output plugins.
+* _com.fasterxml.jackson.databind.ObjectMapper (application/yaml+config)_
+  ObjectMapper used to parse provided configuration file.
 
 ### Primary Injector
 
@@ -37,3 +40,12 @@ additions.
 
 * _eu.toolchain.async.AsyncFramework_ - Framework implementation to use for
   async operations.
+* _io.netty.channel.EventLoopGroup (workers)_ Event loop group used for
+  workers.
+* _com.spotify.ffwd.protocol.ProtocolServers_ - Framework for setting up
+  servers in a simple manner.
+* _com.spotify.ffwd.protocol.ProtocolClients_ - Framework for setting up
+  clients in a simple manner.
+* _com.spotify.ffwd.protocol.ChannelUtils_ - Utility functions for simplyfing
+  channel operations.
+* _io.netty.util.Timer_ - A timer implementation.

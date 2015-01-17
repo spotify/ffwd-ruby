@@ -1,0 +1,7 @@
+input:
+  plugins:
+    - type: json
+
+output:
+  plugins:
+    - type: debug
