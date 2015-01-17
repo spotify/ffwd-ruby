@@ -14,5 +14,5 @@
 # the License.
 
 module FFWD
-  VERSION = "0.3.6"
+  VERSION = "0.3.7"
 end

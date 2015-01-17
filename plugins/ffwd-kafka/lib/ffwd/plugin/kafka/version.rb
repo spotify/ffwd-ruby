@@ -16,7 +16,7 @@
 module FFWD
   module Plugin
     module Kafka
-      VERSION = "0.3.6"
+      VERSION = "0.3.7"
     end
   end
 end
