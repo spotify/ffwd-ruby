@@ -12,10 +12,10 @@
     <Logger name="kafka" level="INFO" additivity="false">
       <AppenderRef ref="primary" />
     </Logger>
-    <Logger name="io.netty" level="INFO" additivity="false">
+    <Logger name="io.netty" level="DEBUG" additivity="false">
       <AppenderRef ref="primary" />
     </Logger>
-    <Root level="WARN">
+    <Root level="DEBUG">
       <AppenderRef ref="primary" />
     </Root>
   </Loggers>

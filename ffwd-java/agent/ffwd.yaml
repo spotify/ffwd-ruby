@@ -1,0 +1,24 @@
+attributes:
+  app: ffwd
+
+tags:
+  - ffwd
+
+input:
+  plugins:
+    - type: json
+      protocol:
+        type: tcp
+    - type: json
+      protocol:
+        type: udp
+    - type: protobuf
+      protocol:
+        type: udp
+    - type: protobuf
+      protocol:
+        type: tcp
+
+output:
+  plugins:
+    - type: debug

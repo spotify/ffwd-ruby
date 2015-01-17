@@ -1,4 +1,4 @@
-package com.spotify.ffwd.kafka;
+package com.spotify.ffwd.debug;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.google.inject.Key;
@@ -8,9 +8,9 @@ import com.google.inject.Scopes;
 import com.spotify.ffwd.output.OutputPlugin;
 import com.spotify.ffwd.output.PluginSink;
 
-public class KafkaOutputPlugin implements OutputPlugin {
+public class DebugOutputPlugin implements OutputPlugin {
     @JsonCreator
-    public KafkaOutputPlugin() {
+    public DebugOutputPlugin() {
     }
 
     @Override
@@ -18,7 +18,7 @@ public class KafkaOutputPlugin implements OutputPlugin {
         return new PrivateModule() {
             @Override
             protected void configure() {
-                bind(key).to(KafkaPluginSink.class).in(Scopes.SINGLETON);
+                bind(key).to(DebugPluginSink.class).in(Scopes.SINGLETON);
                 expose(key);
             }
         };
