@@ -61,7 +61,7 @@ module FFWD::Plugin::JSON
     def receive_line data
       receive_json data
     rescue => e
-      log.error "Failed to receive JSON: #{data.inspect}: #{e}"
+      log.error "Failed to receive JSON: #{data}: #{e}"
     end
   end
 
@@ -75,7 +75,7 @@ module FFWD::Plugin::JSON
     def receive_data data
       receive_json data
     rescue => e
-      log.error "Failed to receive JSON: #{data.inspect}: #{e}"
+      log.error "Failed to receive JSON: #{data}: #{e}"
     end
   end
 

@@ -67,20 +67,25 @@ module FFWD::Plugin::JSON
     end
 
     def read_tags d, source
-      return if (tags = d["tags"]).nil?
+      return if (tags = source["tags"]).nil?
+
+      unless tags.is_a? Array
+        raise "'tags' must be an array"
+      end
+
       d[:tags] = tags.to_set
     end
 
     def read_time d, source
-      return if (time = d["time"]).nil?
+      return if (time = source["time"]).nil?
       d[:time] = Time.at time
     end
 
     def read_metric data
       d = {}
 
-      read_tags d, data["tags"]
-      read_time d, data["time"]
+      read_tags d, data
+      read_time d, data
 
       METRIC_FIELDS.each do |from, to|
         next if (v = data[from]).nil?
@@ -93,8 +98,8 @@ module FFWD::Plugin::JSON
     def read_event data
       d = {}
 
-      read_tags d, data["tags"]
-      read_time d, data["time"]
+      read_tags d, data
+      read_time d, data
 
       EVENT_FIELDS.each do |from, to|
         next if (v = data[from]).nil?

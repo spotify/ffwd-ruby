@@ -3,4 +3,5 @@
     :kind: :line
 :input:
   - :type: "json"
-    :kind: :frame
+  - :type: "json"
+    :protocol: "tcp"
