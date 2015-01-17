@@ -44,6 +44,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <skip.findbugs>true</skip.findbugs>
+    <guice.version>4.0-beta5</guice.version>
   </properties>
 
   <dependencyManagement>
@@ -65,16 +66,34 @@
       </dependency>
 
       <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+        <version>2.5.0</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.dataformat</groupId>
+        <artifactId>jackson-dataformat-yaml</artifactId>
+        <version>2.5.0</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-annotations</artifactId>
+        <version>2.5.0</version>
+      </dependency>
+
+      <dependency>
         <groupId>org.projectlombok</groupId>
         <artifactId>lombok</artifactId>
         <version>1.12.6</version>
         <scope>provided</scope>
       </dependency>
+
       <dependency>
         <groupId>io.netty</groupId>
         <artifactId>netty-all</artifactId>
         <version>4.1.0.Beta3</version>
       </dependency>
+
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-api</artifactId>
@@ -85,10 +104,16 @@
         <artifactId>guava</artifactId>
         <version>18.0</version>
       </dependency>
+
       <dependency>
         <groupId>com.google.inject</groupId>
         <artifactId>guice</artifactId>
-        <version>4.0-beta5</version>
+        <version>${guice.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.inject.extensions</groupId>
+        <artifactId>guice-multibindings</artifactId>
+        <version>${guice.version}</version>
       </dependency>
 
       <dependency>

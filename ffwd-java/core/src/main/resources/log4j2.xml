@@ -6,13 +6,13 @@
     </Console>
   </Appenders> 
   <Loggers>
-    <Logger name="kafka.consumer" level="DEBUG" additivity="false">
+    <Logger name="kafka.consumer" level="INFO" additivity="false">
       <AppenderRef ref="primary" />
     </Logger>
-    <Logger name="com.spotify.ffwd" level="DEBUG" additivity="false">
+    <Logger name="com.spotify.ffwd" level="WARN" additivity="false">
       <AppenderRef ref="primary" />
     </Logger>
-    <Logger name="io.netty" level="DEBUG" additivity="false">
+    <Logger name="io.netty" level="WARN" additivity="false">
       <AppenderRef ref="primary" />
     </Logger>
     <Root level="WARN">

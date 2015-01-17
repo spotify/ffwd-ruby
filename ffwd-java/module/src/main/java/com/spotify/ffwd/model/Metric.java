@@ -1,8 +1,8 @@
 package com.spotify.ffwd.model;
 
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import lombok.Data;
 
@@ -12,7 +12,7 @@ public class Metric {
     private final double value;
     private final Date time;
     private final String host;
-    private final List<String> tags;
+    private final Set<String> tags;
     private final Map<String, String> attributes;
     private final String proc;
 }

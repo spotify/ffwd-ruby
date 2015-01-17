@@ -6,7 +6,7 @@ import com.google.inject.Inject;
 import com.spotify.ffwd.module.FastForwardModule;
 import com.spotify.ffwd.module.PluginContext;
 
-@ToString(of={})
+@ToString(of = {})
 public class KafkaModule implements FastForwardModule {
     @Inject
     private PluginContext context;
