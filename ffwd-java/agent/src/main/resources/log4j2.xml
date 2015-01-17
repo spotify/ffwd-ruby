@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN" shutdownHook="disable">
+  <Appenders>
+    <Console name="primary" target="SYSTEM_OUT">
+      <PatternLayout alwaysWriteExceptions="false" pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n%throwable{full}"/>
+    </Console>
+  </Appenders> 
+  <Loggers>
+    <Logger name="com.spotify.ffwd" level="INFO" additivity="false">
+      <AppenderRef ref="primary" />
+    </Logger>
+    <Logger name="kafka" level="INFO" additivity="false">
+      <AppenderRef ref="primary" />
+    </Logger>
+    <Logger name="io.netty" level="INFO" additivity="false">
+      <AppenderRef ref="primary" />
+    </Logger>
+    <Root level="WARN">
+      <AppenderRef ref="primary" />
+    </Root>
+  </Loggers>
+</Configuration>
