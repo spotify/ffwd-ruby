@@ -11,7 +11,7 @@
     <groupId>com.spotify.ffwd</groupId>
     <artifactId>ffwd-parent</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <relativePath>..</relativePath>
+    <relativePath>../..</relativePath>
   </parent>
 
   <dependencies>

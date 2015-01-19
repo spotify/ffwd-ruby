@@ -119,12 +119,12 @@
       <dependency>
         <groupId>eu.toolchain.async</groupId>
         <artifactId>tiny-async-api</artifactId>
-        <version>1.0.1</version>
+        <version>1.0.2</version>
       </dependency>
       <dependency>
         <groupId>eu.toolchain.async</groupId>
         <artifactId>tiny-async-core</artifactId>
-        <version>1.0.1</version>
+        <version>1.0.2</version>
       </dependency>
 
       <dependency>

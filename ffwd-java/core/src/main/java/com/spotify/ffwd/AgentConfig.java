@@ -1,5 +1,7 @@
 package com.spotify.ffwd;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Set;
 
@@ -20,6 +22,7 @@ public class AgentConfig {
 
     public static final Map<String, String> DEFAULT_ATTRIBUTES = Maps.newHashMap();
     public static final Set<String> DEFAULT_TAGS = Sets.newHashSet();
+    public static final String DEFAULT_QLOG = "./qlog/";
 
     private final InputManagerModule input;
     private final OutputManagerModule output;
@@ -28,13 +31,14 @@ public class AgentConfig {
     private final Map<String, String> attributes;
     private final Set<String> tags;
     private final long ttl;
+    private final Path qlog;
 
     @JsonCreator
     public AgentConfig(@JsonProperty("input") InputManagerModule input,
             @JsonProperty("output") OutputManagerModule output, @JsonProperty("bossThreads") Integer bossThreads,
             @JsonProperty("workerThreads") Integer workerThreads,
             @JsonProperty("attributes") Map<String, String> attributes, @JsonProperty("tags") Set<String> tags,
-            @JsonProperty("ttl") Long ttl) {
+            @JsonProperty("ttl") Long ttl, @JsonProperty("qlog") String qlog) {
         this.input = Optional.fromNullable(input).or(InputManagerModule.supplyDefault());
         this.output = Optional.fromNullable(output).or(OutputManagerModule.supplyDefault());
         this.bossThreads = Optional.fromNullable(workerThreads).or(DEFAULT_BOSS_THREADS);
@@ -42,5 +46,6 @@ public class AgentConfig {
         this.attributes = Optional.fromNullable(attributes).or(DEFAULT_ATTRIBUTES);
         this.tags = Optional.fromNullable(tags).or(DEFAULT_TAGS);
         this.ttl = Optional.fromNullable(ttl).or(0l);
+        this.qlog = Paths.get(Optional.fromNullable(qlog).or(DEFAULT_QLOG));
     }
 }
