@@ -22,3 +22,5 @@ input:
 output:
   plugins:
     - type: debug
+
+qlog: ./queue/

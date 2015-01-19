@@ -7,10 +7,52 @@ This is a Java implementation of FastForward.
 ## Output Plugins
 
 * Outgoing connections.
-  * Need to be able to reconnect (with back-off) and retain unsent data until
-    it can be dispatched.
-    Previous implementation did not serialize to disk (very slow) but this
-    might be possible now.
+  * Need to be able to reconnect (with back-off)
+  * Retain unsent data.
+    * Temporary slowdowns should not cause drops.
+    * Some protocols prefer batches for performance reasons.
+    * On disk serialization similar to kafka?
+
+## On-disk serialization (maybe)
+
+Serialize centrally in _OutputManager_ to a log file.
+
+Log files consists of sized chunks distinctly smaller than a given size, and
+are named according to the following scheme:
+
+```
+queue-########.log
+```
+
+Incoming events and metrics are written to the log file serially.
+After they have been written they are dispatched to all sinks, this will
+include the message and the offset in the log that they have.
+Each output plugin keeps track of which offset they are sending and retains a
+reference to the corresponding log file that the offset belongs to.
+
+A scheduled process scans all log files in order, if a file has zero references
+it will be unlinked.
+It also writes all the output plugins and their corresponding offsets to a
+state file so that they can be restored at a later point in time.
+The id of an output plugin must be explicitly set in the configuration file so
+that offsets can be recorded and restored.
+
+Each log file contains the following structures:
+
+```
+magic    | 4 | 4 byte magic, making up "FFLG" (0x46 0x46 0x4c 0x47) in ASCII.
+version  | 2 | Unsigned 2-byte short, indicating the current version of the log
+               format.
+offset   | 8 | Unsigned offset in number of messages that is the start of this
+               log
+...
+header   | 4 | An unsigned integer, where the first bit indicates:
+                - 0 for a metric
+                - 1 for an event.
+               The other 31 bits indicates the size of the log entry, giving a
+               maximum of 2^31 (2147483648) bytes.
+... other entries until EOF.
+```
 
 ## Riemann
 * Input plugin
@@ -25,6 +67,12 @@ This is a Java implementation of FastForward.
   * Very high level, take care to implement back-off and assert (somehow)
     that date is being sent.
 
+## collectd
+
+* Input plugin, see
+  [ruby implementation](https://github.com/spotify/ffwd/blob/master/plugins/ffwd-collectd/lib/ffwd/plugin/collectd/parser.rb)
+  for details on how to decode frames.
+
 ## Debug protocol
 Allow connections to 'sniff' what is going on internally, make sure to follow
 the previous protocol to allow existing clients to keep working until
@@ -35,6 +83,22 @@ Message structure is:
 ```json
 {"id": "identifier", "type": "'metric' or 'event'", "data": {}}
 ```
+
+## Instrumentation
+
+* On a per input plugin basis.
+  * Measure errors.
+  * Measure dropped events/metrics.
+  * Measure failed events/metrics.
+  * Measure received events/metrics.
+* On an application basis.
+  * Measure events.
+  * Measure metrics.
+* On a per output plugin basis.
+  * Measure sent events/metrics.
+  * Measure dropped events/metrics.
+  * Measure queue time in ms for events/messages.
+  * Measure queue size and rate-of-growth for events/messages.
 
 # Components
 
