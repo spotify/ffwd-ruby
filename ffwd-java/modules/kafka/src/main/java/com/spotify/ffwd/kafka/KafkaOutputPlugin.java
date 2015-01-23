@@ -19,17 +19,13 @@ import com.spotify.ffwd.output.PluginSink;
 public class KafkaOutputPlugin implements OutputPlugin {
 
     private final Producer<String, String> producer;
-    private final String topic;
     private final Integer flushInterval;
+    private final KafkaRouter router;
 
     @JsonCreator
-    public KafkaOutputPlugin(@JsonProperty("producer") final Map<String, String> producerProps, @JsonProperty("topic") final String topic, @JsonProperty("flushInterval") final Integer flushInterval) {
+    public KafkaOutputPlugin(@JsonProperty("producer") final Map<String, String> producerProps, @JsonProperty("flushInterval") final Integer flushInterval, @JsonProperty("router") final KafkaRouter router) {
+        this.router = Optional.fromNullable(router).or(new KafkaRouter());
         this.flushInterval = Optional.fromNullable(flushInterval).orNull();
-
-        if (topic == null || topic.isEmpty()) {
-            throw new IllegalArgumentException("Kafka topic must be specified.");
-        }
-        this.topic = topic;
 
         // The reason why we are not directly getting a Properties object is that the YAML parser parses numbers into integers
         // and Kafka "PropducerConfig" throws NumberFormatExcption if you don't pass numbers as strings. Strange!
@@ -47,7 +43,7 @@ public class KafkaOutputPlugin implements OutputPlugin {
         return new PrivateModule() {
             @Override
             protected void configure() {
-                final PluginSink sink = new KafkaPluginSink(producer, topic, flushInterval);
+                final PluginSink sink = new KafkaPluginSink(producer, flushInterval, router);
                 bind(key).toInstance(sink);
                 expose(key);
             }
