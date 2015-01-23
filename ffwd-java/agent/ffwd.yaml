@@ -22,5 +22,15 @@ input:
 output:
   plugins:
     - type: debug
+    - type: kafka
+      router:
+        routingAttribute: pod
+      flushInterval: 10
+      producer:
+        metadata.broker.list: localhost:9092
+        serializer.class: kafka.serializer.StringEncoder
+        request.required.acks: 1
+        request.timeout.ms: 1000
+
 
 qlog: ./queue/
