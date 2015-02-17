@@ -1,4 +1,4 @@
-# FastForward &#187;
+# ffwd &#187;
 
 [![Build Status](https://travis-ci.org/spotify/ffwd.svg?branch=master)](https://travis-ci.org/spotify/ffwd)
 
