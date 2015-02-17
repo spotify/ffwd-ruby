@@ -2,18 +2,21 @@
 
 [![Build Status](https://travis-ci.org/spotify/ffwd.svg?branch=master)](https://travis-ci.org/spotify/ffwd)
 
-A flexible system event and metric forwarding agent.
-It is intended to run locally and receive metrics and events through a set
-of widely used standard protocols.
+ffwd is a flexible event and metric forwarding agent.
+It is intended to run locally on the system and receive events and metrics
+through a wide set of protocols and then forward them to your database.
 
-By running locally it is readily available to receive pushed data from
-monitored applications running on the system.
+By running locally, it is easily available to receive pushed data from
+any application or service that is running on the same system.
 
-FFWD takes care to forward the data with any _system-wide_ tags or attributes.
-This is metadata that describes the origin of the data, like _site_ and
-_role_. This allows for decoration of the received data to make it
-_semantic from the source_.
-This concept is described further in [Metrics 2.0](http://metrics20.org).
+ffwd decorates the received data with _system-wide_ tags or attributes.
+By doing this, the application generating the data becomes simpler to build,
+maintain, and configure since it doesn't have to know _where_ it is running.
+Only that ffwd is available on the loopback interface.
+
+This also provides benefits for simpler protocols, like [plaintext carbon](http://graphite.readthedocs.org/en/latest/feeding-carbon.html#the-plaintext-protocol),
+where this kind of information can become painful to represent in the limited
+structure available.
 
 * [Usage](#usage)
 * [Installation](#installation)
@@ -29,7 +32,7 @@ Other focused topics.
   * [Input Data Structure](docs/events-and-metrics.md#input-data-structure)
   * [Output Data Structure](docs/events-and-metrics.md#output-data-structure)
 * [Schemas](docs/schemas.md)
-* [FFWD vs. collectd](docs/vs-collectd.md)
+* [ffwd vs. collectd](docs/vs-collectd.md)
 * [JSON Reference Protocol](docs/json-protocol.md)
   &mdash; Documentation about the JSON reference protocol.
 * [Protobuf Protocol](docs/protobuf-protocol.md)
@@ -47,7 +50,7 @@ $ bundle install
 $ bin/ffwd ffwd.d/basic ffwd.d/in-multi ffwd.d/out-log
 ```
 
-FFWD can take and overlay multiple configuration files, you can inspect the
+ffwd can take and overlay multiple configuration files, you can inspect the
 examples available in [./ffwd.d](/ffwd.d) and activate any of those by adding
 more `<path>` arguments.
 
@@ -55,7 +58,7 @@ You can now send events and metrics to it using one of the enabled input
 protocols.
 See [./ffwd.d/in-multi](/ffwd.d/in-multi) for examples on how.
 
-FFWD also has support for multi-tenancy where multiple clients reporting into the
+ffwd also has support for multi-tenancy where multiple clients reporting into the
 same agent with different metadata.
 For more information, see
 [Tunneling and multi-tenancy](docs/tunneling-and-multi-tenancy.md) and the
@@ -63,8 +66,8 @@ accompanied [./ffwd.d/basic-tunnel](/ffwd.d/basic-tunnel) configuration.
 
 ## Installation
 
-FFWD is available on rubygems so it can be installed through
-[gem](https://rubygems.org).
+ffwd is available on rubygems so it can be installed through
+[gem](https://rubygems.org) using the ```gem``` command.
 
 ```bash
 $ gem install ffwd
@@ -72,7 +75,7 @@ $ gem install ffwd
 
 ### Installing plugins
 
-FFWD uses plugins which has to be installed separately in order to use them.
+ffwd uses plugins which has to be installed separately in order to use them.
 
 You can list the plugins available on rubygems through gem.
 
@@ -86,7 +89,7 @@ You can then install the plugin(s) you want.
 $ gem install ffwd-<plugin>
 ```
 
-You can check that the plugin is available to FFWD using the **--plugins**
+You can check that the plugin is available to ffwd using the **--plugins**
 command.
 
 ```bash
@@ -113,14 +116,14 @@ Loaded Plugins:
 ...
 ```
 
-At this point you will probably discover that FFWD does not support your
+At this point you will probably discover ffwd FFWD does not support your
 favorite plugin.
 Reading our [writing plugins guide](docs/writing-plugins.md) should enable you
 to remedy this.
 
 ## Statistics
 
-FFWD reports internal statistics allowing for an insight into what is going on.
+ffwd reports internal statistics allowing for an insight into what is going on.
 
 All statistics are reported as internally generated metrics with a rich set of
 tags.
@@ -177,7 +180,7 @@ which channel the traffic was sniffed of.
 
 ### Debugging with fwc
 
-**fwc** is a [small CLI tool](lib/fwc.rb) for connecting and analyzing FFWD
+**fwc** is a [small CLI tool](lib/fwc.rb) for connecting and analyzing ffwd
 debug data.
 
 It can be invoked with the **--raw** and/or **--summary** switch.
@@ -215,7 +218,7 @@ message passing between components.
 **PluginChannel** &mdash; [An abstraction](lib/ffwd/plugin_channel.rb) on
 top of two *Channel*'s, one dedicated to *metrics*, the other one to *events*.
 
-**Core** &mdash; [The component](lib/ffwd/core.rb) in FFWD that ties
+**Core** &mdash; [The component](lib/ffwd/core.rb) in ffwd that ties
 everything together.
 
 The *core* component is also broken up into two other distinct parts to support
