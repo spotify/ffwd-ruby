@@ -134,7 +134,7 @@ def setup(addr=('127.0.0.1', 19000)):
 
 if __name__ == "__main__":
     send, close = setup()
-    send({"type": "metric", "key": "foo", "value": 10})
+    send({"type": "metric", "key": "foo", "attributes":{"what":"my-awesome-metric", "some_other_attribute": "the-attributes-string-value"}, "value": 10})
     send({"type": "event", "key": "bar", "state": "critical", "description": "Hello World"})
     close()
 ```
