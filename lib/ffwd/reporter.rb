@@ -25,7 +25,9 @@ module FFWD::Reporter
       meta = meta.merge(instance.send(:reporter_meta))
     end
 
-    return meta.merge(k[:meta])
+    meta = meta.merge(k[:meta])
+    meta[:unit] = "#{meta[:unit] || 'n'}/s"
+    return meta
   end
 
   module ClassMethods
@@ -71,15 +73,16 @@ module FFWD::Reporter
     reporter_data[n] += c
   end
 
-  def report!
+  def report! diff
     self.class.reporter_keys.each do |key|
       k = key[:key]
       v = reporter_data[k]
       reporter_data[k] = 0
 
       meta = ((@_reporter_meta ||= {})[k] ||= FFWD::Reporter.build_meta(self, key))
+      rate = v / diff
 
-      yield(:key => k, :value => v, :meta => meta)
+      yield(:key => k, :value => rate, :meta => meta)
     end
   end
 end

@@ -13,6 +13,8 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
+require 'json'
+
 require_relative '../../logging'
 
 module FFWD::Plugin::Log
@@ -28,11 +30,11 @@ module FFWD::Plugin::Log
         log.info "Started (prefix: '#{@p}')"
 
         subs << core.output.event_subscribe do |e|
-          log.info "Event: #{@p}#{e.to_h}"
+          log.info "Event: #{@p}#{JSON.dump(e.to_h)}"
         end
 
         subs << core.output.metric_subscribe do |m|
-          log.info "Metric: #{@p}#{m.to_h}"
+          log.info "Metric: #{@p}#{JSON.dump(m.to_h)}"
         end
       end
 

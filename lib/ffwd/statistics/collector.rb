@@ -78,6 +78,9 @@ module FFWD::Statistics
     end
 
     def generate! last, now
+      diff = now - last
+      return if diff <= 0
+
       if @system
         @system.collect @channel do |key, value|
           attributes = FFWD.merge_hashes @attributes, {:what => key, :component => :system}
@@ -88,7 +91,7 @@ module FFWD::Statistics
       end
 
       @reporters.each do |id, reporter|
-        reporter.report! do |d|
+        reporter.report!(diff) do |d|
           attributes = FFWD.merge_hashes @attributes, d[:meta]
           @emitter.metric.emit(
             :key => @prefix, :value => d[:value],

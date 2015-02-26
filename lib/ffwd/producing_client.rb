@@ -52,14 +52,14 @@ module FFWD
       @producer.class.reporter_meta.merge(@producer.reporter_meta)
     end
 
-    def report!
-      super do |m|
+    def report!(diff)
+      super(diff) do |m|
         yield m
       end
 
       return unless @producer_is_reporter
 
-      @producer.report! do |m|
+      @producer.report!(diff) do |m|
         yield m
       end
     end

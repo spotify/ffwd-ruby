@@ -27,8 +27,8 @@ module FFWD
     include FFWD::Logging
 
     report_meta :component => :plugin_channel
-    report_key :metrics, :meta => {:what => :metrics, :unit => :metric}
-    report_key :events, :meta => {:what => :events, :unit => :event}
+    report_key :metrics, :meta => {:what => "seen-metrics", :unit => :metric}
+    report_key :events, :meta => {:what => "seen-events", :unit => :event}
 
     attr_reader :id, :events, :metrics, :reporter_meta
 

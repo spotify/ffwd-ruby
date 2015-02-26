@@ -59,9 +59,9 @@ module FFWD
       end
     end
 
-    def report!
+    def report!(diff)
       @reporters.each do |reporter|
-        reporter.report! do |d|
+        reporter.report!(diff) do |d|
           yield d
         end
       end
