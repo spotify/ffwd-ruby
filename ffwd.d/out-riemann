@@ -1,3 +1,4 @@
 :output:
   - :type: "riemann"
     :protocol: "tcp"
+    :flush_period: 10

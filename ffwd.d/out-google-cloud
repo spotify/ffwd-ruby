@@ -1,0 +1,6 @@
+:output:
+  - :type: "google-cloud"
+    :url: "http://localhost:8888"
+    :project_id: "my-project-id"
+    :project: "my-project"
+    :client_id: "me@example.com"
