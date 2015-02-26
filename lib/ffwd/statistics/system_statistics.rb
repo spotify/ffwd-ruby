@@ -103,11 +103,11 @@ module FFWD::Statistics
       cpu_use = cpu_usage
 
       cpu_use.each do |key, value|
-        yield "statistics.cpu-#{key}", value
+        yield "cpu-#{key}", value
       end
 
       memory_use.each do |key, value|
-        yield "statistics.memory-#{key}", value
+        yield "memory-#{key}", value
       end
 
       channel << {

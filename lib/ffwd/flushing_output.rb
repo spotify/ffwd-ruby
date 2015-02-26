@@ -21,7 +21,7 @@ module FFWD
   class FlushingOutput
     include FFWD::Reporter
 
-    report_meta :direction => :out
+    report_meta :direction => :output
 
     report_key :dropped_metrics, :meta => {:what => "dropped-metrics", :unit => :metric}
     report_key :failed_metrics, :meta => {:what => "failed-metrics", :unit => :metric}

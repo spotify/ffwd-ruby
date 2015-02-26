@@ -29,7 +29,7 @@ module FFWD::UDP
 
     attr_reader :reporter_meta, :log, :config
 
-    report_meta :protocol => :udp, :direction => :out
+    report_meta :protocol => :udp, :direction => :output
 
     report_key :sent_events, :meta => {:what => "sent-events", :unit => :event}
     report_key :sent_metrics, :meta => {:what => "sent-metrics", :unit => :metric}

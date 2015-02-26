@@ -30,7 +30,7 @@ module FFWD::TCP
       opts
     end
 
-    report_meta :protocol => :tcp, :direction => :in
+    report_meta :protocol => :tcp, :direction => :input
 
     report_key :failed_events, :meta => {:what => "failed-events", :unit => :event}
     report_key :received_events, :meta => {:what => "received-events", :unit => :event}

@@ -29,7 +29,7 @@ module FFWD::TCP
     # maximum amount of metrics to buffer up.
     DEFAULT_METRIC_LIMIT = 10000
 
-    report_meta :protocol => :tcp, :direction => :out
+    report_meta :protocol => :tcp, :direction => :output
 
     report_key :dropped_events, :meta => {:what => "dropped-events", :unit => :event}
     report_key :dropped_metrics, :meta => {:what => "dropped-metrics", :unit => :metric}

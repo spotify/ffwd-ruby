@@ -32,7 +32,7 @@ module FFWD::UDP
       opts
     end
 
-    report_meta :protocol => :udp, :direction => :out
+    report_meta :protocol => :udp, :direction => :output
 
     report_key :received_events, :meta => {:what => "received-events", :unit => :event}
     report_key :received_metrics, :meta => {:what => "received-metrics", :unit => :metric}
