@@ -82,8 +82,8 @@ module FFWD::Statistics
       return if diff <= 0
 
       if @system
-        @system.collect @channel do |key, value|
-          attributes = FFWD.merge_hashes @attributes, {:what => key, :component => :system}
+        @system.collect @channel do |key, unit, value|
+          attributes = FFWD.merge_hashes @attributes, {:what => key, :unit => unit, :component => :system}
           @emitter.metric.emit(
             :key => @prefix, :value => value,
             :tags => @tags, :attributes => attributes)

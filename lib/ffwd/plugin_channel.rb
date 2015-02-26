@@ -26,7 +26,7 @@ module FFWD
     include FFWD::Reporter
     include FFWD::Logging
 
-    report_meta :component => :plugin_channel
+    report_meta :component => :channel
     report_key :metrics, :meta => {:what => "seen-metrics", :unit => :metric}
     report_key :events, :meta => {:what => "seen-events", :unit => :event}
 
@@ -42,7 +42,7 @@ module FFWD
       @id = id
       @events = events
       @metrics = metrics
-      @reporter_meta = {:plugin_channel => @id, :type => "plugin_channel"}
+      @reporter_meta = {:channel => @id}
     end
 
     def event_subscribe &block

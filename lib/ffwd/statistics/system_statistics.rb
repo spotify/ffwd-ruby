@@ -99,21 +99,18 @@ module FFWD::Statistics
     end
 
     def collect channel
-      memory_use = memory_usage
-      cpu_use = cpu_usage
+      cpu = cpu_use
+      memory = memory_use
 
-      cpu_use.each do |key, value|
-        yield "cpu-#{key}", value
+      cpu.each do |key, value|
+        yield "cpu-#{key}", "%", value
       end
 
-      memory_use.each do |key, value|
-        yield "memory-#{key}", value
+      memory.each do |key, value|
+        yield "memory-#{key}", "B", value
       end
 
-      channel << {
-        :cpu => cpu_use,
-        :memory => memory_use,
-      }
+      channel << {:memory => memory}
     end
 
     def check
@@ -140,7 +137,7 @@ module FFWD::Statistics
       return true
     end
 
-    def memory_usage
+    def memory_use
       result = {:resident => 0, :total => read_total_memory}
 
       read_smaps do |smap|
@@ -150,7 +147,7 @@ module FFWD::Statistics
       result
     end
 
-    def cpu_usage
+    def cpu_use
       stat = read_pid_stat
 
       current = {
@@ -167,11 +164,15 @@ module FFWD::Statistics
         @cpu_prev = current
       end
 
-      return {
-        :system => current[:system] - prev[:system],
-        :user => current[:user] - prev[:user],
-        :total => current[:total] - prev[:total],
-      }
+      total = current[:total] - prev[:total]
+      system = current[:system] - prev[:system]
+      user = current[:user] - prev[:user]
+
+      if total == 0
+        return {:user => 0, :system => 0}
+      end
+
+      {:user => (user / total).round(3), :system => (system / total).round(3)}
     end
 
     private

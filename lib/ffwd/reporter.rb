@@ -80,7 +80,7 @@ module FFWD::Reporter
       reporter_data[k] = 0
 
       meta = ((@_reporter_meta ||= {})[k] ||= FFWD::Reporter.build_meta(self, key))
-      rate = v / diff
+      rate = (v / diff).round(3)
 
       yield(:key => k, :value => rate, :meta => meta)
     end
