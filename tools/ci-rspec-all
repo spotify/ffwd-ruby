@@ -58,7 +58,7 @@ main() {
     return $status
 }
 
-root=$(readlink -f $(dirname $(dirname $0)))
+root=$(dirname $(dirname $0))
 unset BUNDLE_GEMFILE
 main "$root"
 exit $?
