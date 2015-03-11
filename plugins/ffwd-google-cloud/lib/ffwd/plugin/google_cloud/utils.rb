@@ -14,6 +14,8 @@
 # the License.
 
 module FFWD::Plugin::GoogleCloud
+  CUSTOM_PREFIX = "custom.cloudmonitoring.googleapis.com"
+
   module Utils
     def self.make_timeseries buffer
       buffer.map do |m|
@@ -27,12 +29,23 @@ module FFWD::Plugin::GoogleCloud
     end
 
     def self.make_desc m
-      {:metric => m.key, :labels => make_labels(m)}
+      {:metric => make_key(m), :labels => make_labels(m)}
+    end
+
+    def self.make_key m
+      if m.attributes[:what].nil?
+        "#{CUSTOM_PREFIX}/#{m.key}"
+      else
+        "#{CUSTOM_PREFIX}/#{m.key}.#{m.attributes[:what]}"
+      end
     end
 
     def self.make_labels m
-      labels = Hash[m.attributes]
-      labels["host"] = m.host
+      labels = Hash[m.attributes.select{|k, v| k != :what}.map{|k, v|
+        ["#{CUSTOM_PREFIX}/#{k}", v]
+      }]
+
+      #labels["#{CUSTOM_PREFIX}/host"] = m.host
       labels
     end
   end
