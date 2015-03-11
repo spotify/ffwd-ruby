@@ -30,11 +30,11 @@ module FFWD::Plugin::GoogleCloud
 
         if seen.member?(d[:metric])
           dropped += 1
-          next 
+          next
         end
 
         seen.add(d[:metric])
-        result << {:timeseriesDesc => make_desc(m), :point => make_point(m)}
+        result << {:timeseriesDesc => d, :point => make_point(m)}
       end
 
       [dropped, result]
@@ -50,13 +50,21 @@ module FFWD::Plugin::GoogleCloud
     end
 
     def self.make_key m
-      what ||= m.attributes[:what]
-      what ||= m.attributes["what"]
+      attributes = Hash[m.attributes]
 
-      if what.nil?
-        "#{CUSTOM_PREFIX}/#{m.key}"
+      entries = []
+
+      what ||= attributes.delete(:what)
+      what ||= attributes.delete("what")
+
+      entries << what unless what.nil?
+      entries += attributes.keys.sort.map(&:to_s)
+      entries = entries.join('.')
+
+      unless entries.empty?
+        "#{CUSTOM_PREFIX}/#{m.key}/#{entries}"
       else
-        "#{CUSTOM_PREFIX}/#{m.key}.#{what}"
+        "#{CUSTOM_PREFIX}/#{m.key}"
       end
     end
 
