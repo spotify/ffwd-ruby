@@ -50,15 +50,18 @@ module FFWD::Plugin::GoogleCloud
     end
 
     def self.make_key m
-      if m.attributes[:what].nil?
+      what ||= m.attributes[:what]
+      what ||= m.attributes["what"]
+
+      if what.nil?
         "#{CUSTOM_PREFIX}/#{m.key}"
       else
-        "#{CUSTOM_PREFIX}/#{m.key}.#{m.attributes[:what]}"
+        "#{CUSTOM_PREFIX}/#{m.key}.#{what}"
       end
     end
 
     def self.make_labels m
-      labels = Hash[m.attributes.select{|k, v| k != :what}.map{|k, v|
+      labels = Hash[m.attributes.select{|k, v| k.to_s != "what"}.map{|k, v|
         ["#{CUSTOM_PREFIX}/#{k}", v]
       }]
 
