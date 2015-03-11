@@ -12,15 +12,32 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations under
 # the License.
+require 'set'
 
 module FFWD::Plugin::GoogleCloud
   CUSTOM_PREFIX = "custom.cloudmonitoring.googleapis.com"
 
   module Utils
     def self.make_timeseries buffer
-      buffer.map do |m|
-        {:timeseriesDesc => make_desc(m), :point => make_point(m)}
+      # we are not allowed to send duplicate data.
+      seen = Set.new
+
+      result = []
+      dropped = 0
+
+      buffer.each do |m|
+        d = make_desc(m)
+
+        if seen.member?(d[:metric])
+          dropped += 1
+          next 
+        end
+
+        seen.add(d[:metric])
+        result << {:timeseriesDesc => make_desc(m), :point => make_point(m)}
       end
+
+      [dropped, result]
     end
 
     def self.make_point m
@@ -47,6 +64,10 @@ module FFWD::Plugin::GoogleCloud
 
       #labels["#{CUSTOM_PREFIX}/host"] = m.host
       labels
+    end
+
+    def self.extract_labels source
+      source.map{|k, v| {:key => k, :description => k}}
     end
   end
 end
