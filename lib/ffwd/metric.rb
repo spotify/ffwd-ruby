@@ -13,6 +13,8 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
+require_relative 'utils'
+
 module FFWD
   # Struct used to define all fields related to a metric.
   MetricStruct = Struct.new(
@@ -29,14 +31,22 @@ module FFWD
     # Tags associated to the metric.
     :tags,
     # Attributes (extra fields) associated to the metric.
-    :attributes
+    :external_attr,
+    # Attributes which are statically provided by the internal implementation.
+    :fixed_attr
   )
 
   # A convenience class for each individual metric.
   class Metric < MetricStruct
     def self.make opts={}
       new(opts[:time], opts[:key], opts[:value], opts[:host], opts[:source],
-          opts[:tags], opts[:attributes])
+          opts[:tags], opts[:external_attr], opts[:fixed_attr])
+    end
+
+    # maintained for backwards compatibility, but implementors are encouraged
+    # to use internal/external attributes directly.
+    def attributes
+      FFWD.merge_hashes fixed_attr, external_attr
     end
 
     # Convert metric to a sparse hash.
@@ -48,7 +58,11 @@ module FFWD
       d[:host] = host if host
       d[:source] = source if source
       d[:tags] = tags.to_a if tags
-      d[:attributes] = attributes if attributes
+
+      if a = attributes
+        d[:attributes] = a
+      end
+
       d
     end
   end

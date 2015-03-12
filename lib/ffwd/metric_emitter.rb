@@ -40,7 +40,8 @@ module FFWD
       m[:time] ||= Time.now
       m[:host] ||= @host if @host
       m[:tags] = FFWD.merge_sets @tags, m[:tags]
-      m[:attributes] = FFWD.merge_hashes @attributes, m[:attributes]
+      m[:fixed_attr] = @attributes
+      m[:external_attr] = m[:attributes]
       m[:value] = nil if (v = m[:value] and v.is_a?(Float) and v.nan?)
 
       @output.metric Metric.make(m)

@@ -18,6 +18,11 @@ module FFWD::Plugin::GoogleCloud
   CUSTOM_PREFIX = "custom.cloudmonitoring.googleapis.com"
 
   module Utils
+    def self.make_common_labels buffer
+      return nil if buffer.empty?
+      make_labels buffer.first.fixed_attr
+    end
+
     def self.make_timeseries buffer
       # we are not allowed to send duplicate data.
       seen = Set.new
@@ -46,11 +51,11 @@ module FFWD::Plugin::GoogleCloud
     end
 
     def self.make_desc m
-      {:metric => make_key(m), :labels => make_labels(m)}
+      {:metric => make_key(m), :labels => make_labels(m.external_attr)}
     end
 
     def self.make_key m
-      attributes = Hash[m.attributes]
+      attributes = Hash[m.external_attr]
 
       entries = []
 
@@ -68,17 +73,14 @@ module FFWD::Plugin::GoogleCloud
       end
     end
 
-    def self.make_labels m
-      labels = Hash[m.attributes.select{|k, v| k.to_s != "what"}.map{|k, v|
+    def self.make_labels attr
+      Hash[attr.select{|k, v| k.to_s != "what"}.map{|k, v|
         ["#{CUSTOM_PREFIX}/#{k}", v]
       }]
-
-      #labels["#{CUSTOM_PREFIX}/host"] = m.host
-      labels
     end
 
     def self.extract_labels source
-      source.map{|k, v| {:key => k, :description => k}}
+      source.map{|k, v| {:key => k, :description => ""}}
     end
   end
 end

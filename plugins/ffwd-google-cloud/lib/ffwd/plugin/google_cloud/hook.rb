@@ -36,9 +36,10 @@ module FFWD::Plugin::GoogleCloud
       @project = c[:project]
       @client_id = c[:client_id]
       @scope = c[:scope]
+      @debug = c[:debug]
 
-      @api_c = nil
-      @metadata_c = nil
+      @api_pipeline = nil
+      @metadata_pipeline = nil
       @token = nil
       @expires_at = nil
       # list of blocks waiting for a token.
@@ -71,7 +72,7 @@ module FFWD::Plugin::GoogleCloud
 
       log.debug "Requesting token"
 
-      http = @metadata_c.get(
+      http = @metadata_pipeline.get(
         :path => @acquire,
         :query => {:client_id => @client_id, :scope => @scope})
 
@@ -100,7 +101,7 @@ module FFWD::Plugin::GoogleCloud
     end
 
     def active?
-      not @api_c.nil? and not @metadata_c.nil?
+      not @api_pipeline.nil? and not @metadata_pipeline.nil?
     end
 
     def verify_descriptors(metrics, &block)
@@ -122,17 +123,21 @@ module FFWD::Plugin::GoogleCloud
       missing.each do |m|
         name = m[:metric]
 
-        body = {
-         :name => m[:metric], :description => m[:metric], :labels => Utils.extract_labels(m[:labels]),
+        descriptor = {
+         :name => m[:metric], :description => "",
+         :labels => Utils.extract_labels(m[:labels]),
          :typeDescriptor => {:metricType => "gauge", :valueType => "double"}
         }
+
+        descriptor = JSON.dump(descriptor)
 
         log.info "Creating descriptor for: #{name}"
 
         all << with_token{|token|
           head = Hash[HEADER_BASE]
           head['Authorization'] = "Bearer #{token}"
-          p = new_proxy(api_c.post(:path => @md_api, :head => head, :body => JSON.dump(body)))
+          p = new_proxy(api_request.post(
+            :path => @md_api, :head => head, :body => descriptor))
 
           p.callback do
             log.info "Created (caching): #{name}"
@@ -140,7 +145,7 @@ module FFWD::Plugin::GoogleCloud
           end
 
           p.errback do |error|
-            log.error "Failed to create descriptor (#{error}): #{body}"
+            log.error "Failed to create descriptor (#{error}): #{descriptor}"
           end
 
           p
@@ -159,57 +164,51 @@ module FFWD::Plugin::GoogleCloud
       SingleProxy.new all
     end
 
+    def metadata_request
+      if @debug
+        return DebugRequest.new(@metadata_url, :response => {
+          :accessToken => "FAKE", :expiresAt => (Time.now.to_i + 3600)})
+      end
+
+      EM::HttpRequest.new(@metadata_url)
+    end
+
     # avoid pipelining requests by creating a new handle for each
-    def api_c
+    def api_request
+      if @debug
+        return DebugRequest.new(@api_url, :responses => {
+          [:get, @md_api] => {"metrics" => []},
+          [:post, @write_api] => {}
+        })
+      end
+
       EM::HttpRequest.new(@api_url)
     end
 
     def connect
-      @metadata_c = EM::HttpRequest.new(@metadata_url)
-      @api_c = EM::HttpRequest.new(@api_url)
-
-      with_token do |token|
-        log.info "Downloading metric descriptors"
-
-        head = Hash[HEADER_BASE]
-        head['Authorization'] = "Bearer #{token}"
-        req = @api_c.get(:path => @md_api, :head => head)
-        p = new_proxy(req)
-
-        p.callback do
-          res = JSON.load(req.response)
-
-          log.info "Downloaded #{res["metrics"].length} descriptor(s)"
-
-          res["metrics"].each do |d|
-            @md_cache[d["name"]] = true
-          end
-        end
-
-        p.errback do |error|
-          log.error "Failed to download metric descriptors: #{error}"
-        end
-
-        p
-      end
+      @metadata_pipeline = metadata_request
+      @api_pipeline = api_request
+      populate_metadata_cache
     end
 
     def close
-      @metadata_c.close if @metadata_c
-      @api_c.close if @api_c
+      @metadata_pipeline.close if @metadata_pipeline
+      @api_pipeline.close if @api_pipeline
 
-      @metadata_c = nil
-      @api_c = nil
+      @metadata_pipeline = nil
+      @api_pipeline = nil
     end
 
     def send metrics
       dropped, timeseries = Utils.make_timeseries(metrics)
 
+      common_labels = Utils.make_common_labels(metrics)
+
       if dropped > 0
         log.warning "Dropped #{dropped} points (duplicate entries)"
       end
 
-      request = {:timeseries => timeseries}
+      request = {:commonLabels => common_labels, :timeseries => timeseries}
       metrics = JSON.dump(request)
 
       verify_descriptors(request) do
@@ -221,7 +220,8 @@ module FFWD::Plugin::GoogleCloud
             log.debug "Sending: #{metrics}"
           end
 
-          new_proxy api_c.post(:path => @write_api, :head => head, :body => metrics)
+          new_proxy api_request.post(
+            :path => @write_api, :head => head, :body => metrics)
         end
       end
     end
@@ -251,6 +251,35 @@ module FFWD::Plugin::GoogleCloud
 
     def reporter_meta
       {:component => :google_cloud}
+    end
+
+    private
+
+    def populate_metadata_cache
+      with_token do |token|
+        log.info "Downloading metric descriptors"
+
+        head = Hash[HEADER_BASE]
+        head['Authorization'] = "Bearer #{token}"
+        req = @api_pipeline.get(:path => @md_api, :head => head)
+        p = new_proxy(req)
+
+        p.callback do
+          res = JSON.load(req.response)
+
+          log.info "Downloaded #{res["metrics"].length} descriptor(s)"
+
+          res["metrics"].each do |d|
+            @md_cache[d["name"]] = true
+          end
+        end
+
+        p.errback do |error|
+          log.error "Failed to download metric descriptors: #{error}"
+        end
+
+        p
+      end
     end
   end
 
@@ -299,18 +328,30 @@ module FFWD::Plugin::GoogleCloud
     def initialize
       @callbacks = []
       @errbacks = []
+      @called = false
     end
 
     def callback &block
+      if @called
+        block.call if @called == :call
+        return
+      end
+
       @callbacks << block
     end
 
     def errback &block
+      if @called
+        block.call if @called == :err
+        return
+      end
+
       @errbacks << block
     end
 
     def call
       @callbacks.each(&:call).clear
+      @called = :call
     end
 
     def err error
@@ -321,11 +362,70 @@ module FFWD::Plugin::GoogleCloud
       @errbacks.each do |cb|
         cb.call error
       end.clear
+
+      @called = :err
     end
 
     def into other
       errback { other.err error }
       callback { other.call }
+    end
+  end
+
+  class DebugRequest
+    include FFWD::Logging
+
+    class Callback
+      class ResponseHeader
+        attr_reader :status
+
+        def initialize status
+          @status = status
+        end
+      end
+
+      attr_reader :response
+
+      def initialize response
+        @response = response
+      end
+
+      def callback &block
+        block.call
+      end
+
+      def response_header
+        ResponseHeader.new 200
+      end
+
+      def errback &block; end
+    end
+
+    def initialize url, params={}
+      @url = url
+      @response = JSON.dump(params[:response] || {})
+      @responses = Hash[(params[:responses] || {}).map{|k, v| [k, JSON.dump(v)]}]
+    end
+
+    def post params={}
+      log_request :post, params
+    end
+
+    def get params={}
+      log_request :get, params
+    end
+
+    # do nothing
+    def close; end
+
+    private
+
+    def log_request method, params
+      path = params.delete(:path) || ""
+      body = params.delete(:body)
+      log.debug "#{method} #{@url}#{path}: #{params}"
+      puts JSON.pretty_generate(JSON.load(body || "{}")) if body
+      Callback.new(@responses[[method, path]] || @response)
     end
   end
 end

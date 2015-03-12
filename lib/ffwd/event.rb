@@ -13,6 +13,8 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
+require_relative 'utils'
+
 module FFWD
   # Struct used to define all fields related to an event.
   EventStruct = Struct.new(
@@ -35,7 +37,9 @@ module FFWD
     # Tags associated with the event.
     :tags,
     # Attributes (extra fields) associated with the event.
-    :attributes
+    :external_attr,
+    # Attributes which are statically provided by the internal implementation.
+    :fixed_attr
   )
 
   # A convenience class for each individual event.
@@ -43,7 +47,13 @@ module FFWD
     def self.make opts = {}
       new(opts[:time], opts[:key], opts[:value], opts[:host], opts[:source],
           opts[:state], opts[:description], opts[:ttl], opts[:tags],
-          opts[:attributes])
+          opts[:external_attr, :fixed_attr])
+    end
+
+    # maintained for backwards compatibility, but implementors are encouraged
+    # to use internal/external attributes directly.
+    def attributes
+      FFWD.merge_hashes fixed_attr, external_attr
     end
 
     # Convert event to a sparse hash.
@@ -58,7 +68,11 @@ module FFWD
       d[:description] = description if description
       d[:ttl] = ttl if ttl
       d[:tags] = tags.to_a if tags
-      d[:attributes] = attributes if attributes
+
+      if a = attributes
+        d[:attributes] = a
+      end
+
       d
     end
   end

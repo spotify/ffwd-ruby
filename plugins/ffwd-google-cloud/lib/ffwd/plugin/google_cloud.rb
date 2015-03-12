@@ -34,6 +34,7 @@ module FFWD::Plugin::GoogleCloud
   DEFAULT_SCOPE = "https://www.googleapis.com/auth/monitoring"
   DEFAULT_FLUSH_INTERVAL = 10
   DEFAULT_BUFFER_LIMIT = 100
+  DEFAULT_DEBUG = false
 
   def self.setup_output config
     if not config[:project_id]
@@ -53,6 +54,8 @@ module FFWD::Plugin::GoogleCloud
     config[:api_url] ||= DEFAULT_API_URL
     config[:flush_interval] ||= DEFAULT_FLUSH_INTERVAL
     config[:buffer_limit] ||= DEFAULT_BUFFER_LIMIT
+    # Fake all API interaction (output with log.debug)
+    config[:debug] ||= DEFAULT_DEBUG
 
     hook = Hook.new(config)
 

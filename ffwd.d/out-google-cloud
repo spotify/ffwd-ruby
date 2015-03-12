@@ -4,3 +4,4 @@
     :project_id: "my-project-id"
     :project: "my-project"
     :client_id: "me@example.com"
+    :debug: true

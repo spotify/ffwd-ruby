@@ -47,7 +47,8 @@ module FFWD
       e[:host] ||= @host if @host
       e[:ttl] ||= @ttl if @ttl
       e[:tags] = FFWD.merge_sets @tags, e[:tags]
-      e[:attributes] = FFWD.merge_hashes @attributes, e[:attributes]
+      m[:fixed_attr] = @attributes
+      m[:external_attr] = m[:attributes]
       e[:value] = nil if (v = e[:value] and v.is_a?(Float) and v.nan?)
 
       @output.event Event.make(e)
