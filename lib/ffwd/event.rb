@@ -35,7 +35,9 @@ module FFWD
     # A time to live associated with the event.
     :ttl,
     # Tags associated with the event.
-    :tags,
+    :external_tags,
+    # Tags which are statically provided by the internal implementation.
+    :fixed_tags,
     # Attributes (extra fields) associated with the event.
     :external_attr,
     # Attributes which are statically provided by the internal implementation.
@@ -46,14 +48,19 @@ module FFWD
   class Event < EventStruct
     def self.make opts = {}
       new(opts[:time], opts[:key], opts[:value], opts[:host], opts[:source],
-          opts[:state], opts[:description], opts[:ttl], opts[:tags],
-          opts[:external_attr, :fixed_attr])
+          opts[:state], opts[:description], opts[:ttl],
+          opts[:tags], opts[:fixed_tags],
+          opts[:attributes], opts[:fixed_attr])
     end
 
     # maintained for backwards compatibility, but implementors are encouraged
     # to use internal/external attributes directly.
     def attributes
       FFWD.merge_hashes fixed_attr, external_attr
+    end
+
+    def tags
+      FFWD.merge_sets fixed_tags, external_tags
     end
 
     # Convert event to a sparse hash.
@@ -67,9 +74,12 @@ module FFWD
       d[:state] = state if state
       d[:description] = description if description
       d[:ttl] = ttl if ttl
-      d[:tags] = tags.to_a if tags
 
-      if a = attributes
+      if t = tags and not t.empty?
+        d[:tags] = t
+      end
+
+      if a = attributes and not a.empty?
         d[:attributes] = a
       end
 

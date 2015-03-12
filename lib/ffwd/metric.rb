@@ -28,8 +28,10 @@ module FFWD
     :host,
     # The source metric this metric was derived from (if any).
     :source,
-    # Tags associated to the metric.
-    :tags,
+    # Tags associated with the event.
+    :external_tags,
+    # Tags which are statically provided by the internal implementation.
+    :fixed_tags,
     # Attributes (extra fields) associated to the metric.
     :external_attr,
     # Attributes which are statically provided by the internal implementation.
@@ -40,13 +42,18 @@ module FFWD
   class Metric < MetricStruct
     def self.make opts={}
       new(opts[:time], opts[:key], opts[:value], opts[:host], opts[:source],
-          opts[:tags], opts[:external_attr], opts[:fixed_attr])
+          opts[:tags], opts[:fixed_tags],
+          opts[:attributes], opts[:fixed_attr])
     end
 
     # maintained for backwards compatibility, but implementors are encouraged
     # to use internal/external attributes directly.
     def attributes
       FFWD.merge_hashes fixed_attr, external_attr
+    end
+
+    def tags
+      FFWD.merge_sets fixed_tags, external_tags
     end
 
     # Convert metric to a sparse hash.
@@ -57,9 +64,12 @@ module FFWD
       d[:value] = value if value
       d[:host] = host if host
       d[:source] = source if source
-      d[:tags] = tags.to_a if tags
 
-      if a = attributes
+      if t = tags and not t.empty?
+        d[:tags] = t
+      end
+
+      if a = attributes and not a.empty?
         d[:attributes] = a
       end
 

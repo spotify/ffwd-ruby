@@ -42,16 +42,15 @@ module FFWD
       @attributes = attributes
     end
 
-    def emit e
-      e[:time] ||= Time.now
-      e[:host] ||= @host if @host
-      e[:ttl] ||= @ttl if @ttl
-      e[:tags] = FFWD.merge_sets @tags, e[:tags]
-      m[:fixed_attr] = @attributes
-      m[:external_attr] = m[:attributes]
-      e[:value] = nil if (v = e[:value] and v.is_a?(Float) and v.nan?)
+    def emit d
+      d[:time] ||= Time.now
+      d[:host] ||= @host if @host
+      d[:ttl] ||= @ttl if @ttl
+      d[:value] = nil if (v = d[:value] and v.is_a?(Float) and v.nan?)
+      d[:fixed_tags] = @tags
+      d[:fixed_attr] = @attributes
 
-      @output.event Event.make(e)
+      @output.event Event.make(d)
     rescue => e
       log.error "Failed to emit event", e
     end

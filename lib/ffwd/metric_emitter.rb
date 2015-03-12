@@ -36,15 +36,14 @@ module FFWD
       @attributes = attributes
     end
 
-    def emit m
-      m[:time] ||= Time.now
-      m[:host] ||= @host if @host
-      m[:tags] = FFWD.merge_sets @tags, m[:tags]
-      m[:fixed_attr] = @attributes
-      m[:external_attr] = m[:attributes]
-      m[:value] = nil if (v = m[:value] and v.is_a?(Float) and v.nan?)
+    def emit d
+      d[:time] ||= Time.now
+      d[:host] ||= @host if @host
+      d[:fixed_tags] = @tags
+      d[:fixed_attr] = @attributes
+      d[:value] = nil if (v = d[:value] and v.is_a?(Float) and v.nan?)
 
-      @output.metric Metric.make(m)
+      @output.metric Metric.make(d)
     rescue => e
       log.error "Failed to emit metric", e
     end
