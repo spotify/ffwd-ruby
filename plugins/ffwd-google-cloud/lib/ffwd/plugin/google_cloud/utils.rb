@@ -33,12 +33,14 @@ module FFWD::Plugin::GoogleCloud
       buffer.each do |m|
         d = make_desc(m)
 
-        if seen.member?(d[:metric])
+        seen_key = [d[:metric], d[:labels].map{|k, v| [k, v]}.sort].hash
+
+        if seen.member?(seen_key)
           dropped += 1
           next
         end
 
-        seen.add(d[:metric])
+        seen.add(seen_key)
         result << {:timeseriesDesc => d, :point => make_point(m)}
       end
 
@@ -63,13 +65,14 @@ module FFWD::Plugin::GoogleCloud
       what ||= attributes.delete("what")
 
       entries << what unless what.nil?
-      entries += attributes.keys.sort.map(&:to_s)
       entries = entries.join('.')
 
+      hash = attributes.keys.sort.hash.abs.to_s(32)
+
       unless entries.empty?
-        "#{CUSTOM_PREFIX}/#{m.key}/#{entries}"
+        "#{CUSTOM_PREFIX}/#{m.key}/#{entries}-#{hash}"
       else
-        "#{CUSTOM_PREFIX}/#{m.key}"
+        "#{CUSTOM_PREFIX}/#{m.key}-#{other_keys}"
       end
     end
 
