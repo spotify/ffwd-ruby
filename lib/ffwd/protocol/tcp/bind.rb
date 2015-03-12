@@ -35,8 +35,8 @@ module FFWD::TCP
     report_key :failed_events, :meta => {:what => "failed-events", :unit => :event}
     report_key :received_events, :meta => {:what => "received-events", :unit => :event}
 
-    report_key :failed_metrics, :meta => {:what => :failed_metrics, :unit => :metric}
-    report_key :received_metrics, :meta => {:what => :received_metrics, :unit => :metric}
+    report_key :failed_metrics, :meta => {:what => "failed-metrics", :unit => :metric}
+    report_key :received_metrics, :meta => {:what => "received-metrics", :unit => :metric}
 
     attr_reader :log, :reporter_meta
 
