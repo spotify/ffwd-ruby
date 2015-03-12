@@ -32,7 +32,7 @@ module FFWD::UDP
       opts
     end
 
-    report_meta :protocol => :udp, :direction => :output
+    report_meta :protocol => :udp, :direction => :input
 
     report_key :received_events, :meta => {:what => "received-events", :unit => :event}
     report_key :received_metrics, :meta => {:what => "received-metrics", :unit => :metric}
@@ -45,7 +45,7 @@ module FFWD::UDP
     def initialize core, log, host, port, connection, config
       @log = log
       @peer = "#{host}:#{port}"
-      @reporter_meta = {:type => connection.plugin_type, :listen => @peer}
+      @reporter_meta = {:component => connection.plugin_type, :listen => @peer}
 
       rebind_timeout = config[:rebind_timeout]
 
