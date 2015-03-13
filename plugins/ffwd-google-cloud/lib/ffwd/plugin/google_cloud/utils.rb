@@ -13,11 +13,14 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 require 'set'
+require 'zlib'
 
 module FFWD::Plugin::GoogleCloud
   CUSTOM_PREFIX = "custom.cloudmonitoring.googleapis.com"
 
   module Utils
+    M64 = 1 << 64
+
     def self.make_common_labels buffer
       return nil if buffer.empty?
       make_labels buffer.first.fixed_attr
@@ -33,7 +36,8 @@ module FFWD::Plugin::GoogleCloud
       buffer.each do |m|
         d = make_desc(m)
 
-        seen_key = [d[:metric], d[:labels].map{|k, v| [k, v]}.sort].hash
+        # using built-in hash OK since we are only internally de-duplicating.
+        seen_key = [d[:metric], d[:labels].keys.sort].hash
 
         if seen.member?(seen_key)
           dropped += 1
@@ -67,13 +71,21 @@ module FFWD::Plugin::GoogleCloud
       entries << what unless what.nil?
       entries = entries.join('.')
 
-      hash = attributes.keys.sort.hash.abs.to_s(32)
+      # ruby Object#hash is inconsistent across runs, so we will instead
+      # perform a custom hashing.
+      hash = hash_labels(attributes).to_s(32)
 
       unless entries.empty?
         "#{CUSTOM_PREFIX}/#{m.key}/#{entries}-#{hash}"
       else
         "#{CUSTOM_PREFIX}/#{m.key}-#{other_keys}"
       end
+    end
+
+    def self.hash_labels attributes
+      attributes.keys.sort.map{|v| Zlib::crc32(v.to_s)}.reduce(33){|k, v|
+        (63 * k + v).modulo(M64)
+      }
     end
 
     def self.make_labels attr
