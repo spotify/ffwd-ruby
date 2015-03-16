@@ -1,0 +1,9 @@
+#!/bin/bash
+
+ROOT=$(dirname $(dirname $0))
+
+for proto in $ROOT/proto/*.proto; do
+    protoc --java_out $ROOT/src/main/java $proto
+done
+
+sed -i 's/com\.google\.protobuf/com.spotify.ffwd.protobuf250/g' $(find $ROOT/src/main/java/com/aphyr -name '*.java')

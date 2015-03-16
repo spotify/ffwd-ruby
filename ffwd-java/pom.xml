@@ -16,8 +16,10 @@
     <module>core</module>
     <module>module</module>
     <module>agent</module>
+    <module>protobuf250</module>
 
     <module>modules/kafka</module>
+    <module>modules/riemann</module>
   </modules>
 
   <licenses>
@@ -63,6 +65,11 @@
       <dependency>
         <groupId>com.spotify.ffwd</groupId>
         <artifactId>ffwd-module-kafka</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.spotify.ffwd</groupId>
+        <artifactId>ffwd-protobuf250</artifactId>
         <version>${project.version}</version>
       </dependency>
 
