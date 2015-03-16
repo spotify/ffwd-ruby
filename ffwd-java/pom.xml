@@ -45,6 +45,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <skip.findbugs>true</skip.findbugs>
     <guice.version>4.0-beta5</guice.version>
+    <tiny-async.version>1.0.2</tiny-async.version>
   </properties>
 
   <dependencyManagement>
@@ -119,12 +120,12 @@
       <dependency>
         <groupId>eu.toolchain.async</groupId>
         <artifactId>tiny-async-api</artifactId>
-        <version>1.0.2</version>
+        <version>${tiny-async.version}</version>
       </dependency>
       <dependency>
         <groupId>eu.toolchain.async</groupId>
         <artifactId>tiny-async-core</artifactId>
-        <version>1.0.2</version>
+        <version>${tiny-async.version}</version>
       </dependency>
 
       <dependency>

@@ -15,6 +15,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
 import lombok.extern.slf4j.Slf4j;
@@ -188,7 +190,14 @@ public class AgentCore {
         modules.add(new AbstractModule() {
             @Singleton
             @Provides
-            private AsyncFramework async() {
+            private ExecutorService executor() {
+                return Executors.newFixedThreadPool(config.getAsyncThreads(),
+                        new ThreadFactoryBuilder().setNameFormat("ffwd-async-%d").build());
+            }
+
+            @Singleton
+            @Provides
+            private AsyncFramework async(ExecutorService executor) {
                 final AsyncCaller caller = new DirectAsyncCaller() {
                     @Override
                     protected void internalError(String what, Throwable e) {
@@ -196,7 +205,7 @@ public class AgentCore {
                     }
                 };
 
-                return TinyAsync.builder().caller(caller).build();
+                return TinyAsync.builder().executor(executor).caller(caller).build();
             }
 
             @Singleton

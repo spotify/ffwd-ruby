@@ -8,6 +8,7 @@ import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import com.spotify.ffwd.input.InputPlugin;
 import com.spotify.ffwd.output.OutputPlugin;
+import com.spotify.ffwd.serializer.Serializer;
 
 @Data
 public class PluginContextImpl implements PluginContext {
@@ -23,5 +24,10 @@ public class PluginContextImpl implements PluginContext {
     @Override
     public void registerOutput(String name, Class<? extends OutputPlugin> output) {
         module.registerSubtypes(new NamedType(output, name));
+    }
+
+    @Override
+    public void registerSerializer(String name, Class<? extends Serializer> serializer) {
+        module.registerSubtypes(new NamedType(serializer, name));
     }
 }

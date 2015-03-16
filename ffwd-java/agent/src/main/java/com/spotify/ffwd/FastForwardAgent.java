@@ -16,6 +16,7 @@ public class FastForwardAgent {
         modules.add(com.spotify.ffwd.debug.DebugModule.class);
         modules.add(com.spotify.ffwd.json.JsonModule.class);
         modules.add(com.spotify.ffwd.protobuf.ProtobufModule.class);
+        modules.add(com.spotify.ffwd.serializer.BuiltInSerializers.class);
 
         // additional
         modules.add(com.spotify.ffwd.kafka.KafkaModule.class);

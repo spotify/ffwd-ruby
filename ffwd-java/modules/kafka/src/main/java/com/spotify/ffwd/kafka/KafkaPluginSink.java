@@ -1,64 +1,123 @@
 package com.spotify.ffwd.kafka;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 import kafka.javaapi.producer.Producer;
 import kafka.producer.KeyedMessage;
 
+import com.google.inject.Inject;
 import com.spotify.ffwd.model.Event;
 import com.spotify.ffwd.model.Metric;
-import com.spotify.ffwd.output.AbstractPluginSink;
+import com.spotify.ffwd.output.BatchedPluginSink;
+import com.spotify.ffwd.serializer.Serializer;
 
-public class KafkaPluginSink extends AbstractPluginSink {
+import eu.toolchain.async.AsyncFramework;
+import eu.toolchain.async.AsyncFuture;
 
-    private final Producer<String, String> producer;
+public class KafkaPluginSink implements BatchedPluginSink {
+    @Inject
+    private AsyncFramework async;
 
-    private final KafkaRouter router;
+    @Inject
+    private Producer<String, ByteBuffer> producer;
 
-    public KafkaPluginSink(final Producer<String, String> producer, final Integer flushInterval, final KafkaRouter router) {
-        super(flushInterval);
-        this.producer = producer;
-        this.router = router;
+    @Inject
+    private KafkaRouter router;
+
+    @Inject
+    private Serializer serializer;
+
+    @Override
+    public AsyncFuture<Void> sendEvent(final Event event) {
+        return async.call(new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                producer.send(messageFor(event));
+                return null;
+            }
+        });
     }
 
     @Override
-    public void doSendEvent(final Event event) {
-        producer.send(createMessage(event));
+    public AsyncFuture<Void> sendMetric(final Metric metric) {
+        return async.call(new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                producer.send(messageFor(metric));
+                return null;
+            }
+        });
     }
 
     @Override
-    public void doSendMetric(final Metric metric) {
-        producer.send(createMessage(metric));
+    public AsyncFuture<Void> sendEvents(final Collection<Event> events) {
+        return async.call(new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                producer.send(messagesForEvents(events));
+                return null;
+            }
+        });
     }
 
     @Override
-    public void doSendAllEvents(final List<Event> events) {
-        producer.send(createMessages(events));
+    public AsyncFuture<Void> sendMetrics(final Collection<Metric> metrics) {
+        return async.call(new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                producer.send(messagesForMetrics(metrics));
+                return null;
+            }
+        });
     }
 
     @Override
-    public void doSendAllMetrics(final List<Metric> metrics) {
-        producer.send(createMessages(metrics));
+    public AsyncFuture<Void> start() {
+        return async.resolved(null);
     }
 
-    private <T> List<KeyedMessage<String, String>> createMessages(final List<T> elements) {
-        final List<KeyedMessage<String, String>> messages = new ArrayList<KeyedMessage<String,String>>();
-        for (final T e : elements) {
-            messages.add(createMessage(e));
-        }
+    @Override
+    public AsyncFuture<Void> stop() {
+        return async.call(new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                producer.close();
+                return null;
+            }
+        });
+    }
+
+    private <T> List<KeyedMessage<String, ByteBuffer>> messagesForMetrics(final Collection<Metric> metrics) {
+        final List<KeyedMessage<String, ByteBuffer>> messages = new ArrayList<>(metrics.size());
+
+        for (final Metric metric : metrics)
+            messages.add(messageFor(metric));
+
         return messages;
     }
 
-    private <T> KeyedMessage<String, String> createMessage(final T element) {
-        String topic = null;
-        if (element instanceof Event) {
-            topic = router.getEventTopic((Event) element);
-        } else if (element instanceof Metric) {
-            topic = router.getMetricTopic((Metric) element);
-        } else {
-            throw new IllegalArgumentException("Can only create kafka message for events and metrics. Given element: " + element);
-        }
-        return new KeyedMessage<String, String>(topic, element.toString());
+    private <T> List<KeyedMessage<String, ByteBuffer>> messagesForEvents(final Collection<Event> events) {
+        final List<KeyedMessage<String, ByteBuffer>> messages = new ArrayList<>(events.size());
+
+        for (final Event event : events)
+            messages.add(messageFor(event));
+
+        return messages;
+    }
+
+    private KeyedMessage<String, ByteBuffer> messageFor(final Metric event) {
+        final String topic = router.route(event);
+        final ByteBuffer payload = serializer.serialize(event);
+        return new KeyedMessage<String, ByteBuffer>(topic, payload);
+    }
+
+    private KeyedMessage<String, ByteBuffer> messageFor(final Event event) {
+        final String topic = router.route(event);
+        final ByteBuffer payload = serializer.serialize(event);
+        return new KeyedMessage<String, ByteBuffer>(topic, payload);
     }
 }

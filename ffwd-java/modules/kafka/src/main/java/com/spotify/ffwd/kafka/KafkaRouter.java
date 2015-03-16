@@ -6,13 +6,13 @@ import com.google.common.base.Optional;
 import com.spotify.ffwd.model.Event;
 import com.spotify.ffwd.model.Metric;
 
-
 public class KafkaRouter {
+    private static final String DEFAULT_ATTRIBUTE = "default";
 
     private String metricsTopicFormat = "metrics";
     private String eventsTopicFormat = "events";
 
-    private final String rountingAttribute;
+    private final String routingAttribute;
 
     public KafkaRouter() {
         this(null);
@@ -20,34 +20,35 @@ public class KafkaRouter {
 
     @JsonCreator
     public KafkaRouter(@JsonProperty("routingAttribute") final String rountingAttribute) {
-        this.rountingAttribute = Optional.fromNullable(rountingAttribute).orNull();
-        if (this.rountingAttribute != null) {
+        this.routingAttribute = Optional.fromNullable(rountingAttribute).orNull();
+
+        if (this.routingAttribute != null) {
             metricsTopicFormat += "-%s";
             eventsTopicFormat += "-%s";
         }
     }
 
-    public String getEventTopic(final Event event) {
-        if (rountingAttribute == null) {
-            return eventsTopicFormat;
-        }
-        String attr = event.getAttributes().get(rountingAttribute);
-        if (attr == null) {
-            attr = "default";
-        }
+    public String route(final Event event) {
+        if (routingAttribute == null)
+            return metricsTopicFormat;
 
-        return String.format(eventsTopicFormat, attr);
+        final String attr = event.getAttributes().get(routingAttribute);
+
+        if (attr != null)
+            return String.format(metricsTopicFormat, attr);
+
+        return String.format(metricsTopicFormat, DEFAULT_ATTRIBUTE);
     }
 
-    public String getMetricTopic(final Metric metric) {
-        if (rountingAttribute == null) {
+    public String route(final Metric metric) {
+        if (routingAttribute == null)
             return metricsTopicFormat;
-        }
-        String attr = metric.getAttributes().get(rountingAttribute);
-        if (attr == null) {
-            attr = "default";
-        }
 
-        return String.format(metricsTopicFormat, attr);
+        final String attr = metric.getAttributes().get(routingAttribute);
+
+        if (attr != null)
+            return String.format(metricsTopicFormat, attr);
+
+        return String.format(metricsTopicFormat, DEFAULT_ATTRIBUTE);
     }
 }

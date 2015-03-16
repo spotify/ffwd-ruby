@@ -17,6 +17,7 @@ import com.spotify.ffwd.output.OutputManagerModule;
 
 @Data
 public class AgentConfig {
+    public static final int DEFAULT_ASYNC_THREADS = 20;
     public static final int DEFAULT_BOSS_THREADS = 4;
     public static final int DEFAULT_WORKER_THREADS = 20;
 
@@ -26,6 +27,7 @@ public class AgentConfig {
 
     private final InputManagerModule input;
     private final OutputManagerModule output;
+    private final int asyncThreads;
     private final int bossThreads;
     private final int workerThreads;
     private final Map<String, String> attributes;
@@ -35,12 +37,13 @@ public class AgentConfig {
 
     @JsonCreator
     public AgentConfig(@JsonProperty("input") InputManagerModule input,
-            @JsonProperty("output") OutputManagerModule output, @JsonProperty("bossThreads") Integer bossThreads,
-            @JsonProperty("workerThreads") Integer workerThreads,
+            @JsonProperty("output") OutputManagerModule output, @JsonProperty("asyncThreads") Integer asyncThreads,
+            @JsonProperty("bossThreads") Integer bossThreads, @JsonProperty("workerThreads") Integer workerThreads,
             @JsonProperty("attributes") Map<String, String> attributes, @JsonProperty("tags") Set<String> tags,
             @JsonProperty("ttl") Long ttl, @JsonProperty("qlog") String qlog) {
         this.input = Optional.fromNullable(input).or(InputManagerModule.supplyDefault());
         this.output = Optional.fromNullable(output).or(OutputManagerModule.supplyDefault());
+        this.asyncThreads = Optional.fromNullable(asyncThreads).or(DEFAULT_ASYNC_THREADS);
         this.bossThreads = Optional.fromNullable(workerThreads).or(DEFAULT_BOSS_THREADS);
         this.workerThreads = Optional.fromNullable(workerThreads).or(DEFAULT_WORKER_THREADS);
         this.attributes = Optional.fromNullable(attributes).or(DEFAULT_ATTRIBUTES);
