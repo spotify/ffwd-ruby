@@ -31,12 +31,16 @@ public class RiemannDecoder extends MessageToMessageDecoder<RiemannFrame> {
     private void decodeOne(ChannelHandlerContext ctx, RiemannFrame in, List<Object> out) throws Exception {
         final List<Object> frames;
 
-        switch (in.getVersion()) {
-        case 0:
-            frames = decode0(in.getBuffer());
-            break;
-        default:
-            throw new CorruptedFrameException("invalid version: " + in.getVersion());
+        try {
+            switch (in.getVersion()) {
+            case 0:
+                frames = decode0(in.getBuffer());
+                break;
+            default:
+                throw new CorruptedFrameException("invalid version: " + in.getVersion());
+            }
+        } finally {
+            in.getBuffer().release();
         }
 
         if (frames != null) {

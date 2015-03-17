@@ -9,10 +9,10 @@
     <Logger name="com.spotify.ffwd" level="INFO" additivity="false">
       <AppenderRef ref="primary" />
     </Logger>
-    <Logger name="kafka" level="DEBUG" additivity="false">
+    <Logger name="kafka" level="INFO" additivity="false">
       <AppenderRef ref="primary" />
     </Logger>
-    <Logger name="io.netty" level="DEBUG" additivity="false">
+    <Logger name="io.netty" level="INFO" additivity="false">
       <AppenderRef ref="primary" />
     </Logger>
     <Root level="INFO">

@@ -34,16 +34,20 @@ public class RiemannResponder extends ChannelInboundHandlerAdapter {
     private ByteBuf ack(boolean ok) throws IOException {
         final Proto.Msg m = Proto.Msg.newBuilder().setOk(ok).build();
 
-        final ByteBufOutputStream output = new ByteBufOutputStream(Unpooled.buffer());
-        m.writeTo(output);
+        final ByteBuf b = Unpooled.buffer();
 
-        final ByteBuf frame = output.buffer();
+        try (final ByteBufOutputStream output = new ByteBufOutputStream(b)) {
+            m.writeTo(output);
 
-        final ByteBuf buffer = Unpooled.buffer(4 + frame.readableBytes());
+            final ByteBuf frame = output.buffer();
+            final ByteBuf buffer = Unpooled.buffer(4 + frame.readableBytes());
 
-        buffer.writeInt(frame.readableBytes());
-        buffer.writeBytes(frame);
+            buffer.writeInt(frame.readableBytes());
+            buffer.writeBytes(frame);
 
-        return buffer;
+            return buffer;
+        } finally {
+            b.release();
+        }
     }
 }

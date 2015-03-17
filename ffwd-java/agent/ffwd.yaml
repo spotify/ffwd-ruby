@@ -18,17 +18,21 @@ input:
     - type: protobuf
       protocol:
         type: tcp
-    - type: riemann
-      protocol:
-        type: tcp
+    #- type: riemann
+    #  protocol:
+    #    type: tcp
     - type: riemann
       protocol:
         type: udp
 
 output:
   plugins:
-    - type: debug
-      flushInterval: 10000
+    - type: riemann
+      protocol:
+        type: tcp
+        host: localhost
+    #- type: debug
+    #  flushInterval: 10000
     - type: kafka
       flushInterval: 10000
       serializer:

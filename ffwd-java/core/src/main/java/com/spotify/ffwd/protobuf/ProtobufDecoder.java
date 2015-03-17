@@ -55,17 +55,13 @@ public class ProtobufDecoder extends MessageToMessageDecoder<ByteBuf> {
             return;
         }
 
-        final int frameLength = (int) totalLength - 8;
-
-        final ByteBuf buffer = ctx.alloc().buffer(frameLength);
         in.skipBytes(8);
-        in.readBytes(buffer, frameLength);
 
         final Object frame;
 
         switch (version) {
         case 0:
-            frame = decodeFrame0(buffer);
+            frame = decodeFrame0(in);
             break;
         default:
             throw new IllegalArgumentException("Unsupported protocol version: " + version);
