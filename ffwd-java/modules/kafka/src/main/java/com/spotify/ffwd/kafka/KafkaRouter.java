@@ -52,7 +52,7 @@ public interface KafkaRouter {
             if (attr != null)
                 return String.format(metrics, attr);
 
-            return String.format(metrics, DEFAULT_ATTRIBUTE);
+            return String.format(metrics, DEFAULT);
         }
 
         public static Supplier<KafkaRouter> supplier() {
