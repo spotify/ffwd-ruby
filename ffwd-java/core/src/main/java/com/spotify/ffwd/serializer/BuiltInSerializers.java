@@ -11,5 +11,6 @@ public class BuiltInSerializers implements FastForwardModule {
     @Override
     public void setup() throws Exception {
         context.registerSerializer("spotify100", Spotify100Serializer.class);
+        context.registerSerializer("to-string", ToStringSerializer.class);
     }
 }

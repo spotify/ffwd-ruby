@@ -5,8 +5,10 @@ import java.util.Map;
 import java.util.Set;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
+@EqualsAndHashCode(of = { "key", "tags", "attributes" })
 public class Event {
     private final String key;
     private final double value;

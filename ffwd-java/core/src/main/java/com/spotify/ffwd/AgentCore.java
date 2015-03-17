@@ -50,6 +50,8 @@ import com.spotify.ffwd.protocol.ProtocolClients;
 import com.spotify.ffwd.protocol.ProtocolClientsImpl;
 import com.spotify.ffwd.protocol.ProtocolServers;
 import com.spotify.ffwd.protocol.ProtocolServersImpl;
+import com.spotify.ffwd.serializer.Serializer;
+import com.spotify.ffwd.serializer.ToStringSerializer;
 
 import eu.toolchain.async.AsyncCaller;
 import eu.toolchain.async.AsyncFramework;
@@ -228,8 +230,7 @@ public class AgentCore {
             @Provides
             @Named("application/json")
             public ObjectMapper jsonMapper() {
-                final ObjectMapper mapper = new ObjectMapper();
-                return mapper;
+                return new ObjectMapper();
             }
 
             @Singleton
@@ -240,6 +241,8 @@ public class AgentCore {
 
             @Override
             protected void configure() {
+                bind(Key.get(Serializer.class, Names.named("default"))).to(ToStringSerializer.class).in(
+                        Scopes.SINGLETON);
                 bind(Timer.class).to(HashedWheelTimer.class).in(Scopes.SINGLETON);
                 bind(ChannelUtils.class).in(Scopes.SINGLETON);
                 bind(ProtocolServers.class).to(ProtocolServersImpl.class).in(Scopes.SINGLETON);

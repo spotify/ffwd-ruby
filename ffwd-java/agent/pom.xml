@@ -30,6 +30,10 @@
       <groupId>com.spotify.ffwd</groupId>
       <artifactId>ffwd-module-kafka</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.spotify.ffwd</groupId>
+      <artifactId>ffwd-module-riemann</artifactId>
+    </dependency>
 
     <!-- logging -->
     <dependency>

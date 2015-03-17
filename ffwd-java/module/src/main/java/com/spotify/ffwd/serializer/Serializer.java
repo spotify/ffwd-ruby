@@ -1,14 +1,12 @@
 package com.spotify.ffwd.serializer;
 
-import java.nio.ByteBuffer;
-
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.spotify.ffwd.model.Event;
 import com.spotify.ffwd.model.Metric;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 public interface Serializer {
-    ByteBuffer serialize(Event event);
+    byte[] serialize(Event event) throws Exception;
 
-    ByteBuffer serialize(Metric metric);
+    byte[] serialize(Metric metric) throws Exception;
 }

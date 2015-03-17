@@ -1,6 +1,5 @@
 package com.spotify.ffwd.kafka;
 
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -23,10 +22,13 @@ public class KafkaPluginSink implements BatchedPluginSink {
     private AsyncFramework async;
 
     @Inject
-    private Producer<String, ByteBuffer> producer;
+    private Producer<String, byte[]> producer;
 
     @Inject
     private KafkaRouter router;
+
+    @Inject
+    private KafkaPartitioner partitioner;
 
     @Inject
     private Serializer serializer;
@@ -91,8 +93,9 @@ public class KafkaPluginSink implements BatchedPluginSink {
         });
     }
 
-    private <T> List<KeyedMessage<String, ByteBuffer>> messagesForMetrics(final Collection<Metric> metrics) {
-        final List<KeyedMessage<String, ByteBuffer>> messages = new ArrayList<>(metrics.size());
+    private <T> List<KeyedMessage<String, byte[]>> messagesForMetrics(final Collection<Metric> metrics)
+            throws Exception {
+        final List<KeyedMessage<String, byte[]>> messages = new ArrayList<>(metrics.size());
 
         for (final Metric metric : metrics)
             messages.add(messageFor(metric));
@@ -100,8 +103,8 @@ public class KafkaPluginSink implements BatchedPluginSink {
         return messages;
     }
 
-    private <T> List<KeyedMessage<String, ByteBuffer>> messagesForEvents(final Collection<Event> events) {
-        final List<KeyedMessage<String, ByteBuffer>> messages = new ArrayList<>(events.size());
+    private <T> List<KeyedMessage<String, byte[]>> messagesForEvents(final Collection<Event> events) throws Exception {
+        final List<KeyedMessage<String, byte[]>> messages = new ArrayList<>(events.size());
 
         for (final Event event : events)
             messages.add(messageFor(event));
@@ -109,15 +112,17 @@ public class KafkaPluginSink implements BatchedPluginSink {
         return messages;
     }
 
-    private KeyedMessage<String, ByteBuffer> messageFor(final Metric event) {
-        final String topic = router.route(event);
-        final ByteBuffer payload = serializer.serialize(event);
-        return new KeyedMessage<String, ByteBuffer>(topic, payload);
+    private KeyedMessage<String, byte[]> messageFor(final Metric metric) throws Exception {
+        final String topic = router.route(metric);
+        final String partition = partitioner.partition(metric);
+        final byte[] payload = serializer.serialize(metric);
+        return new KeyedMessage<>(topic, partition, payload);
     }
 
-    private KeyedMessage<String, ByteBuffer> messageFor(final Event event) {
+    private KeyedMessage<String, byte[]> messageFor(final Event event) throws Exception {
         final String topic = router.route(event);
-        final ByteBuffer payload = serializer.serialize(event);
-        return new KeyedMessage<String, ByteBuffer>(topic, payload);
+        final String partition = partitioner.partition(event);
+        final byte[] payload = serializer.serialize(event);
+        return new KeyedMessage<>(topic, partition, payload);
     }
 }
