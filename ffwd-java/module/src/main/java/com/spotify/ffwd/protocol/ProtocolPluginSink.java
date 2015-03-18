@@ -1,26 +1,20 @@
-package com.spotify.ffwd.riemann;
+package com.spotify.ffwd.protocol;
 
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicReference;
 
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
 
 import com.google.inject.Inject;
 import com.spotify.ffwd.model.Event;
 import com.spotify.ffwd.model.Metric;
 import com.spotify.ffwd.output.BatchedPluginSink;
-import com.spotify.ffwd.protocol.Protocol;
-import com.spotify.ffwd.protocol.ProtocolClient;
-import com.spotify.ffwd.protocol.ProtocolClients;
-import com.spotify.ffwd.protocol.ProtocolConnection;
-import com.spotify.ffwd.protocol.RetryPolicy;
 
 import eu.toolchain.async.AsyncFramework;
 import eu.toolchain.async.AsyncFuture;
 import eu.toolchain.async.LazyTransform;
 
-@Slf4j
-public class RiemannPluginSink implements BatchedPluginSink {
+public class ProtocolPluginSink implements BatchedPluginSink {
     @Inject
     private AsyncFramework async;
 
@@ -36,6 +30,9 @@ public class RiemannPluginSink implements BatchedPluginSink {
     @Inject
     private RetryPolicy retry;
 
+    @Inject
+    private Logger log;
+
     private final AtomicReference<ProtocolConnection> connection = new AtomicReference<>();
 
     @Override
@@ -43,7 +40,7 @@ public class RiemannPluginSink implements BatchedPluginSink {
         final ProtocolConnection c = connection.get();
 
         if (c == null)
-            throw new IllegalStateException("not connected");
+            return async.failed(new IllegalStateException("not connected to " + protocol));
 
         return c.send(event);
     }
@@ -53,7 +50,7 @@ public class RiemannPluginSink implements BatchedPluginSink {
         final ProtocolConnection c = connection.get();
 
         if (c == null)
-            throw new IllegalStateException("not connected");
+            return async.failed(new IllegalStateException("not connected to " + protocol));
 
         return c.send(metric);
     }
@@ -63,7 +60,7 @@ public class RiemannPluginSink implements BatchedPluginSink {
         final ProtocolConnection c = connection.get();
 
         if (c == null)
-            throw new IllegalStateException("not connected");
+            return async.failed(new IllegalStateException("not connected to " + protocol));
 
         return c.sendAll(events);
     }
@@ -73,7 +70,7 @@ public class RiemannPluginSink implements BatchedPluginSink {
         final ProtocolConnection c = connection.get();
 
         if (c == null)
-            throw new IllegalStateException("not connected");
+            return async.failed(new IllegalStateException("not connected to " + protocol));
 
         return c.sendAll(metrics);
     }
@@ -99,5 +96,15 @@ public class RiemannPluginSink implements BatchedPluginSink {
             return async.resolved(null);
 
         return c.stop();
+    }
+
+    @Override
+    public boolean isReady() {
+        final ProtocolConnection c = connection.get();
+
+        if (c == null)
+            return false;
+
+        return c.isConnected();
     }
 }

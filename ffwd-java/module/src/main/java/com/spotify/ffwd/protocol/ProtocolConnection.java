@@ -10,4 +10,6 @@ public interface ProtocolConnection {
     public AsyncFuture<Void> stop();
 
     public AsyncFuture<Void> sendAll(Collection<? extends Object> batch);
+
+    public boolean isConnected();
 }

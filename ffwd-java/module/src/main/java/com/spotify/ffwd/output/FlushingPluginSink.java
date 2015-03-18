@@ -117,6 +117,11 @@ public class FlushingPluginSink implements PluginSink {
         });
     }
 
+    @Override
+    public boolean isReady() {
+        return sink.isReady();
+    }
+
     private AsyncFuture<Void> flush(final Batch nextBatch) {
         final Batch batch;
 
@@ -136,7 +141,6 @@ public class FlushingPluginSink implements PluginSink {
         return async.collectAndDiscard(futures).on(new FutureDone<Void>() {
             @Override
             public void failed(Throwable cause) throws Exception {
-                log.error("Failed to flush batch", cause);
                 batch.future.fail(cause);
             }
 

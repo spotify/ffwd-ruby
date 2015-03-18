@@ -22,18 +22,18 @@ import com.spotify.ffwd.model.Event;
 import com.spotify.ffwd.model.Metric;
 import com.spotify.ffwd.protobuf250.InvalidProtocolBufferException;
 
-public class RiemannSerializer {
-    public List<Object> decode0(ByteBuf buffer) throws IOException {
-        final Proto.Msg message;
-
+public class RiemannSerialization {
+    public Proto.Msg parse0(ByteBuf buffer) throws IOException {
         final InputStream inputStream = new ByteBufInputStream(buffer);
 
         try {
-            message = Proto.Msg.parseFrom(inputStream);
+            return Proto.Msg.parseFrom(inputStream);
         } catch (final InvalidProtocolBufferException e) {
             throw new IOException("Invalid protobuf message", e);
         }
+    }
 
+    public List<Object> decode0(Proto.Msg message) throws IOException {
         final List<com.aphyr.riemann.Proto.Event> source = message.getEventsList();
 
         if (source.isEmpty())

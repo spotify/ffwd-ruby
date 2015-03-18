@@ -25,4 +25,6 @@ public interface PluginSink {
     public AsyncFuture<Void> start();
 
     public AsyncFuture<Void> stop();
+
+    public boolean isReady();
 }

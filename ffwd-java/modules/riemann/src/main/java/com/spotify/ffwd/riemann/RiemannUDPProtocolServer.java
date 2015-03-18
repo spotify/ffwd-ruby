@@ -17,16 +17,17 @@ public class RiemannUDPProtocolServer implements ProtocolServer {
     private ChannelInboundHandler handler;
 
     @Inject
-    private RiemannDecoder decoder;
+    private RiemannMessageDecoder messageDecoder;
 
-    private final RiemannFrameDecoder frameDecoder = new RiemannFrameDecoder();
+    @Inject
+    private RiemannDatagramDecoder datagramDecoder;
 
     @Override
     public final ChannelInitializer<Channel> initializer() {
         return new ChannelInitializer<Channel>() {
             @Override
             protected void initChannel(Channel ch) throws Exception {
-                ch.pipeline().addLast(new RiemannDatagramToFrame(), decoder, handler);
+                ch.pipeline().addLast(datagramDecoder, messageDecoder, handler);
             }
         };
     }

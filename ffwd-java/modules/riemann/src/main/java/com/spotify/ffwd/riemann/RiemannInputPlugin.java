@@ -1,5 +1,9 @@
 package com.spotify.ffwd.riemann;
 
+import lombok.extern.slf4j.Slf4j;
+
+import org.slf4j.Logger;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Optional;
@@ -11,10 +15,12 @@ import com.spotify.ffwd.input.InputPlugin;
 import com.spotify.ffwd.input.PluginSource;
 import com.spotify.ffwd.protocol.Protocol;
 import com.spotify.ffwd.protocol.ProtocolFactory;
+import com.spotify.ffwd.protocol.ProtocolPluginSource;
 import com.spotify.ffwd.protocol.ProtocolServer;
 import com.spotify.ffwd.protocol.ProtocolType;
 import com.spotify.ffwd.protocol.RetryPolicy;
 
+@Slf4j
 public class RiemannInputPlugin implements InputPlugin {
     private static final ProtocolType DEFAULT_PROTOCOL = ProtocolType.TCP;
     private static final int DEFAULT_PORT = 5555;
@@ -49,10 +55,16 @@ public class RiemannInputPlugin implements InputPlugin {
             protected void configure() {
                 bind(ProtocolServer.class).to(protocolServer).in(Scopes.SINGLETON);
                 bind(Protocol.class).toInstance(protocol);
-                bind(RiemannDecoder.class).in(Scopes.SINGLETON);
+
+                bind(RiemannFrameDecoder.class);
+                bind(RiemannResponder.class).in(Scopes.SINGLETON);
+                bind(RiemannDatagramDecoder.class).in(Scopes.SINGLETON);
+                bind(RiemannMessageDecoder.class).in(Scopes.SINGLETON);
+                bind(Logger.class).toInstance(log);
+
                 bind(RetryPolicy.class).toInstance(retry);
 
-                bind(key).to(RiemannPluginSource.class).in(Scopes.SINGLETON);
+                bind(key).to(ProtocolPluginSource.class).in(Scopes.SINGLETON);
                 expose(key);
             }
         };

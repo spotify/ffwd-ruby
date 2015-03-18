@@ -1,23 +1,17 @@
-package com.spotify.ffwd.riemann;
+package com.spotify.ffwd.protocol;
 
 import java.util.concurrent.atomic.AtomicReference;
 
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
 
 import com.google.inject.Inject;
 import com.spotify.ffwd.input.PluginSource;
-import com.spotify.ffwd.protocol.Protocol;
-import com.spotify.ffwd.protocol.ProtocolConnection;
-import com.spotify.ffwd.protocol.ProtocolServer;
-import com.spotify.ffwd.protocol.ProtocolServers;
-import com.spotify.ffwd.protocol.RetryPolicy;
 
 import eu.toolchain.async.AsyncFramework;
 import eu.toolchain.async.AsyncFuture;
 import eu.toolchain.async.Transform;
 
-@Slf4j
-public class RiemannPluginSource implements PluginSource {
+public class ProtocolPluginSource implements PluginSource {
     @Inject
     private AsyncFramework async;
 
@@ -32,6 +26,9 @@ public class RiemannPluginSource implements PluginSource {
 
     @Inject
     private RetryPolicy retry;
+
+    @Inject
+    private Logger log;
 
     private final AtomicReference<ProtocolConnection> connection = new AtomicReference<>();
 

@@ -7,8 +7,16 @@ import io.netty.handler.codec.CorruptedFrameException;
 
 import java.util.List;
 
+import com.google.inject.Inject;
+
+/**
+ * Parses and unpacks length-prefixed streams of Proto.Msg messages.
+ */
 public class RiemannFrameDecoder extends ByteToMessageDecoder {
     private static final int MAX_SIZE = 0xffffff;
+
+    @Inject
+    private RiemannSerialization serializer;
 
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
@@ -28,6 +36,10 @@ public class RiemannFrameDecoder extends ByteToMessageDecoder {
         in.skipBytes(4);
         final ByteBuf frame = in.readBytes(intLength);
 
-        out.add(new RiemannFrame(0, frame));
+        try {
+            out.add(serializer.parse0(frame));
+        } finally {
+            frame.release();
+        }
     }
 }

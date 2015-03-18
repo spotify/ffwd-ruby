@@ -23,7 +23,7 @@ public class RiemannTCPProtocolClient implements ProtocolClient {
     private static final int WARNING_ACK_THRESHOLD = 100;
 
     @Inject
-    private RiemannSerializer serializer;
+    private RiemannSerialization serializer;
 
     private final AtomicInteger pending = new AtomicInteger();
 

@@ -96,6 +96,12 @@ public class KafkaPluginSink implements BatchedPluginSink {
         });
     }
 
+    @Override
+    public boolean isReady() {
+        // TODO: how to check that producer is ready?
+        return true;
+    }
+
     private <T> List<KeyedMessage<byte[], byte[]>> messagesForMetrics(final Collection<Metric> metrics)
             throws Exception {
         final List<KeyedMessage<byte[], byte[]>> messages = new ArrayList<>(metrics.size());

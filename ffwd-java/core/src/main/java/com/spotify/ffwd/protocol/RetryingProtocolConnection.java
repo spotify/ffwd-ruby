@@ -78,7 +78,7 @@ public class RetryingProtocolConnection implements ProtocolConnection {
     }
 
     /**
-     * Successfully connected, setting channel.
+     * Successfully connected, set channel to indicate that we are connected.
      */
     private void setChannel(Channel c) {
         synchronized ($lock) {
@@ -137,7 +137,7 @@ public class RetryingProtocolConnection implements ProtocolConnection {
         final Channel c = channel.get();
 
         if (c == null)
-            throw new IllegalStateException("not connected");
+            return async.failed(new IllegalStateException("not connected"));
 
         final ResolvableFuture<Void> future = async.future();
 
@@ -158,6 +158,16 @@ public class RetryingProtocolConnection implements ProtocolConnection {
     @Override
     public AsyncFuture<Void> sendAll(Collection<? extends Object> batch) {
         return send(batch);
+    }
+
+    @Override
+    public boolean isConnected() {
+        final Channel c = channel.get();
+
+        if (c == null)
+            return false;
+
+        return c.isActive();
     }
 
     /**
