@@ -10,6 +10,7 @@ import com.spotify.ffwd.protocol.Protocol;
 import com.spotify.ffwd.protocol.ProtocolConnection;
 import com.spotify.ffwd.protocol.ProtocolServer;
 import com.spotify.ffwd.protocol.ProtocolServers;
+import com.spotify.ffwd.protocol.RetryPolicy;
 
 import eu.toolchain.async.AsyncFramework;
 import eu.toolchain.async.AsyncFuture;
@@ -29,11 +30,14 @@ public class RiemannPluginSource implements PluginSource {
     @Inject
     private ProtocolServer server;
 
+    @Inject
+    private RetryPolicy retry;
+
     private final AtomicReference<ProtocolConnection> connection = new AtomicReference<>();
 
     @Override
     public AsyncFuture<Void> start() {
-        return servers.bind(log, protocol, server).transform(new Transform<ProtocolConnection, Void>() {
+        return servers.bind(log, protocol, server, retry).transform(new Transform<ProtocolConnection, Void>() {
             @Override
             public Void transform(ProtocolConnection c) throws Exception {
                 if (!connection.compareAndSet(null, c))

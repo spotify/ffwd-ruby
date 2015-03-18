@@ -13,6 +13,7 @@ import com.spotify.ffwd.protocol.Protocol;
 import com.spotify.ffwd.protocol.ProtocolClient;
 import com.spotify.ffwd.protocol.ProtocolClients;
 import com.spotify.ffwd.protocol.ProtocolConnection;
+import com.spotify.ffwd.protocol.RetryPolicy;
 
 import eu.toolchain.async.AsyncFramework;
 import eu.toolchain.async.AsyncFuture;
@@ -31,6 +32,9 @@ public class RiemannPluginSink implements BatchedPluginSink {
 
     @Inject
     private ProtocolClient client;
+
+    @Inject
+    private RetryPolicy retry;
 
     private final AtomicReference<ProtocolConnection> connection = new AtomicReference<>();
 
@@ -76,7 +80,7 @@ public class RiemannPluginSink implements BatchedPluginSink {
 
     @Override
     public AsyncFuture<Void> start() {
-        return clients.connect(log, protocol, client).transform(new LazyTransform<ProtocolConnection, Void>() {
+        return clients.connect(log, protocol, client, retry).transform(new LazyTransform<ProtocolConnection, Void>() {
             @Override
             public AsyncFuture<Void> transform(ProtocolConnection result) throws Exception {
                 if (!connection.compareAndSet(null, result))

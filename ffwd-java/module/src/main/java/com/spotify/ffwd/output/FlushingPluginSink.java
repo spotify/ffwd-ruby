@@ -20,6 +20,7 @@ import eu.toolchain.async.AsyncFuture;
 import eu.toolchain.async.FutureDone;
 import eu.toolchain.async.LazyTransform;
 import eu.toolchain.async.ResolvableFuture;
+import eu.toolchain.async.Transform;
 
 /**
  * Facade implementation of a plugin sink that receives metrics and events, puts them on a buffer, then flushes them at
@@ -72,9 +73,9 @@ public class FlushingPluginSink implements PluginSink {
     public AsyncFuture<Void> start() {
         next.set(new Batch(async.<Void> future()));
 
-        return async.call(new Callable<Void>() {
+        return sink.start().transform(new Transform<Void, Void>() {
             @Override
-            public Void call() throws Exception {
+            public Void transform(Void result) throws Exception {
                 scheduler.scheduleWithFixedDelay(new Runnable() {
                     @Override
                     public void run() {

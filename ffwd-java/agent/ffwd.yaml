@@ -28,25 +28,26 @@ input:
 output:
   plugins:
     - type: riemann
+      flushInterval: 10000
       protocol:
         type: tcp
         host: localhost
     #- type: debug
     #  flushInterval: 10000
-    - type: kafka
-      flushInterval: 10000
-      serializer:
-        type: spotify100
-      router:
-        type: attribute
-        attribute: pod
-      partitioner:
-        type: attribute
-        attribute: host
-      producer:
-        metadata.broker.list: localhost:9092
-        request.required.acks: 1
-        request.timeout.ms: 1000
+    #- type: kafka
+    #  flushInterval: 10000
+    #  serializer:
+    #    type: spotify100
+    #  router:
+    #    type: attribute
+    #    attribute: pod
+    #  partitioner:
+    #    type: attribute
+    #    attribute: host
+    #  producer:
+    #    metadata.broker.list: localhost:9092
+    #    request.required.acks: 1
+    #    request.timeout.ms: 1000
 
 
 qlog: ./queue/

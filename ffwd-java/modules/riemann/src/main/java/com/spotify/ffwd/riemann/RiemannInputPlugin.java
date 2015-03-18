@@ -13,6 +13,7 @@ import com.spotify.ffwd.protocol.Protocol;
 import com.spotify.ffwd.protocol.ProtocolFactory;
 import com.spotify.ffwd.protocol.ProtocolServer;
 import com.spotify.ffwd.protocol.ProtocolType;
+import com.spotify.ffwd.protocol.RetryPolicy;
 
 public class RiemannInputPlugin implements InputPlugin {
     private static final ProtocolType DEFAULT_PROTOCOL = ProtocolType.TCP;
@@ -20,11 +21,15 @@ public class RiemannInputPlugin implements InputPlugin {
 
     private final Protocol protocol;
     private final Class<? extends ProtocolServer> protocolServer;
+    private final RetryPolicy retry;
 
     @JsonCreator
-    public RiemannInputPlugin(@JsonProperty("protocol") ProtocolFactory protocol) {
-        this.protocol = Optional.of(protocol).or(ProtocolFactory.defaultFor()).protocol(DEFAULT_PROTOCOL, DEFAULT_PORT);
+    public RiemannInputPlugin(@JsonProperty("protocol") ProtocolFactory protocol,
+            @JsonProperty("retry") RetryPolicy retry) {
+        this.protocol = Optional.fromNullable(protocol).or(ProtocolFactory.defaultFor())
+                .protocol(DEFAULT_PROTOCOL, DEFAULT_PORT);
         this.protocolServer = parseProtocolServer();
+        this.retry = Optional.fromNullable(retry).or(new RetryPolicy.Exponential());
     }
 
     private Class<? extends ProtocolServer> parseProtocolServer() {
@@ -45,6 +50,7 @@ public class RiemannInputPlugin implements InputPlugin {
                 bind(ProtocolServer.class).to(protocolServer).in(Scopes.SINGLETON);
                 bind(Protocol.class).toInstance(protocol);
                 bind(RiemannDecoder.class).in(Scopes.SINGLETON);
+                bind(RetryPolicy.class).toInstance(retry);
 
                 bind(key).to(RiemannPluginSource.class).in(Scopes.SINGLETON);
                 expose(key);

@@ -13,10 +13,11 @@ import com.spotify.ffwd.protocol.Protocol;
 import com.spotify.ffwd.protocol.ProtocolFactory;
 import com.spotify.ffwd.protocol.ProtocolServer;
 import com.spotify.ffwd.protocol.ProtocolType;
+import com.spotify.ffwd.protocol.RetryPolicy;
 
 public class JsonInputPlugin implements InputPlugin {
     private static final ProtocolType DEFAULT_PROTOCOL = ProtocolType.UDP;
-    private static final int DEFAULT_PORT = 19090;
+    private static final int DEFAULT_PORT = 19000;
 
     private static final String FRAME = "frame";
     private static final String LINE = "line";
@@ -25,13 +26,15 @@ public class JsonInputPlugin implements InputPlugin {
 
     private final Protocol protocol;
     private final Class<? extends ProtocolServer> protocolServer;
+    private final RetryPolicy retry;
 
     @JsonCreator
     public JsonInputPlugin(@JsonProperty("protocol") ProtocolFactory protocol,
-            @JsonProperty("delimiter") String delimiter) {
+            @JsonProperty("delimiter") String delimiter, @JsonProperty("retry") RetryPolicy retry) {
         this.protocol = Optional.fromNullable(protocol).or(ProtocolFactory.defaultFor())
                 .protocol(DEFAULT_PROTOCOL, DEFAULT_PORT);
         this.protocolServer = parseProtocolServer(Optional.fromNullable(delimiter).or(defaultDelimiter()));
+        this.retry = Optional.fromNullable(retry).or(new RetryPolicy.Exponential());
     }
 
     private String defaultDelimiter() {
@@ -73,6 +76,8 @@ public class JsonInputPlugin implements InputPlugin {
                 bind(JsonObjectMapperDecoder.class).in(Scopes.SINGLETON);
                 bind(Protocol.class).toInstance(protocol);
                 bind(ProtocolServer.class).to(protocolServer).in(Scopes.SINGLETON);
+                bind(RetryPolicy.class).toInstance(retry);
+
                 bind(key).to(JsonPluginSource.class).in(Scopes.SINGLETON);
                 expose(key);
             }

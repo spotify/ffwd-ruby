@@ -5,6 +5,7 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 
 import java.util.Collection;
+import java.util.concurrent.ExecutionException;
 
 import lombok.RequiredArgsConstructor;
 import eu.toolchain.async.AsyncFramework;
@@ -23,12 +24,11 @@ public class ProtocolConnectionImpl implements ProtocolConnection {
         channel.close().addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(ChannelFuture c) throws Exception {
-                if (c.isSuccess()) {
-                    future.resolve(null);
-                    return;
+                try {
+                    future.resolve(c.get());
+                } catch (ExecutionException e) {
+                    future.fail(e.getCause());
                 }
-
-                future.fail(c.cause());
             }
         });
 
@@ -42,12 +42,11 @@ public class ProtocolConnectionImpl implements ProtocolConnection {
         channel.writeAndFlush(message).addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(ChannelFuture f) throws Exception {
-                if (f.isSuccess()) {
-                    future.resolve(null);
-                    return;
+                try {
+                    future.resolve(f.get());
+                } catch (ExecutionException e) {
+                    future.fail(e.getCause());
                 }
-
-                future.fail(f.cause());
             }
         });
 

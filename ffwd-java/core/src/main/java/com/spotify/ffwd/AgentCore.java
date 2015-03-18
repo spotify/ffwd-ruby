@@ -45,7 +45,6 @@ import com.spotify.ffwd.module.PluginContext;
 import com.spotify.ffwd.module.PluginContextImpl;
 import com.spotify.ffwd.output.OutputManager;
 import com.spotify.ffwd.output.OutputPlugin;
-import com.spotify.ffwd.protocol.ChannelUtils;
 import com.spotify.ffwd.protocol.ProtocolClients;
 import com.spotify.ffwd.protocol.ProtocolClientsImpl;
 import com.spotify.ffwd.protocol.ProtocolServers;
@@ -244,7 +243,6 @@ public class AgentCore {
                 bind(Key.get(Serializer.class, Names.named("default"))).to(ToStringSerializer.class).in(
                         Scopes.SINGLETON);
                 bind(Timer.class).to(HashedWheelTimer.class).in(Scopes.SINGLETON);
-                bind(ChannelUtils.class).in(Scopes.SINGLETON);
                 bind(ProtocolServers.class).to(ProtocolServersImpl.class).in(Scopes.SINGLETON);
                 bind(ProtocolClients.class).to(ProtocolClientsImpl.class).in(Scopes.SINGLETON);
             }

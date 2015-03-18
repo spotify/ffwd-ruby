@@ -13,6 +13,7 @@ import com.spotify.ffwd.protocol.Protocol;
 import com.spotify.ffwd.protocol.ProtocolFactory;
 import com.spotify.ffwd.protocol.ProtocolServer;
 import com.spotify.ffwd.protocol.ProtocolType;
+import com.spotify.ffwd.protocol.RetryPolicy;
 
 public class ProtobufInputPlugin implements InputPlugin {
     private static final ProtocolType DEFAULT_PROTOCOL = ProtocolType.UDP;
@@ -20,11 +21,15 @@ public class ProtobufInputPlugin implements InputPlugin {
 
     private final Protocol protocol;
     private final Class<? extends ProtocolServer> protocolServer;
+    private final RetryPolicy retry;
 
     @JsonCreator
-    public ProtobufInputPlugin(@JsonProperty("protocol") ProtocolFactory protocol) {
-        this.protocol = Optional.of(protocol).or(ProtocolFactory.defaultFor()).protocol(DEFAULT_PROTOCOL, DEFAULT_PORT);
+    public ProtobufInputPlugin(@JsonProperty("protocol") ProtocolFactory protocol,
+            @JsonProperty("retry") RetryPolicy retry) {
+        this.protocol = Optional.fromNullable(protocol).or(ProtocolFactory.defaultFor())
+                .protocol(DEFAULT_PROTOCOL, DEFAULT_PORT);
         this.protocolServer = parseProtocolServer();
+        this.retry = Optional.fromNullable(retry).or(new RetryPolicy.Exponential());
     }
 
     private Class<? extends ProtocolServer> parseProtocolServer() {
@@ -44,6 +49,7 @@ public class ProtobufInputPlugin implements InputPlugin {
             protected void configure() {
                 bind(ProtocolServer.class).to(protocolServer).in(Scopes.SINGLETON);
                 bind(Protocol.class).toInstance(protocol);
+                bind(RetryPolicy.class).toInstance(retry);
                 bind(ProtobufDecoder.class).in(Scopes.SINGLETON);
 
                 bind(key).to(ProtobufPluginSource.class).in(Scopes.SINGLETON);
