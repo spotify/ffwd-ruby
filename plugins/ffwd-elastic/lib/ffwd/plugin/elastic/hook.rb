@@ -58,7 +58,7 @@ module FFWD::Plugin::Elastic
       body = Utils.make_bulk_body(metrics)
 
       body = body.map { |row| JSON.dump(row) }
-      body = body.join("\n")
+      body = body.join("\n") + "\n"
 
       index = '%s-%s' % [@index, Time.now.strftime('%Y.%m.%d')]
 
