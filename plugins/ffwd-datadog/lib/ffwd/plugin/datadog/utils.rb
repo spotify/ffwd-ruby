@@ -35,8 +35,18 @@ module FFWD::Plugin::Datadog
     # make safe entry out of available information.
     def self.safe_entry entry
       host = entry[:host]
-      metric = entry[:name]
       tags = entry[:attributes]
+
+      what ||= entry.delete(:what)
+      what ||= entry.delete("what")
+
+      unless what.nil?
+        metric = what
+        tags = tags.merge({:ffwd_key => entry[:name]})
+      else
+        metric = entry[:name]
+      end
+
       {:host => host, :metric => safe_string(metric), :tags => safe_tags(tags)}
     end
 

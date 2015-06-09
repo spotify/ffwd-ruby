@@ -22,5 +22,11 @@ describe FFWD::Plugin::Datadog::Utils do
       ref = {:metric=>"name", :host => :host, :tags=>["foo:bar_baz"]}
       expect(described_class.safe_entry(entry)).to eq(ref)
     end
+
+    it "should use 'what' attribute as the datadog metric name" do
+      entry = {:name => :name, :host => :host, :attributes => {:foo => "bar baz"}, :what => "thing"}
+      ref = {:metric=>"thing", :host => :host, :tags=>["foo:bar_baz", "ffwd_key:#{:name}"]}
+      expect(described_class.safe_entry(entry)).to eq(ref)
+    end
   end
 end
