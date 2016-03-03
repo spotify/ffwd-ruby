@@ -13,8 +13,6 @@ $ gem install ffwd
 :input:
   - :type: "json"
     :kind: :line
-
-:input:
   - :type: "json"
     :kind: :frame
 
