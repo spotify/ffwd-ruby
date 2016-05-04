@@ -38,7 +38,7 @@ module FFWD::Plugin::KairosDB
     config[:flush_interval] ||= DEFAULT_FLUSH_INTERVAL
     config[:buffer_limit] ||= DEFAULT_BUFFER_LIMIT
 
-    hook = Hook.new(config[:url])
+    hook = Hook.new(config)
 
     FFWD.flushing_output log, hook, config
   end

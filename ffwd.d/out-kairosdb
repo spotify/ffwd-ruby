@@ -1,3 +1,6 @@
 :output:
   - :type: "kairosdb"
     :url: "http://localhost:8888"
+    # Uncomment the following to enable basic auth.
+    # https://github.com/igrigorik/em-http-request/wiki/Basic-Auth-and-OAuth
+    #:authorization: ['user', 'pass']
