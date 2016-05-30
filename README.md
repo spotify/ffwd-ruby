@@ -2,6 +2,8 @@
 
 [![Build Status](https://travis-ci.org/spotify/ffwd.svg?branch=master)](https://travis-ci.org/spotify/ffwd)
 
+**This project is actively being deprecated in favor of [ffwd-java](https://github.com/spotify/ffwd-java)**.
+
 ffwd is a flexible event and metric forwarding agent.
 It is intended to run locally on the system and receive events and metrics
 through a wide set of protocols and then forward them to your database.
