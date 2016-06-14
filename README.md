@@ -16,7 +16,7 @@ By doing this, the application generating the data becomes simpler to build,
 maintain, and configure since it doesn't have to know _where_ it is running.
 Only that ffwd is available on the loopback interface.
 
-This also provides benefits for simpler protocols, like [plaintext carbon](http://graphite.readthedocs.org/en/latest/feeding-carbon.html#the-plaintext-protocol),
+This also provides benefits for simpler protocols, like [plaintext carbon](https://graphite.readthedocs.io/en/latest/feeding-carbon.html#the-plaintext-protocol),
 where this kind of information can become painful to represent in the limited
 structure available.
 
