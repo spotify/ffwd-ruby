@@ -25,11 +25,11 @@ module FFWD::Plugin::KairosDB
       "Content-Type" => "application/json"
     }
 
-    API_PATH = "/api/v1/series"
+    API_PATH = "/api/v1/datapoints"
 
-    def initialize url
+    def initialize config
       @c = nil
-      @url = url
+      @config = config
     end
 
     def active?
@@ -37,7 +37,7 @@ module FFWD::Plugin::KairosDB
     end
 
     def connect
-      @c = EM::HttpRequest.new(@url)
+      @c = EM::HttpRequest.new(@config[:url])
     end
 
     def close
@@ -48,11 +48,15 @@ module FFWD::Plugin::KairosDB
     def send metrics
       metrics = Utils.make_metrics(metrics)
       metrics = JSON.dump(metrics)
-      @c.post(:path => API_PATH, :head => HEADER, :body => metrics)
+      head = Hash[HEADER]
+      if @config.key?(:authorization)
+          head['Authorization'] = @config[:authorization]
+      end
+      @c.post(:path => API_PATH, :head => head, :body => metrics)
     end
 
     def reporter_meta
-      {:component => :datadog}
+      {:component => :kairosdb}
     end
   end
 end
