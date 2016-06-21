@@ -58,7 +58,12 @@ module FFWD::Plugin::Elastic
                               }
                           }
                       }
-                  ]
+                  ],
+                  :'properties' => {
+                      :'value' => {
+                          :'type' => 'double',
+                      }
+                  }
               }
           }
       }
