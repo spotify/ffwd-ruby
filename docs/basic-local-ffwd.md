@@ -28,7 +28,7 @@ $ gem install ffwd-protobuf
 ```bash
 :input:
   - :type: "protobuf"
-    :receive_buffer_size: 26214400
+    :receive_buffer_size: 2621440
 ```
 5- run FFWD:
 ```bash
